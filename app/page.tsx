@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Download, Upload, Clock, Plus, Play, Pause, SkipBack, SkipForward, Check, X } from "lucide-react"
+import { Download, Upload, Clock, Plus, Play, Pause, SkipBack, SkipForward, Check, X, Rewind, FastForward, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface ScoreEntry {
   id: string
@@ -404,6 +404,24 @@ export default function LyricsTypingApp() {
     }
   }
 
+  const seekBackward1Second = () => {
+    if (player) {
+      const currentTime = player.getCurrentTime()
+      const newTime = Math.max(0, currentTime - 1)
+      player.seekTo(newTime, true)
+      setCurrentTime(newTime)
+    }
+  }
+
+  const seekForward1Second = () => {
+    if (player) {
+      const currentTime = player.getCurrentTime()
+      const newTime = Math.min(duration, currentTime + 1)
+      player.seekTo(newTime, true)
+      setCurrentTime(newTime)
+    }
+  }
+
   const changePlaybackRate = (rate: number) => {
     if (player) {
       player.setPlaybackRate(rate)
@@ -505,13 +523,13 @@ export default function LyricsTypingApp() {
 
       if (event.ctrlKey && event.key === "ArrowLeft") {
         event.preventDefault()
-        seekBackward()
+        seekBackward1Second()
         return
       }
 
       if (event.ctrlKey && event.key === "ArrowRight") {
         event.preventDefault()
-        seekForward()
+        seekForward1Second()
         return
       }
 
@@ -593,12 +611,20 @@ export default function LyricsTypingApp() {
                       {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </Button>
                     <Button variant="outline" size="sm" onClick={seekBackward}>
-                      <SkipBack className="h-4 w-4" />
+                      <Rewind className="h-4 w-4" />
                       <span className="ml-1 text-xs">-5秒</span>
                     </Button>
                     <Button variant="outline" size="sm" onClick={seekForward}>
-                      <SkipForward className="h-4 w-4" />
+                      <FastForward className="h-4 w-4" />
                       <span className="ml-1 text-xs">+5秒</span>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={seekBackward1Second}>
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="ml-1 text-xs">-1秒</span>
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={seekForward1Second}>
+                      <ChevronRight className="h-4 w-4" />
+                      <span className="ml-1 text-xs">+1秒</span>
                     </Button>
                   </div>
 
@@ -887,11 +913,11 @@ export default function LyricsTypingApp() {
           </span>
           <span className="inline-flex items-center gap-2">
             <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+←</kbd>
-            <span>5秒巻き戻し</span>
+            <span>1秒巻き戻し</span>
           </span>
           <span className="inline-flex items-center gap-2">
             <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+→</kbd>
-            <span>5秒早送り</span>
+            <span>1秒早送り</span>
           </span>
         </div>
       </div>

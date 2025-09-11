@@ -2,8 +2,10 @@
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
-  basePath: '/LyricDataCreator',
-  assetPrefix: '/LyricDataCreator/',
+  ...(process.env.NODE_ENV === 'production' && {
+    basePath: '/LyricDataCreator',
+    assetPrefix: '/LyricDataCreator/',
+  }),
   images: {
     unoptimized: true
   }
