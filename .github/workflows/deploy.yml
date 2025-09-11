@@ -33,9 +33,6 @@ jobs:
       - name: Build
         run: npm run build
       
-      - name: List build output
-        run: ls -la out/
-      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
