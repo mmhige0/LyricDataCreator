@@ -228,7 +228,8 @@ export default function LyricsTypingApp() {
     if (!file) return
 
     const filename = file.name
-    const match = filename.match(/^(.+)_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.txt$/)
+    // 現在のエクスポート形式: 曲名_YYYY-MM-DD_HH-MM-SS.txt
+    const match = filename.match(/^(.+)_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.txt$/)
     if (match) {
       setSongTitle(match[1])
     }
