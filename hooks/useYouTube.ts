@@ -194,6 +194,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
   const seekTo = (time: number) => {
     if (player) {
       player.seekTo(time, true)
+      setCurrentTime(time)
     }
   }
 
