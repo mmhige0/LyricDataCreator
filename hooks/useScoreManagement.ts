@@ -54,14 +54,13 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const addScoreEntry = () => {
-    // DOM要素から直接値を取得（より確実）
     const currentLyrics: LyricsArray = [
-      lyricsInputRefs.current[0]?.value || "",
-      lyricsInputRefs.current[1]?.value || "",
-      lyricsInputRefs.current[2]?.value || "",
-      lyricsInputRefs.current[3]?.value || ""
+      lyrics[0] || "",
+      lyrics[1] || "",
+      lyrics[2] || "",
+      lyrics[3] || ""
     ]
-    const currentTimestamp = timestampInputRef.current?.value || "0.00"
+    const currentTimestamp = timestamp || "0.00"
     
     const newEntry: ScoreEntry = {
       id: `entry_${Date.now()}`,

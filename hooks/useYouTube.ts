@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { extractVideoId } from '@/lib/youtubeUtils'
+import { youtubeErrors, handleError } from '@/lib/errorUtils'
 import type { YouTubePlayer } from '@/lib/types'
 
 declare global {
@@ -14,14 +15,24 @@ declare global {
   }
 }
 
-/**
- * YouTube IFrame API の初期化を管理するフック
- */
-export const useYouTubeAPI = () => {
+interface UseYouTubeProps {
+  onPlayerReady?: (player: YouTubePlayer) => void
+  onPlayerStateChange?: (isPlaying: boolean) => void
+  onDurationChange?: (duration: number) => void
+}
+
+export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChange }: UseYouTubeProps = {}) => {
   const [isYouTubeAPIReady, setIsYouTubeAPIReady] = useState<boolean>(false)
+  const [youtubeUrl, setYoutubeUrl] = useState<string>("")
+  const [videoId, setVideoId] = useState<string>("")
+  const [isLoadingVideo, setIsLoadingVideo] = useState<boolean>(false)
+  const [player, setPlayer] = useState<YouTubePlayer | null>(null)
+  const [isPlaying, setIsPlaying] = useState<boolean>(false)
+  const [currentTime, setCurrentTime] = useState<number>(0)
+  const [duration, setDuration] = useState<number>(0)
+  const [playbackRate, setPlaybackRate] = useState<number>(1)
 
   useEffect(() => {
-    // Load YouTube IFrame API
     if (!window.YT) {
       const tag = document.createElement("script")
       tag.src = "https://www.youtube.com/iframe_api"
@@ -29,20 +40,17 @@ export const useYouTubeAPI = () => {
       firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
     }
 
-    // Set up the callback function
-    ;(window as any).onYouTubeIframeAPIReady = () => {
+    window.onYouTubeIframeAPIReady = () => {
       setIsYouTubeAPIReady(true)
     }
 
-    // Check if API is already loaded
     if (window.YT && window.YT.Player) {
       setIsYouTubeAPIReady(true)
     }
 
-    // Fallback: Set a timeout to enable the button after a few seconds
     const fallbackTimer = setTimeout(() => {
       if (!window.YT) {
-        setIsYouTubeAPIReady(true) // Enable button even if API fails to load
+        setIsYouTubeAPIReady(true)
       }
     }, 5000)
 
@@ -51,25 +59,6 @@ export const useYouTubeAPI = () => {
     }
   }, [])
 
-  return {
-    isYouTubeAPIReady
-  }
-}
-
-interface UseYouTubePlayerProps {
-  player: YouTubePlayer | null
-  duration: number
-}
-
-/**
- * YouTube プレイヤーの再生制御を管理するフック
- */
-export const useYouTubePlayer = ({ player, duration }: UseYouTubePlayerProps) => {
-  const [isPlaying, setIsPlaying] = useState<boolean>(false)
-  const [currentTime, setCurrentTime] = useState<number>(0)
-  const [playbackRate, setPlaybackRate] = useState<number>(1)
-
-  // Update current time when playing
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (player && isPlaying) {
@@ -80,6 +69,74 @@ export const useYouTubePlayer = ({ player, duration }: UseYouTubePlayerProps) =>
     }
     return () => clearInterval(interval)
   }, [player, isPlaying])
+
+  const loadYouTubeVideo = () => {
+    const id = extractVideoId(youtubeUrl)
+    if (!id) {
+      youtubeErrors.invalidUrl()
+      return
+    }
+
+    if (!isYouTubeAPIReady && !window.YT) {
+      youtubeErrors.apiLoading()
+      return
+    }
+
+    setIsLoadingVideo(true)
+    setVideoId(id)
+
+    if (player) {
+      player.loadVideoById(id)
+      setIsLoadingVideo(false)
+    } else {
+      setTimeout(() => {
+        try {
+          const playerDiv = document.getElementById("youtube-player")
+          if (!playerDiv) {
+            setIsLoadingVideo(false)
+            youtubeErrors.playerNotReady()
+            return
+          }
+
+          const newPlayer = new window.YT.Player("youtube-player", {
+            height: "450",
+            width: "800",
+            videoId: id,
+            playerVars: {
+              controls: 0,
+              disablekb: 1,
+              fs: 0,
+              modestbranding: 1,
+              rel: 0,
+            },
+            events: {
+              onReady: (event: { target: YouTubePlayer }) => {
+                setPlayer(event.target)
+                const videoDuration = event.target.getDuration()
+                setDuration(videoDuration)
+                setIsLoadingVideo(false)
+                onPlayerReady?.(event.target)
+                onDurationChange?.(videoDuration)
+              },
+              onStateChange: (event: { data: number }) => {
+                const playing = event.data === window.YT.PlayerState.PLAYING
+                setIsPlaying(playing)
+                onPlayerStateChange?.(playing)
+              },
+              onError: (event: { data: number }) => {
+                setIsLoadingVideo(false)
+                youtubeErrors.videoLoadError()
+              },
+            },
+          })
+        } catch (error) {
+          setIsLoadingVideo(false)
+          handleError(error, 'YouTube Player Creation')
+          youtubeErrors.playerCreationError()
+        }
+      }, 100)
+    }
+  }
 
   const togglePlayPause = () => {
     if (player) {
@@ -149,10 +206,18 @@ export const useYouTubePlayer = ({ player, duration }: UseYouTubePlayerProps) =>
   }
 
   return {
+    isYouTubeAPIReady,
+    youtubeUrl,
+    setYoutubeUrl,
+    videoId,
+    isLoadingVideo,
+    loadYouTubeVideo,
+    player,
     isPlaying,
     setIsPlaying,
     currentTime,
     setCurrentTime,
+    duration,
     playbackRate,
     togglePlayPause,
     seekBackward,
@@ -165,97 +230,60 @@ export const useYouTubePlayer = ({ player, duration }: UseYouTubePlayerProps) =>
   }
 }
 
-interface UseYouTubeVideoProps {
+export const useYouTubeAPI = () => {
+  const { isYouTubeAPIReady } = useYouTube()
+  return { isYouTubeAPIReady }
+}
+
+export const useYouTubePlayer = ({ player, duration }: { player: YouTubePlayer | null, duration: number }) => {
+  const youtubeHook = useYouTube()
+  
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (player && youtubeHook.isPlaying) {
+      interval = setInterval(() => {
+        const time = player.getCurrentTime()
+        youtubeHook.setCurrentTime(time)
+      }, 100)
+    }
+    return () => clearInterval(interval)
+  }, [player, youtubeHook.isPlaying, youtubeHook.setCurrentTime])
+  
+  return {
+    isPlaying: youtubeHook.isPlaying,
+    setIsPlaying: youtubeHook.setIsPlaying,
+    currentTime: youtubeHook.currentTime,
+    setCurrentTime: youtubeHook.setCurrentTime,
+    playbackRate: youtubeHook.playbackRate,
+    togglePlayPause: youtubeHook.togglePlayPause,
+    seekBackward: youtubeHook.seekBackward,
+    seekForward: youtubeHook.seekForward,
+    seekBackward1Second: youtubeHook.seekBackward1Second,
+    seekForward1Second: youtubeHook.seekForward1Second,
+    changePlaybackRate: youtubeHook.changePlaybackRate,
+    seekTo: youtubeHook.seekTo,
+    getCurrentTimestamp: youtubeHook.getCurrentTimestamp
+  }
+}
+
+export const useYouTubeVideo = ({ isYouTubeAPIReady, setPlayer, setDuration, setIsPlaying }: {
   isYouTubeAPIReady: boolean
   setPlayer: (player: YouTubePlayer | null) => void
   setDuration: (duration: number) => void
   setIsPlaying: (isPlaying: boolean) => void
-}
-
-/**
- * YouTube 動画の読み込みを管理するフック
- */
-export const useYouTubeVideo = ({ 
-  isYouTubeAPIReady, 
-  setPlayer, 
-  setDuration, 
-  setIsPlaying 
-}: UseYouTubeVideoProps) => {
-  const [youtubeUrl, setYoutubeUrl] = useState<string>("")
-  const [videoId, setVideoId] = useState<string>("")
-  const [player, setPlayerState] = useState<YouTubePlayer | null>(null)
-  const [isLoadingVideo, setIsLoadingVideo] = useState<boolean>(false)
-
-  const loadYouTubeVideo = () => {
-    const id = extractVideoId(youtubeUrl)
-    if (!id) {
-      alert("有効なYouTube URLを入力してください")
-      return
-    }
-
-    // Try to load video even if API status is uncertain
-    if (!isYouTubeAPIReady && !window.YT) {
-      alert("YouTube APIの読み込み中です。しばらく待ってから再試行してください。")
-      return
-    }
-
-    setIsLoadingVideo(true)
-    setVideoId(id)
-
-    if (player) {
-      player.loadVideoById(id)
-      setIsLoadingVideo(false)
-    } else {
-      setTimeout(() => {
-        try {
-          const playerDiv = document.getElementById("youtube-player")
-          if (!playerDiv) {
-            setIsLoadingVideo(false)
-            alert("プレイヤーの準備ができていません。もう一度お試しください。")
-            return
-          }
-
-          const newPlayer = new window.YT.Player("youtube-player", {
-            height: "450",
-            width: "800",
-            videoId: id,
-            playerVars: {
-              controls: 0,
-              disablekb: 1,
-              fs: 0,
-              modestbranding: 1,
-              rel: 0,
-            },
-            events: {
-              onReady: (event: { target: YouTubePlayer }) => {
-                setPlayer(event.target)
-                setPlayerState(event.target)
-                setDuration(event.target.getDuration())
-                setIsLoadingVideo(false)
-              },
-              onStateChange: (event: { data: number }) => {
-                setIsPlaying(event.data === window.YT.PlayerState.PLAYING)
-              },
-              onError: (event: { data: number }) => {
-                setIsLoadingVideo(false)
-                alert("動画の読み込みでエラーが発生しました。URLを確認してください。")
-              },
-            },
-          })
-        } catch (error) {
-          setIsLoadingVideo(false)
-          alert("プレイヤーの作成でエラーが発生しました。")
-        }
-      }, 100)
-    }
-  }
-
+}) => {
+  const youtubeHook = useYouTube({
+    onPlayerReady: setPlayer,
+    onPlayerStateChange: setIsPlaying,
+    onDurationChange: setDuration
+  })
+  
   return {
-    youtubeUrl,
-    setYoutubeUrl,
-    videoId,
-    player,
-    isLoadingVideo,
-    loadYouTubeVideo
+    youtubeUrl: youtubeHook.youtubeUrl,
+    setYoutubeUrl: youtubeHook.setYoutubeUrl,
+    videoId: youtubeHook.videoId,
+    player: youtubeHook.player,
+    isLoadingVideo: youtubeHook.isLoadingVideo,
+    loadYouTubeVideo: youtubeHook.loadYouTubeVideo
   }
 }

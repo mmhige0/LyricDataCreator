@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
-import { useYouTubeAPI, useYouTubePlayer, useYouTubeVideo } from "@/hooks/useYouTube"
+import { useState } from "react"
+import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useFileOperations } from "@/hooks/useFileOperations"
@@ -13,33 +13,22 @@ import type { ScoreEntry, YouTubePlayer, LyricsArray } from "@/lib/types"
 
 
 export default function LyricsTypingApp() {
-  const { isYouTubeAPIReady } = useYouTubeAPI()
-  
-  const [duration, setDuration] = useState<number>(0)
-  const [player, setPlayer] = useState<YouTubePlayer | null>(null)
   const [songTitle, setSongTitle] = useState<string>("")
 
-  // YouTube Video hook
-  const { 
-    youtubeUrl, 
-    setYoutubeUrl, 
-    videoId, 
-    player: videoPlayer, 
-    isLoadingVideo, 
-    loadYouTubeVideo 
-  } = useYouTubeVideo({
-    isYouTubeAPIReady,
-    setPlayer,
-    setDuration,
-    setIsPlaying: (playing) => setIsPlaying(playing)
-  })
-
-  // YouTube Player hook
+  // YouTube統合フック
   const {
+    isYouTubeAPIReady,
+    youtubeUrl,
+    setYoutubeUrl,
+    videoId,
+    isLoadingVideo,
+    loadYouTubeVideo,
+    player,
     isPlaying,
     setIsPlaying,
     currentTime,
     setCurrentTime,
+    duration,
     playbackRate,
     togglePlayPause,
     seekBackward,
@@ -49,10 +38,7 @@ export default function LyricsTypingApp() {
     changePlaybackRate,
     seekTo,
     getCurrentTimestamp
-  } = useYouTubePlayer({ player: videoPlayer || player, duration })
-
-  // Use player from video hook if available, fallback to local state
-  const currentPlayer = videoPlayer || player
+  } = useYouTube()
 
   // Score Management hook
   const {
@@ -76,7 +62,7 @@ export default function LyricsTypingApp() {
     addScoreEntry,
     getCurrentLyricsIndex,
     clearAllScoreEntries
-  } = useScoreManagement({ currentTime, currentPlayer })
+  } = useScoreManagement({ currentTime, currentPlayer: player })
 
   const handleGetCurrentTimestamp = () => {
     const timestampValue = getCurrentTimestamp()
@@ -85,7 +71,7 @@ export default function LyricsTypingApp() {
 
   // Initialize keyboard shortcuts hook
   useKeyboardShortcuts({
-    player: currentPlayer,
+    player,
     getCurrentTimestamp: handleGetCurrentTimestamp,
     addScoreEntry,
     seekBackward1Second,
@@ -99,7 +85,7 @@ export default function LyricsTypingApp() {
     scoreEntries,
     setScoreEntries,
     duration,
-    setDuration,
+    setDuration: (newDuration) => {}, // duration is now managed by useYouTube
     songTitle,
     setSongTitle
   })
@@ -135,7 +121,7 @@ export default function LyricsTypingApp() {
               youtubeUrl={youtubeUrl}
               setYoutubeUrl={setYoutubeUrl}
               videoId={videoId}
-              player={currentPlayer}
+              player={player}
               isPlaying={isPlaying}
               currentTime={currentTime}
               duration={duration}
@@ -157,7 +143,7 @@ export default function LyricsTypingApp() {
               setLyrics={setLyrics}
               timestamp={timestamp}
               setTimestamp={setTimestamp}
-              player={currentPlayer}
+              player={player}
               lyricsInputRefs={lyricsInputRefs}
               timestampInputRef={timestampInputRef}
               addScoreEntry={addScoreEntry}
@@ -168,7 +154,7 @@ export default function LyricsTypingApp() {
           <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
             <ScoreManagementSection
               scoreEntries={scoreEntries}
-              player={currentPlayer}
+              player={player}
               editingId={editingId}
               editingLyrics={editingLyrics}
               editingTimestamp={editingTimestamp}
