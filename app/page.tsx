@@ -131,58 +131,64 @@ export default function LyricsTypingApp() {
         </div>
       </header>
 
-      <main className="max-w-[1400px] mx-auto p-8">
-        <YouTubeVideoSection
-          youtubeUrl={youtubeUrl}
-          setYoutubeUrl={setYoutubeUrl}
-          videoId={videoId}
-          player={currentPlayer}
-          isPlaying={isPlaying}
-          currentTime={currentTime}
-          duration={duration}
-          playbackRate={playbackRate}
-          isLoadingVideo={isLoadingVideo}
-          isYouTubeAPIReady={isYouTubeAPIReady}
-          loadYouTubeVideo={loadYouTubeVideo}
-          togglePlayPause={togglePlayPause}
-          seekBackward={seekBackward}
-          seekForward={seekForward}
-          seekBackward1Second={seekBackward1Second}
-          seekForward1Second={seekForward1Second}
-          changePlaybackRate={changePlaybackRate}
-          seekTo={seekTo}
-        />
+      <main className="max-w-[1600px] mx-auto p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
+          {/* Left Column: YouTube Video & Lyrics Input */}
+          <div className="space-y-6" id="left-column">
+            <YouTubeVideoSection
+              youtubeUrl={youtubeUrl}
+              setYoutubeUrl={setYoutubeUrl}
+              videoId={videoId}
+              player={currentPlayer}
+              isPlaying={isPlaying}
+              currentTime={currentTime}
+              duration={duration}
+              playbackRate={playbackRate}
+              isLoadingVideo={isLoadingVideo}
+              isYouTubeAPIReady={isYouTubeAPIReady}
+              loadYouTubeVideo={loadYouTubeVideo}
+              togglePlayPause={togglePlayPause}
+              seekBackward={seekBackward}
+              seekForward={seekForward}
+              seekBackward1Second={seekBackward1Second}
+              seekForward1Second={seekForward1Second}
+              changePlaybackRate={changePlaybackRate}
+              seekTo={seekTo}
+            />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-          <LyricsInputSection
-            lyrics={lyrics}
-            setLyrics={setLyrics}
-            timestamp={timestamp}
-            setTimestamp={setTimestamp}
-            player={currentPlayer}
-            lyricsInputRefs={lyricsInputRefs}
-            timestampInputRef={timestampInputRef}
-            addScoreEntry={addScoreEntry}
-          />
+            <LyricsInputSection
+              lyrics={lyrics}
+              setLyrics={setLyrics}
+              timestamp={timestamp}
+              setTimestamp={setTimestamp}
+              player={currentPlayer}
+              lyricsInputRefs={lyricsInputRefs}
+              timestampInputRef={timestampInputRef}
+              addScoreEntry={addScoreEntry}
+            />
+          </div>
 
-          <ScoreManagementSection
-            scoreEntries={scoreEntries}
-            player={currentPlayer}
-            editingId={editingId}
-            editingLyrics={editingLyrics}
-            editingTimestamp={editingTimestamp}
-            setEditingLyrics={setEditingLyrics}
-            setEditingTimestamp={setEditingTimestamp}
-            getCurrentLyricsIndex={getCurrentLyricsIndex}
-            importScoreData={importScoreData}
-            exportScoreData={exportScoreData}
-            deleteScoreEntry={deleteScoreEntry}
-            startEditScoreEntry={startEditScoreEntry}
-            saveEditScoreEntry={saveEditScoreEntry}
-            cancelEditScoreEntry={cancelEditScoreEntry}
-            clearAllScoreEntries={clearAllScoreEntries}
-            seekTo={seekTo}
-          />
+          {/* Right Column: Page Management */}
+          <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+            <ScoreManagementSection
+              scoreEntries={scoreEntries}
+              player={currentPlayer}
+              editingId={editingId}
+              editingLyrics={editingLyrics}
+              editingTimestamp={editingTimestamp}
+              setEditingLyrics={setEditingLyrics}
+              setEditingTimestamp={setEditingTimestamp}
+              getCurrentLyricsIndex={getCurrentLyricsIndex}
+              importScoreData={importScoreData}
+              exportScoreData={exportScoreData}
+              deleteScoreEntry={deleteScoreEntry}
+              startEditScoreEntry={startEditScoreEntry}
+              saveEditScoreEntry={saveEditScoreEntry}
+              cancelEditScoreEntry={cancelEditScoreEntry}
+              clearAllScoreEntries={clearAllScoreEntries}
+              seekTo={seekTo}
+            />
+          </div>
         </div>
       </main>
       

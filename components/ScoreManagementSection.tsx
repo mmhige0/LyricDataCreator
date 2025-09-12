@@ -45,8 +45,8 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   seekTo
 }) => {
   return (
-    <Card className="bg-white dark:bg-slate-900 border shadow-lg">
-      <CardHeader className="pb-4">
+    <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
+      <CardHeader className="pb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
             <div className="p-2 rounded-lg bg-purple-500 text-white">
@@ -66,13 +66,13 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col min-h-0">
         {scoreEntries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             ページがありません。歌詞を入力して追加してください。
           </p>
         ) : (
-          <div className="space-y-3 max-h-[600px] overflow-y-auto">
+          <div className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
             {scoreEntries.map((entry, index) => {
               const isCurrentlyPlaying = getCurrentLyricsIndex() === index
 
