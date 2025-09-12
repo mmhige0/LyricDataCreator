@@ -2,10 +2,6 @@
 
 import type React from "react"
 import { useState, useRef } from "react"
-import { Play } from "lucide-react"
-import { formatTime } from "@/lib/timeUtils"
-import { extractVideoId } from "@/lib/youtubeUtils"
-import { convertAllLyricsToFullWidth } from "@/lib/textUtils"
 import { useYouTubeAPI, useYouTubePlayer, useYouTubeVideo } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
