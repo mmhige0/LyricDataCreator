@@ -8,26 +8,42 @@ This is a Next.js 14 application for creating lyric timing data for YouTube vide
 
 ## Development Commands
 
-- `npm run dev` - Start development server (currently runs on http://localhost:3005)
+- `npm run dev` - Start development server (port varies based on availability)
 - `npm run build` - Build production version
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint for code quality checks
 
 ## Architecture and Code Organization
 
-### Directory Structure
+### Directory Structure (Recently Refactored)
 ```
 app/                      # Next.js App Router pages
 ├── layout.tsx           # Root layout with metadata and styling
 ├── page.tsx             # Main lyrics typing application
 └── globals.css          # Global styles with Tailwind CSS
-components/ui/           # shadcn/ui components
-├── button.tsx
-├── card.tsx
-├── input.tsx
-└── label.tsx
+components/
+├── ui/                  # shadcn/ui base components
+│   ├── button.tsx
+│   ├── card.tsx
+│   ├── input.tsx
+│   └── label.tsx
+├── shared/              # Reusable shared components
+│   ├── LyricsInputFields.tsx    # Common 4-line lyrics input
+│   └── TimestampInput.tsx       # Timestamp input with capture button
+├── LyricsInputSection.tsx       # Page add functionality
+├── ScoreManagementSection.tsx   # Page edit/list functionality  
+└── YouTubeVideoSection.tsx      # Video player controls
+hooks/
+├── useYouTube.ts               # Consolidated YouTube functionality
+├── useScoreManagement.ts       # Lyrics entries CRUD operations
+├── useKeyboardShortcuts.ts     # Global keyboard shortcuts
+└── useFileOperations.ts        # Import/export functionality
 lib/
-└── utils.ts             # Utility functions (cn for className merging)
+├── types.ts                    # Centralized TypeScript interfaces
+├── textUtils.ts                # Text processing & conversion
+├── timeUtils.ts                # Time formatting utilities
+├── youtubeUtils.ts            # YouTube URL parsing
+└── utils.ts                   # General utilities (cn function)
 ```
 
 ### Key Technologies
@@ -38,60 +54,53 @@ lib/
 - **Lucide React** icons for UI elements
 - **YouTube IFrame API** for video integration
 
-### Main Application Features
-The primary component (`app/page.tsx`) implements:
+### Refactored Architecture Highlights
 
-1. **YouTube Video Integration**
-   - Dynamic video loading via YouTube IFrame API
-   - Custom playback controls (play/pause, seek, speed control)
-   - Real-time timestamp tracking with progress bar
+**Recent Consolidation Improvements:**
+- **Hooks Consolidation**: All YouTube-related functionality (`useYouTubeAPI`, `useYouTubePlayer`, `useYouTubeVideo`) merged into single `useYouTube.ts`
+- **Type Unification**: All TypeScript interfaces consolidated in `lib/types.ts` (eliminated duplicate definitions across components)
+- **Component Reuse**: Common UI patterns extracted into `components/shared/` for reuse between add/edit functionality
+- **Text Processing**: All text conversion utilities unified in `lib/textUtils.ts`
 
-2. **Lyrics Input System**
-   - 4-line lyrics input with timestamp association
-   - Automatic timestamp capture via spacebar
-   - Text conversion utilities (half-width to full-width)
-   - Kanji to hiragana conversion dictionary
+### Core Application Features
 
-3. **Score Management**
+1. **YouTube Video Integration** (`useYouTube.ts` + `YouTubeVideoSection.tsx`)
+   - Dynamic video loading via YouTube IFrame API with consolidated state management
+   - Custom playback controls with keyboard shortcuts
+   - Playback speed control (0.25x to 2x)
+   - Precision seeking (5-second and 1-second increments)
+
+2. **Lyrics Management System** (`useScoreManagement.ts`)
+   - 4-line lyrics input with timestamp association using shared components
    - CRUD operations for lyrics entries (add, edit, delete)
-   - Import/export functionality with custom text format
    - Real-time lyrics highlighting during playback
+   - Automatic sorting by timestamp
+
+3. **File Operations** (`useFileOperations.ts`)
+   - Custom export format: `総時間\n歌詞1/歌詞2/歌詞3/歌詞4/タイムスタンプ`
+   - Import with validation and conflict resolution
+   - Automatic song title detection from filename patterns (`曲名_YYYY-MM-DD_HH-MM-SS.txt`)
    - Batch operations (clear all entries)
 
-4. **Keyboard Shortcuts**
-   - Space: Capture current video timestamp
-   - Ctrl+Enter: Add score entry
-   - Tab: Navigate between input fields
+4. **Keyboard Shortcuts** (`useKeyboardShortcuts.ts`)
+   - `F2`: Capture current video timestamp
+   - `Ctrl+Enter`: Add score entry  
+   - `Ctrl+Space`: Toggle play/pause
+   - `Ctrl+←/→`: 1-second seek backward/forward
+   - `Tab`: Navigate between input fields
 
-5. **File Operations**
-   - Export lyrics data in custom format with timestamps
-   - Import previously saved lyrics files
-   - Automatic song title detection from filenames
+### Key Architectural Patterns
 
-### Component Configuration
-- Uses shadcn/ui components with Tailwind CSS v3
-- Path aliases: `@/components`, `@/lib` configured in tsconfig.json
-- Full-width Japanese character support with conversion utilities
-- Responsive design with mobile-first approach
+- **Hook-Based State Management**: Each major feature isolated in custom hooks with proper TypeScript typing
+- **Shared Component Strategy**: Common UI patterns (lyrics input, timestamp capture) extracted for reuse between page add/edit functionality
+- **Centralized Types**: All interfaces defined once in `lib/types.ts` (`ScoreEntry`, `YouTubePlayer`, `LyricsArray`)
+- **Utility Separation**: Text processing, time formatting, YouTube parsing in dedicated lib files
+- **Component Composition**: Main page orchestrates feature components rather than implementing directly
 
-### Code Patterns
-- Extensive use of React hooks for state management
-- TypeScript interfaces for type safety (`ScoreEntry`)
-- Custom utility functions for text processing and time formatting
-- Event-driven YouTube API integration with comprehensive error handling
-- Real-time UI updates synchronized with video playback
+### Development Notes
 
-### Project Status
-✅ **New Clean Build Completed**
-- Rebuilt from scratch with Next.js 14 and stable dependencies
-- All original functionality restored and working
-- No 404 errors or TypeScript compilation issues
-- Properly configured Tailwind CSS v3
-- All UI components functioning correctly
-
-### YouTube API Integration
-The application loads the YouTube IFrame API dynamically and provides:
-- Video embedding with custom player controls
-- Playback speed control (0.25x to 2x)
-- Seek functionality with precision timestamp control
-- Real-time current time tracking for lyrics synchronization
+- **Port Flexibility**: Dev server automatically finds available port (typically 3000-3007 range)
+- **Cache Management**: Clear `.next` folder if experiencing build issues after refactoring
+- **Type Safety**: All `any` types replaced with proper TypeScript interfaces from `lib/types.ts`
+- **Import Paths**: Uses `@/` aliases for clean imports across the codebase
+- **Text Processing**: Japanese text support with half-width to full-width conversion utilities
