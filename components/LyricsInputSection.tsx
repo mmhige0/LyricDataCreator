@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus } from "lucide-react"
 import { LyricsInputFields } from '@/components/shared/LyricsInputFields'
 import { TimestampInput } from '@/components/shared/TimestampInput'
-import { convertAllLyricsToFullWidth } from '@/lib/textUtils'
 import type { YouTubePlayer, LyricsArray } from '@/lib/types'
 
 interface LyricsInputSectionProps {
@@ -52,16 +51,6 @@ export const LyricsInputSection: React.FC<LyricsInputSectionProps> = ({
           lyricsInputRefs={lyricsInputRefs}
         />
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => convertAllLyricsToFullWidth(lyrics, setLyrics)}
-            disabled={lyrics.every(line => !line.trim())}
-            className="flex-1"
-          >
-            全角変換
-          </Button>
-        </div>
 
         <Button
           onClick={addScoreEntry}

@@ -20,3 +20,15 @@ export const convertAllLyricsToFullWidth = (
   const newLyrics = lyrics.map(line => halfWidthToFullWidth(line)) as LyricsArray
   setLyrics(newLyrics)
 }
+
+/**
+ * 歌詞配列の各行を全角に変換して返す（副作用なし）
+ */
+export const convertLyricsToFullWidth = (lyrics: LyricsArray): LyricsArray => {
+  return [
+    halfWidthToFullWidth(lyrics[0] || ""),
+    halfWidthToFullWidth(lyrics[1] || ""),
+    halfWidthToFullWidth(lyrics[2] || ""),
+    halfWidthToFullWidth(lyrics[3] || "")
+  ]
+}
