@@ -7,7 +7,7 @@ import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useFileOperations } from "@/hooks/useFileOperations"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
-import { LyricsInputSection } from "@/components/LyricsInputSection"
+import { LyricsEditCard } from "@/components/LyricsEditCard"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from "@/lib/types"
 
@@ -140,15 +140,20 @@ export default function LyricsTypingApp() {
               seekTo={seekTo}
             />
 
-            <LyricsInputSection
-              lyrics={lyrics}
-              setLyrics={setLyrics}
-              timestamp={timestamp}
-              setTimestamp={setTimestamp}
+            <LyricsEditCard
+              lyrics={editingId ? editingLyrics : lyrics}
+              setLyrics={editingId ? setEditingLyrics : setLyrics}
+              timestamp={editingId ? editingTimestamp : timestamp}
+              setTimestamp={editingId ? setEditingTimestamp : setTimestamp}
               player={player}
+              mode={editingId ? 'edit' : 'add'}
+              editingEntry={editingId ? scoreEntries.find(entry => entry.id === editingId) : null}
+              editingEntryIndex={editingId ? scoreEntries.findIndex(entry => entry.id === editingId) : undefined}
+              onAdd={addScoreEntry}
+              onSave={saveEditScoreEntry}
+              onCancel={cancelEditScoreEntry}
               lyricsInputRefs={lyricsInputRefs}
               timestampInputRef={timestampInputRef}
-              addScoreEntry={addScoreEntry}
             />
           </div>
 
@@ -158,17 +163,11 @@ export default function LyricsTypingApp() {
               scoreEntries={scoreEntries}
               player={player}
               editingId={editingId}
-              editingLyrics={editingLyrics}
-              editingTimestamp={editingTimestamp}
-              setEditingLyrics={setEditingLyrics}
-              setEditingTimestamp={setEditingTimestamp}
               getCurrentLyricsIndex={getCurrentLyricsIndex}
               importScoreData={importScoreData}
               exportScoreData={exportScoreData}
               deleteScoreEntry={deleteScoreEntry}
               startEditScoreEntry={startEditScoreEntry}
-              saveEditScoreEntry={saveEditScoreEntry}
-              cancelEditScoreEntry={cancelEditScoreEntry}
               clearAllScoreEntries={clearAllScoreEntries}
               seekTo={seekTo}
             />
