@@ -36,6 +36,14 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
     <div>
       {showLabel && <Label>{label}</Label>}
       <div className="flex gap-2 items-center">
+        <Button
+          variant="outline"
+          onClick={() => seekToInput?.(timestamp)}
+          disabled={!seekToInput || !timestamp}
+          className="h-12"
+        >
+          <Play className="h-4 w-4" />
+        </Button>
         <Input
           ref={timestampInputRef}
           type="number"
@@ -53,14 +61,6 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
         >
           <Clock className="h-4 w-4 mr-2" />
           タイムスタンプ取得
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => seekToInput?.(timestamp)}
-          disabled={!seekToInput || !timestamp}
-          className="h-12"
-        >
-          <Play className="h-4 w-4" />
         </Button>
       </div>
     </div>
