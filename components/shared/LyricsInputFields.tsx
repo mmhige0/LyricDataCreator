@@ -8,17 +8,14 @@ interface LyricsInputFieldsProps {
   setLyrics: (lyrics: LyricsArray) => void
   lyricsInputRefs?: React.MutableRefObject<(HTMLInputElement | null)[]>
   placeholder?: string
-  size?: 'default' | 'small'
 }
 
 export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
   lyrics,
   setLyrics,
   lyricsInputRefs,
-  placeholder = "空行の場合は入力不要",
-  size = 'default'
+  placeholder = "空行の場合は入力不要"
 }) => {
-  const inputClassName = size === 'small' ? 'text-sm' : 'h-12 text-lg px-4'
 
   return (
     <>
@@ -29,14 +26,14 @@ export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
             ref={lyricsInputRefs ? (el) => {
               lyricsInputRefs.current[index] = el
             } : undefined}
-            placeholder={size === 'small' ? `${index + 1}行目` : placeholder}
+            placeholder={placeholder}
             value={line}
             onChange={(e) => {
               const newLyrics = [...lyrics] as LyricsArray
               newLyrics[index] = e.target.value
               setLyrics(newLyrics)
             }}
-            className={inputClassName}
+            className="h-12 text-lg px-4"
           />
         </div>
       ))}
