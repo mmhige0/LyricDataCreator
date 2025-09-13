@@ -1,7 +1,7 @@
 import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Upload, Download, Clock, Play, Copy } from "lucide-react"
+import { Upload, Download, Clock, Play, Copy, Edit, Trash2 } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import type { ScoreEntry, YouTubePlayer } from '@/lib/types'
 
@@ -110,9 +110,11 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                         onClick={() => startEditScoreEntry(entry)}
                         className={`text-xs ${isEditing ? 'bg-blue-100 border-blue-300' : ''}`}
                       >
+                        <Edit className="h-3 w-3 mr-1" />
                         編集
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => deleteScoreEntry(entry.id)} className="text-xs">
+                        <Trash2 className="h-3 w-3 mr-1" />
                         削除
                       </Button>
                     </div>
@@ -131,6 +133,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
               onClick={clearAllScoreEntries}
               className="text-black hover:bg-gray-50 text-xs"
             >
+              <Trash2 className="h-3 w-3 mr-1" />
               全ページ削除
             </Button>
           </div>
