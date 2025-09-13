@@ -26,9 +26,9 @@ export const convertAllLyricsToFullWidth = (
  */
 export const convertLyricsToFullWidth = (lyrics: LyricsArray): LyricsArray => {
   return [
-    halfWidthToFullWidth(lyrics[0] || ""),
-    halfWidthToFullWidth(lyrics[1] || ""),
-    halfWidthToFullWidth(lyrics[2] || ""),
-    halfWidthToFullWidth(lyrics[3] || "")
+    halfWidthToFullWidth((lyrics[0] || "").trim()),
+    halfWidthToFullWidth((lyrics[1] || "").trim()),
+    halfWidthToFullWidth((lyrics[2] || "").trim()),
+    halfWidthToFullWidth((lyrics[3] || "").trim())
   ]
 }
