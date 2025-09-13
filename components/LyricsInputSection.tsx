@@ -1,9 +1,10 @@
 import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus } from "lucide-react"
+import { Plus, ClipboardPaste } from "lucide-react"
 import { LyricsInputFields } from '@/components/shared/LyricsInputFields'
 import { TimestampInput } from '@/components/shared/TimestampInput'
+import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import type { YouTubePlayer, LyricsArray } from '@/lib/types'
 
 interface LyricsInputSectionProps {
@@ -27,15 +28,34 @@ export const LyricsInputSection: React.FC<LyricsInputSectionProps> = ({
   timestampInputRef,
   addScoreEntry
 }) => {
+  const { pasteLyricsFromClipboard, copyStatus } = useLyricsCopyPaste()
+
+  const handlePasteLyrics = async () => {
+    const pastedLyrics = await pasteLyricsFromClipboard()
+    if (pastedLyrics) {
+      setLyrics(pastedLyrics)
+    }
+  }
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg">
       <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-semibold flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-green-500 text-white">
-            <Plus className="h-5 w-5" />
-          </div>
-          歌詞入力
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-semibold flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-green-500 text-white">
+              <Plus className="h-5 w-5" />
+            </div>
+            歌詞入力
+          </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePasteLyrics}
+            className={`${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+          >
+            <ClipboardPaste className="h-4 w-4 mr-2" />
+            貼り付け
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <TimestampInput
@@ -50,7 +70,6 @@ export const LyricsInputSection: React.FC<LyricsInputSectionProps> = ({
           setLyrics={setLyrics}
           lyricsInputRefs={lyricsInputRefs}
         />
-
 
         <Button
           onClick={addScoreEntry}

@@ -1,9 +1,10 @@
 import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Upload, Download, Clock, Play, Check, X } from "lucide-react"
+import { Upload, Download, Clock, Play, Check, X, Copy, ClipboardPaste } from "lucide-react"
 import { LyricsInputFields } from '@/components/shared/LyricsInputFields'
 import { TimestampInput } from '@/components/shared/TimestampInput'
+import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 
 interface ScoreManagementSectionProps {
@@ -43,6 +44,14 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   clearAllScoreEntries,
   seekTo
 }) => {
+  const { copyLyricsToClipboard, pasteLyricsFromClipboard, copyStatus } = useLyricsCopyPaste()
+
+  const handlePasteLyricsToEdit = async () => {
+    const pastedLyrics = await pasteLyricsFromClipboard()
+    if (pastedLyrics) {
+      setEditingLyrics(pastedLyrics)
+    }
+  }
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
       <CardHeader className="pb-4 flex-shrink-0">
@@ -84,15 +93,26 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                 >
                   {editingId === entry.id ? (
                     <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm font-mono text-muted-foreground w-12">#{index + 1}</div>
-                        <TimestampInput
-                          timestamp={editingTimestamp}
-                          setTimestamp={setEditingTimestamp}
-                          player={player}
-                          size="small"
-                          showLabel={false}
-                        />
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-mono text-muted-foreground w-12">#{index + 1}</div>
+                          <TimestampInput
+                            timestamp={editingTimestamp}
+                            setTimestamp={setEditingTimestamp}
+                            player={player}
+                            size="small"
+                            showLabel={false}
+                          />
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePasteLyricsToEdit}
+                          className={`text-xs ${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+                        >
+                          <ClipboardPaste className="h-3 w-3 mr-1" />
+                          貼り付け
+                        </Button>
                       </div>
                       
                       <LyricsInputFields
@@ -100,7 +120,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                         setLyrics={setEditingLyrics}
                         size="small"
                       />
-                      
+
                       <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={saveEditScoreEntry}>
                           <Check className="h-4 w-4 mr-1" />
@@ -137,6 +157,15 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                         ))}
                       </div>
                       <div className="flex flex-col gap-1 min-w-fit self-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyLyricsToClipboard(entry.lyrics)}
+                          className={`text-xs ${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          コピー
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => startEditScoreEntry(entry)} className="text-xs">
                           編集
                         </Button>
