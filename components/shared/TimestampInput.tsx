@@ -2,13 +2,14 @@ import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Clock } from "lucide-react"
+import { Clock, Play } from "lucide-react"
 import type { YouTubePlayer } from '@/lib/types'
 
 interface TimestampInputProps {
   timestamp: string
   setTimestamp: (timestamp: string) => void
   player: YouTubePlayer | null
+  seekToInput?: (inputValue: string) => void
   timestampInputRef?: React.MutableRefObject<HTMLInputElement | null>
   label?: string
   size?: 'default' | 'small'
@@ -19,6 +20,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
   timestamp,
   setTimestamp,
   player,
+  seekToInput,
   timestampInputRef,
   label = "ページ表示タイム（秒）",
   size = 'default',
@@ -29,6 +31,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
       setTimestamp(player.getCurrentTime().toFixed(2))
     }
   }
+
 
   const inputClassName = size === 'small' ? 'text-sm font-mono' : 'h-12 text-lg px-4'
   const buttonClassName = size === 'small' ? 'px-2' : 'h-12'
@@ -59,17 +62,36 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
             >
               <Clock className="h-3 w-3" />
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => seekToInput?.(timestamp)}
+              disabled={!seekToInput || !timestamp}
+              className={buttonClassName}
+            >
+              <Play className="h-3 w-3" />
+            </Button>
           </>
         ) : (
-          <Button 
-            variant="outline" 
-            onClick={handleGetCurrentTimestamp} 
-            disabled={!player} 
-            className={buttonClassName}
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            タイムスタンプ取得
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              onClick={handleGetCurrentTimestamp}
+              disabled={!player}
+              className={buttonClassName}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              タイムスタンプ取得
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => seekToInput?.(timestamp)}
+              disabled={!seekToInput || !timestamp}
+              className={buttonClassName}
+            >
+              <Play className="h-4 w-4" />
+            </Button>
+          </>
         )}
       </div>
     </div>

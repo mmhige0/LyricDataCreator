@@ -189,6 +189,15 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     return "0.00"
   }
 
+  const seekToInput = (inputValue: string) => {
+    if (inputValue) {
+      const time = parseFloat(inputValue)
+      if (!isNaN(time)) {
+        seekTo(time)
+      }
+    }
+  }
+
   return {
     isYouTubeAPIReady,
     youtubeUrl,
@@ -211,7 +220,8 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     seekToBeginning,
     changePlaybackRate,
     seekTo,
-    getCurrentTimestamp
+    getCurrentTimestamp,
+    seekToInput
   }
 }
 

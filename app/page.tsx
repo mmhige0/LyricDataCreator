@@ -38,7 +38,8 @@ export default function LyricsTypingApp() {
     seekToBeginning,
     changePlaybackRate,
     seekTo,
-    getCurrentTimestamp
+    getCurrentTimestamp,
+    seekToInput
   } = useYouTube()
 
   // Score Management hook
@@ -146,6 +147,7 @@ export default function LyricsTypingApp() {
               timestamp={editingId ? editingTimestamp : timestamp}
               setTimestamp={editingId ? setEditingTimestamp : setTimestamp}
               player={player}
+              seekToInput={seekToInput}
               mode={editingId ? 'edit' : 'add'}
               editingEntry={editingId ? scoreEntries.find(entry => entry.id === editingId) : null}
               editingEntryIndex={editingId ? scoreEntries.findIndex(entry => entry.id === editingId) : undefined}

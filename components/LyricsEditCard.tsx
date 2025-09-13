@@ -14,6 +14,7 @@ interface LyricsEditCardProps {
   timestamp: string
   setTimestamp: React.Dispatch<React.SetStateAction<string>>
   player: YouTubePlayer | null
+  seekToInput?: (inputValue: string) => void
 
   // Mode-specific props
   mode: 'add' | 'edit'
@@ -36,6 +37,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   timestamp,
   setTimestamp,
   player,
+  seekToInput,
   mode,
   editingEntry,
   editingEntryIndex,
@@ -96,6 +98,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           timestamp={timestamp}
           setTimestamp={setTimestamp}
           player={player}
+          seekToInput={seekToInput}
           timestampInputRef={timestampInputRef}
         />
 
