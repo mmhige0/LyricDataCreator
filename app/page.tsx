@@ -35,6 +35,7 @@ export default function LyricsTypingApp() {
     seekForward,
     seekBackward1Second,
     seekForward1Second,
+    seekToBeginning,
     changePlaybackRate,
     seekTo,
     getCurrentTimestamp
@@ -134,6 +135,7 @@ export default function LyricsTypingApp() {
               seekForward={seekForward}
               seekBackward1Second={seekBackward1Second}
               seekForward1Second={seekForward1Second}
+              seekToBeginning={seekToBeginning}
               changePlaybackRate={changePlaybackRate}
               seekTo={seekTo}
             />

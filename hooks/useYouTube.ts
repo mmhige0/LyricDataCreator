@@ -148,53 +148,36 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     }
   }
 
-  const seekBackward = () => {
+  // Helper function for time boundary calculation
+  const clampTime = (time: number) => Math.max(0, Math.min(duration, time))
+
+  // Base seek function
+  const seekTo = (time: number) => {
     if (player) {
-      const currentTime = player.getCurrentTime()
-      const newTime = Math.max(0, currentTime - 5)
-      player.seekTo(newTime, true)
-      setCurrentTime(newTime)
+      const clampedTime = clampTime(time)
+      player.seekTo(clampedTime, true)
+      setCurrentTime(clampedTime)
     }
   }
 
-  const seekForward = () => {
+  // Generic relative seek function
+  const seekRelative = (seconds: number) => {
     if (player) {
       const currentTime = player.getCurrentTime()
-      const newTime = Math.min(duration, currentTime + 5)
-      player.seekTo(newTime, true)
-      setCurrentTime(newTime)
+      seekTo(currentTime + seconds)
     }
   }
 
-  const seekBackward1Second = () => {
-    if (player) {
-      const currentTime = player.getCurrentTime()
-      const newTime = Math.max(0, currentTime - 1)
-      player.seekTo(newTime, true)
-      setCurrentTime(newTime)
-    }
-  }
-
-  const seekForward1Second = () => {
-    if (player) {
-      const currentTime = player.getCurrentTime()
-      const newTime = Math.min(duration, currentTime + 1)
-      player.seekTo(newTime, true)
-      setCurrentTime(newTime)
-    }
-  }
+  const seekBackward = () => seekRelative(-5)
+  const seekForward = () => seekRelative(5)
+  const seekBackward1Second = () => seekRelative(-1)
+  const seekForward1Second = () => seekRelative(1)
+  const seekToBeginning = () => seekTo(0)
 
   const changePlaybackRate = (rate: number) => {
     if (player) {
       player.setPlaybackRate(rate)
       setPlaybackRate(rate)
-    }
-  }
-
-  const seekTo = (time: number) => {
-    if (player) {
-      player.seekTo(time, true)
-      setCurrentTime(time)
     }
   }
 
@@ -225,6 +208,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     seekForward,
     seekBackward1Second,
     seekForward1Second,
+    seekToBeginning,
     changePlaybackRate,
     seekTo,
     getCurrentTimestamp
@@ -261,6 +245,7 @@ export const useYouTubePlayer = ({ player, duration }: { player: YouTubePlayer |
     seekForward: youtubeHook.seekForward,
     seekBackward1Second: youtubeHook.seekBackward1Second,
     seekForward1Second: youtubeHook.seekForward1Second,
+    seekToBeginning: youtubeHook.seekToBeginning,
     changePlaybackRate: youtubeHook.changePlaybackRate,
     seekTo: youtubeHook.seekTo,
     getCurrentTimestamp: youtubeHook.getCurrentTimestamp

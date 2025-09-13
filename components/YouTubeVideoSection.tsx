@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Play, Pause, Rewind, FastForward, ChevronLeft, ChevronRight } from "lucide-react"
+import { Play, Pause, Rewind, FastForward, ChevronLeft, ChevronRight, SkipBack } from "lucide-react"
 import { formatTime } from "@/lib/timeUtils"
 import type { YouTubePlayer } from '@/lib/types'
 
@@ -24,6 +24,7 @@ interface YouTubeVideoSectionProps {
   seekForward: () => void
   seekBackward1Second: () => void
   seekForward1Second: () => void
+  seekToBeginning: () => void
   changePlaybackRate: (rate: number) => void
   seekTo: (time: number) => void
 }
@@ -45,6 +46,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
   seekForward,
   seekBackward1Second,
   seekForward1Second,
+  seekToBeginning,
   changePlaybackRate,
   seekTo
 }) => {
@@ -83,6 +85,9 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
 
             <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
               <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={seekToBeginning}>
+                  <SkipBack className="h-4 w-4" />
+                </Button>
                 <Button variant="outline" size="sm" onClick={togglePlayPause}>
                   {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </Button>
