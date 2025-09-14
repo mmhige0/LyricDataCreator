@@ -1,10 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, ClipboardPaste, Check, X, Edit, Eraser } from "lucide-react"
+import { Plus, ClipboardPaste, Check, X, Edit, Eraser, Languages } from "lucide-react"
 import { LyricsInputFields } from '@/components/LyricsInputFields'
 import { TimestampInput } from '@/components/TimestampInput'
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
+import { convertLyricsArrayToHiragana } from '@/lib/hiraganaUtils'
 import type { YouTubePlayer, LyricsArray, ScoreEntry } from '@/lib/types'
 
 interface LyricsEditCardProps {
@@ -56,11 +57,30 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   getCurrentTimestamp
 }) => {
   const { pasteLyricsFromClipboard, copyStatus } = useLyricsCopyPaste()
+  const [isConverting, setIsConverting] = useState(false)
+  const [conversionError, setConversionError] = useState<string | null>(null)
 
   const handlePasteLyrics = async () => {
     const pastedLyrics = await pasteLyricsFromClipboard()
     if (pastedLyrics) {
       setLyrics(pastedLyrics)
+    }
+  }
+
+  const handleConvertToHiragana = async () => {
+    if (isConverting) return
+
+    try {
+      setIsConverting(true)
+      setConversionError(null)
+
+      const convertedLyrics = await convertLyricsArrayToHiragana(lyrics)
+      setLyrics(convertedLyrics)
+    } catch (error) {
+      console.error('Hiragana conversion error:', error)
+      setConversionError(error instanceof Error ? error.message : '変換中にエラーが発生しました')
+    } finally {
+      setIsConverting(false)
     }
   }
 
@@ -108,16 +128,34 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
 
         <div className="flex items-center justify-between mb-2">
           <div className="text-sm font-medium text-muted-foreground">歌詞入力</div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePasteLyrics}
-            className={`${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
-          >
-            <ClipboardPaste className="h-4 w-4 mr-2" />
-            貼り付け
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleConvertToHiragana}
+              disabled={isConverting || lyrics.every(line => line.trim() === '')}
+              className={`${conversionError ? 'bg-red-50 border-red-200' : ''}`}
+            >
+              <Languages className="h-4 w-4 mr-2" />
+              {isConverting ? '変換中...' : 'ひらがな'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePasteLyrics}
+              className={`${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+            >
+              <ClipboardPaste className="h-4 w-4 mr-2" />
+              貼り付け
+            </Button>
+          </div>
         </div>
+
+        {conversionError && (
+          <div className="text-sm text-red-600 mb-2 p-2 bg-red-50 border border-red-200 rounded">
+            {conversionError}
+          </div>
+        )}
 
         <LyricsInputFields
           lyrics={lyrics}
