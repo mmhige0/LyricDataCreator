@@ -1,7 +1,7 @@
 import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, ClipboardPaste, Check, X, Edit } from "lucide-react"
+import { Plus, ClipboardPaste, Check, X, Edit, Eraser } from "lucide-react"
 import { LyricsInputFields } from '@/components/shared/LyricsInputFields'
 import { TimestampInput } from '@/components/shared/TimestampInput'
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
@@ -54,6 +54,10 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
     if (pastedLyrics) {
       setLyrics(pastedLyrics)
     }
+  }
+
+  const handleClearLyrics = () => {
+    setLyrics(["", "", "", ""])
   }
 
   const getTitle = () => {
@@ -109,6 +113,18 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           setLyrics={setLyrics}
           lyricsInputRefs={lyricsInputRefs}
         />
+
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearLyrics}
+            className="text-xs"
+          >
+            <Eraser className="h-3 w-3 mr-1" />
+            クリア
+          </Button>
+        </div>
 
         <div className="flex gap-2">
           {mode === 'add' ? (
