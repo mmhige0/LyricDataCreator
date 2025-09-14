@@ -60,7 +60,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
     if (mode === 'edit' && editingEntryIndex !== undefined) {
       return `ページ #${editingEntryIndex + 1} 編集`
     }
-    return '歌詞入力'
+    return 'ページ追加'
   }
 
   const getIcon = () => {
@@ -74,23 +74,12 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-semibold flex items-center gap-2">
-            <div className={`p-2 rounded-lg text-white ${getIconColor()}`}>
-              {getIcon()}
-            </div>
-            {getTitle()}
-          </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePasteLyrics}
-            className={`${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
-          >
-            <ClipboardPaste className="h-4 w-4 mr-2" />
-            貼り付け
-          </Button>
-        </div>
+        <CardTitle className="text-xl font-semibold flex items-center gap-2">
+          <div className={`p-2 rounded-lg text-white ${getIconColor()}`}>
+            {getIcon()}
+          </div>
+          {getTitle()}
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -101,6 +90,19 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           seekToInput={seekToInput}
           timestampInputRef={timestampInputRef}
         />
+
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-sm font-medium text-muted-foreground">歌詞入力</div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePasteLyrics}
+            className={`${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+          >
+            <ClipboardPaste className="h-4 w-4 mr-2" />
+            貼り付け
+          </Button>
+        </div>
 
         <LyricsInputFields
           lyrics={lyrics}

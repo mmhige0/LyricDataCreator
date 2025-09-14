@@ -11,8 +11,6 @@ interface TimestampInputProps {
   player: YouTubePlayer | null
   seekToInput?: (inputValue: string) => void
   timestampInputRef?: React.MutableRefObject<HTMLInputElement | null>
-  label?: string
-  showLabel?: boolean
 }
 
 export const TimestampInput: React.FC<TimestampInputProps> = ({
@@ -20,9 +18,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
   setTimestamp,
   player,
   seekToInput,
-  timestampInputRef,
-  label = "ページ表示タイム（秒）",
-  showLabel = true
+  timestampInputRef
 }) => {
   const handleGetCurrentTimestamp = () => {
     if (player) {
@@ -34,7 +30,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
 
   return (
     <div>
-      {showLabel && <Label>{label}</Label>}
+      <div className="text-sm font-medium text-muted-foreground mb-2">開始時間（秒）</div>
       <div className="flex gap-2 items-center">
         <Button
           variant="outline"
