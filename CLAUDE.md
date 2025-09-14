@@ -27,11 +27,10 @@ components/
 │   ├── card.tsx
 │   ├── input.tsx
 │   └── label.tsx
-├── shared/              # Reusable shared components
-│   ├── LyricsInputFields.tsx    # Common 4-line lyrics input
-│   └── TimestampInput.tsx       # Timestamp input with capture button
-├── LyricsInputSection.tsx       # Page add functionality
-├── ScoreManagementSection.tsx   # Page edit/list functionality  
+├── LyricsInputFields.tsx        # 4-line lyrics input component
+├── TimestampInput.tsx           # Timestamp input with capture button
+├── LyricsEditCard.tsx           # Page add/edit functionality
+├── ScoreManagementSection.tsx   # Page list/management functionality
 └── YouTubeVideoSection.tsx      # Video player controls
 hooks/
 ├── useYouTube.ts               # Consolidated YouTube functionality
@@ -59,7 +58,7 @@ lib/
 **Recent Consolidation Improvements:**
 - **Hooks Consolidation**: All YouTube-related functionality (`useYouTubeAPI`, `useYouTubePlayer`, `useYouTubeVideo`) merged into single `useYouTube.ts`
 - **Type Unification**: All TypeScript interfaces consolidated in `lib/types.ts` (eliminated duplicate definitions across components)
-- **Component Reuse**: Common UI patterns extracted into `components/shared/` for reuse between add/edit functionality
+- **Simplified Structure**: Flattened component hierarchy by removing unnecessary `shared/` directory
 - **Text Processing**: All text conversion utilities unified in `lib/textUtils.ts`
 
 ### Core Application Features
@@ -92,7 +91,7 @@ lib/
 ### Key Architectural Patterns
 
 - **Hook-Based State Management**: Each major feature isolated in custom hooks with proper TypeScript typing
-- **Shared Component Strategy**: Common UI patterns (lyrics input, timestamp capture) extracted for reuse between page add/edit functionality
+- **Simple Component Structure**: Flattened hierarchy with direct component imports for better maintainability
 - **Centralized Types**: All interfaces defined once in `lib/types.ts` (`ScoreEntry`, `YouTubePlayer`, `LyricsArray`)
 - **Utility Separation**: Text processing, time formatting, YouTube parsing in dedicated lib files
 - **Component Composition**: Main page orchestrates feature components rather than implementing directly

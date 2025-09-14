@@ -2,8 +2,8 @@ import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, ClipboardPaste, Check, X, Edit, Eraser } from "lucide-react"
-import { LyricsInputFields } from '@/components/shared/LyricsInputFields'
-import { TimestampInput } from '@/components/shared/TimestampInput'
+import { LyricsInputFields } from '@/components/LyricsInputFields'
+import { TimestampInput } from '@/components/TimestampInput'
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import type { YouTubePlayer, LyricsArray, ScoreEntry } from '@/lib/types'
 
