@@ -9,6 +9,7 @@ interface KeyboardShortcutsProps {
   seekForward1Second: () => void
   lyricsInputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>
   timestampInputRef: React.MutableRefObject<HTMLInputElement | null>
+  timestampOffset?: number
 }
 
 /**
@@ -21,7 +22,8 @@ export const useKeyboardShortcuts = ({
   seekBackward1Second,
   seekForward1Second,
   lyricsInputRefs,
-  timestampInputRef
+  timestampInputRef,
+  timestampOffset = 0
 }: KeyboardShortcutsProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -80,5 +82,5 @@ export const useKeyboardShortcuts = ({
 
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [player, getCurrentTimestamp, addScoreEntry, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef])
+  }, [player, getCurrentTimestamp, addScoreEntry, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef, timestampOffset])
 }

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { ScoreEntry, LyricsArray, YouTubePlayer } from '@/lib/types'
 import { processLyricsForSave } from '@/lib/textUtils'
 
@@ -14,9 +14,23 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingLyrics, setEditingLyrics] = useState<LyricsArray>(["", "", "", ""])
   const [editingTimestamp, setEditingTimestamp] = useState<string>("0.00")
+  const [timestampOffset, setTimestampOffset] = useState<number>(0)
 
   const lyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const timestampInputRef = useRef<HTMLInputElement>(null)
+
+  // Load offset from localStorage on mount
+  useEffect(() => {
+    const savedOffset = localStorage.getItem('timestampOffset')
+    if (savedOffset !== null) {
+      setTimestampOffset(Number.parseFloat(savedOffset))
+    }
+  }, [])
+
+  // Save offset to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('timestampOffset', timestampOffset.toString())
+  }, [timestampOffset])
 
   const deleteScoreEntry = (id: string) => {
     const confirm = window.confirm("このページエントリを削除しますか？")
@@ -107,6 +121,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     setEditingLyrics,
     editingTimestamp,
     setEditingTimestamp,
+    timestampOffset,
+    setTimestampOffset,
     lyricsInputRefs,
     timestampInputRef,
 

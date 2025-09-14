@@ -181,10 +181,11 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     }
   }
 
-  const getCurrentTimestamp = () => {
+  const getCurrentTimestamp = (offset: number = 0) => {
     if (player) {
       const currentTime = player.getCurrentTime()
-      return currentTime.toFixed(2)
+      const adjustedTime = Math.max(0, Math.min(duration, currentTime + offset))
+      return adjustedTime.toFixed(2)
     }
     return "0.00"
   }

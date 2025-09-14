@@ -55,6 +55,8 @@ export default function LyricsTypingApp() {
     setEditingLyrics,
     editingTimestamp,
     setEditingTimestamp,
+    timestampOffset,
+    setTimestampOffset,
     lyricsInputRefs,
     timestampInputRef,
     deleteScoreEntry,
@@ -67,7 +69,7 @@ export default function LyricsTypingApp() {
   } = useScoreManagement({ currentTime, currentPlayer: player })
 
   const handleGetCurrentTimestamp = () => {
-    const timestampValue = getCurrentTimestamp()
+    const timestampValue = getCurrentTimestamp(timestampOffset)
     setTimestamp(timestampValue)
   }
 
@@ -79,7 +81,8 @@ export default function LyricsTypingApp() {
     seekBackward1Second,
     seekForward1Second,
     lyricsInputRefs,
-    timestampInputRef
+    timestampInputRef,
+    timestampOffset
   })
 
   // Initialize file operations hook
@@ -156,6 +159,9 @@ export default function LyricsTypingApp() {
               onCancel={cancelEditScoreEntry}
               lyricsInputRefs={lyricsInputRefs}
               timestampInputRef={timestampInputRef}
+              timestampOffset={timestampOffset}
+              setTimestampOffset={setTimestampOffset}
+              getCurrentTimestamp={getCurrentTimestamp}
             />
           </div>
 

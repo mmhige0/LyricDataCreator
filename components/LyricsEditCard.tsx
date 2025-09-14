@@ -29,6 +29,11 @@ interface LyricsEditCardProps {
   // Refs (for add mode)
   lyricsInputRefs?: React.MutableRefObject<(HTMLInputElement | null)[]>
   timestampInputRef?: React.MutableRefObject<HTMLInputElement | null>
+
+  // Timestamp offset props
+  timestampOffset?: number
+  setTimestampOffset?: (offset: number) => void
+  getCurrentTimestamp?: (offset: number) => string
 }
 
 export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
@@ -45,7 +50,10 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   onSave,
   onCancel,
   lyricsInputRefs,
-  timestampInputRef
+  timestampInputRef,
+  timestampOffset,
+  setTimestampOffset,
+  getCurrentTimestamp
 }) => {
   const { pasteLyricsFromClipboard, copyStatus } = useLyricsCopyPaste()
 
@@ -93,6 +101,9 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           player={player}
           seekToInput={seekToInput}
           timestampInputRef={timestampInputRef}
+          timestampOffset={timestampOffset}
+          setTimestampOffset={setTimestampOffset}
+          getCurrentTimestamp={getCurrentTimestamp}
         />
 
         <div className="flex items-center justify-between mb-2">
