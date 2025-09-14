@@ -191,10 +191,11 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
   }
 
   const seekToInput = (inputValue: string) => {
-    if (inputValue) {
+    if (inputValue && player) {
       const time = parseFloat(inputValue)
       if (!isNaN(time)) {
         seekTo(time)
+        player.playVideo()
       }
     }
   }
