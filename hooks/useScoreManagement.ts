@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import type { ScoreEntry, LyricsArray, YouTubePlayer } from '@/lib/types'
-import { convertLyricsToFullWidth } from '@/lib/textUtils'
+import { processLyricsForSave } from '@/lib/textUtils'
 
 interface UseScoreManagementProps {
   currentTime: number
@@ -34,7 +34,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const saveEditScoreEntry = () => {
     if (!editingId) return
 
-    const convertedLyrics = convertLyricsToFullWidth(editingLyrics)
+    const convertedLyrics = processLyricsForSave(editingLyrics)
 
     setScoreEntries((prev) => {
       const updatedEntries = prev.map((entry) =>
@@ -57,7 +57,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const addScoreEntry = () => {
-    const currentLyrics = convertLyricsToFullWidth(lyrics)
+    const currentLyrics = processLyricsForSave(lyrics)
     const currentTimestamp = timestamp || "0.00"
 
     const newEntry: ScoreEntry = {

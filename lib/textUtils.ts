@@ -22,13 +22,20 @@ export const convertAllLyricsToFullWidth = (
 }
 
 /**
- * 歌詞配列の各行を全角に変換して返す（副作用なし）
+ * アルファベット・スペース以外の記号を削除する
  */
-export const convertLyricsToFullWidth = (lyrics: LyricsArray): LyricsArray => {
+export const removeSymbols = (text: string): string => {
+  return text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\uFF66-\uFF9Fa-zA-Z\s]/g, "")
+}
+
+/**
+ * 歌詞配列の各行を処理して返す（記号削除、前後スペース削除、全角変換）
+ */
+export const processLyricsForSave = (lyrics: LyricsArray): LyricsArray => {
   return [
-    halfWidthToFullWidth((lyrics[0] || "").trim()),
-    halfWidthToFullWidth((lyrics[1] || "").trim()),
-    halfWidthToFullWidth((lyrics[2] || "").trim()),
-    halfWidthToFullWidth((lyrics[3] || "").trim())
+    halfWidthToFullWidth(removeSymbols(lyrics[0] || "").trim()),
+    halfWidthToFullWidth(removeSymbols(lyrics[1] || "").trim()),
+    halfWidthToFullWidth(removeSymbols(lyrics[2] || "").trim()),
+    halfWidthToFullWidth(removeSymbols(lyrics[3] || "").trim())
   ]
 }
