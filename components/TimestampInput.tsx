@@ -37,7 +37,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
   const adjustOffset = (delta: number) => {
     if (setTimestampOffset) {
       const newOffset = Math.max(-2, Math.min(2, timestampOffset + delta))
-      setTimestampOffset(Number(newOffset.toFixed(1)))
+      setTimestampOffset(Number(newOffset.toFixed(2)))
     }
   }
 
@@ -82,7 +82,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => adjustOffset(-0.1)}
+                onClick={() => adjustOffset(-0.05)}
                 className="h-8 w-8 p-0"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -105,7 +105,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => adjustOffset(0.1)}
+                onClick={() => adjustOffset(0.05)}
                 className="h-8 w-8 p-0"
               >
                 <ChevronRight className="h-4 w-4" />
