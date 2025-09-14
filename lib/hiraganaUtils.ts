@@ -1,5 +1,6 @@
 import Kuroshiro from 'kuroshiro'
 import KuromojiAnalyzer from 'kuroshiro-analyzer-kuromoji'
+import { preprocessAndConvertLyrics } from './textUtils'
 
 // Kuroshiroのインスタンスを管理するクラス
 class HiraganaConverter {
@@ -51,24 +52,37 @@ class HiraganaConverter {
     }
   }
 
-  async convertToHiragana(text: string): Promise<string> {
+  async convertKanjiToHiragana(text: string): Promise<string> {
     if (!text || text.trim() === '') return text
 
-    if (!this.isInitialized) {
-      await this.initialize()
+    // 漢字が含まれている場合のみKuroshiroを使用（前処理は呼び出し側で実行済み）
+    if (this.containsKanji(text)) {
+      if (!this.isInitialized) {
+        await this.initialize()
+      }
+
+      if (!this.kuroshiro) {
+        throw new Error('変換エンジンが初期化されていません')
+      }
+
+      try {
+        const result = await this.kuroshiro.convert(text, { to: 'hiragana' })
+        return result
+      } catch (error) {
+        console.error('Conversion error:', error)
+        throw new Error('テキストの変換中にエラーが発生しました')
+      }
     }
 
-    if (!this.kuroshiro) {
-      throw new Error('変換エンジンが初期化されていません')
-    }
+    // 漢字が含まれていない場合はそのまま返す
+    return text
+  }
 
-    try {
-      const result = await this.kuroshiro.convert(text, { to: 'hiragana' })
-      return result
-    } catch (error) {
-      console.error('Conversion error:', error)
-      throw new Error('テキストの変換中にエラーが発生しました')
-    }
+  /**
+   * テキストに漢字が含まれているかチェック
+   */
+  private containsKanji(text: string): boolean {
+    return /[\u4e00-\u9faf]/.test(text)
   }
 
   getInitializationStatus(): {
@@ -86,12 +100,13 @@ class HiraganaConverter {
 const converter = HiraganaConverter.getInstance()
 
 /**
- * 漢字を含むテキストをひらがなに変換する
- * @param text 変換対象のテキスト
+ * 漢字を含むテキストをひらがなに変換する（漢字変換のみ）
+ * 注意: カタカナ変換や記号削除などの前処理は呼び出し側で行う
+ * @param text 変換対象のテキスト（前処理済み）
  * @returns ひらがなに変換されたテキスト
  */
-export const convertToHiragana = async (text: string): Promise<string> => {
-  return converter.convertToHiragana(text)
+export const convertKanjiToHiragana = async (text: string): Promise<string> => {
+  return converter.convertKanjiToHiragana(text)
 }
 
 /**
@@ -110,13 +125,19 @@ export const getHiraganaConverterStatus = () => {
 }
 
 /**
- * 歌詞配列の各行を一括でひらがなに変換
+ * 歌詞配列の各行を一括でひらがなに変換（前処理付き）
  */
 export const convertLyricsArrayToHiragana = async (
   lyrics: [string, string, string, string]
 ): Promise<[string, string, string, string]> => {
   const convertedLyrics = await Promise.all(
-    lyrics.map(line => line.trim() === '' ? '' : convertToHiragana(line))
+    lyrics.map(async line => {
+      if (line.trim() === '') return ''
+      // まず基本的な変換処理（記号削除、全角変換、カタカナ→ひらがな）
+      const preprocessed = preprocessAndConvertLyrics(line)
+      // 漢字が含まれている場合はKuroshiroで変換
+      return await convertKanjiToHiragana(preprocessed)
+    })
   )
   return convertedLyrics as [string, string, string, string]
 }

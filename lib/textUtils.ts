@@ -29,13 +29,35 @@ export const removeSymbols = (text: string): string => {
 }
 
 /**
- * 歌詞配列の各行を処理して返す（記号削除、前後スペース削除、全角変換）
+ * カタカナをひらがなに変換する（高速変換）
+ * @param text 変換対象のテキスト
+ * @returns ひらがなに変換されたテキスト
+ */
+export const convertKatakanaToHiragana = (text: string): string => {
+  if (!text) return text
+  return text.replace(/[\u30A1-\u30F6]/g, (match) => {
+    const code = match.charCodeAt(0)
+    return String.fromCharCode(code - 0x60)
+  })
+}
+
+/**
+ * 歌詞の前処理とカタカナ→ひらがな変換（記号削除、前後スペース削除、全角変換、カタカナ→ひらがな変換）
+ * @param text 処理対象のテキスト
+ * @returns 前処理とカタカナ変換が完了したテキスト
+ */
+export const preprocessAndConvertLyrics = (text: string): string => {
+  return convertKatakanaToHiragana(halfWidthToFullWidth(removeSymbols(text || "").trim()))
+}
+
+/**
+ * 歌詞配列の各行を処理して返す（記号削除、前後スペース削除、全角変換、カタカナ→ひらがな変換）
  */
 export const processLyricsForSave = (lyrics: LyricsArray): LyricsArray => {
   return [
-    halfWidthToFullWidth(removeSymbols(lyrics[0] || "").trim()),
-    halfWidthToFullWidth(removeSymbols(lyrics[1] || "").trim()),
-    halfWidthToFullWidth(removeSymbols(lyrics[2] || "").trim()),
-    halfWidthToFullWidth(removeSymbols(lyrics[3] || "").trim())
+    preprocessAndConvertLyrics(lyrics[0]),
+    preprocessAndConvertLyrics(lyrics[1]),
+    preprocessAndConvertLyrics(lyrics[2]),
+    preprocessAndConvertLyrics(lyrics[3])
   ]
 }
