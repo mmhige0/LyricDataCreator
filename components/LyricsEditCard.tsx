@@ -45,7 +45,6 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   player,
   seekToInput,
   mode,
-  editingEntry,
   editingEntryIndex,
   onAdd,
   onSave,

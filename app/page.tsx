@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
@@ -9,17 +9,12 @@ import { useFileOperations } from "@/hooks/useFileOperations"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
 import { LyricsEditCard } from "@/components/LyricsEditCard"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
-import { initializeHiraganaConverter } from "@/lib/hiraganaUtils"
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from "@/lib/types"
 
 
 export default function LyricsTypingApp() {
   const [songTitle, setSongTitle] = useState<string>("")
 
-  // 漢字変換エンジンを事前初期化
-  useEffect(() => {
-    initializeHiraganaConverter().catch(console.error)
-  }, [])
 
   // YouTube統合フック
   const {
@@ -31,9 +26,7 @@ export default function LyricsTypingApp() {
     loadYouTubeVideo,
     player,
     isPlaying,
-    setIsPlaying,
     currentTime,
-    setCurrentTime,
     duration,
     playbackRate,
     togglePlayPause,
@@ -96,7 +89,7 @@ export default function LyricsTypingApp() {
     scoreEntries,
     setScoreEntries,
     duration,
-    setDuration: (newDuration) => {}, // duration is now managed by useYouTube
+    setDuration: () => {}, // duration is now managed by useYouTube
     songTitle,
     setSongTitle
   })

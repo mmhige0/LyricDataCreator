@@ -98,7 +98,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
             return
           }
 
-          const newPlayer = new window.YT.Player("youtube-player", {
+          new window.YT.Player("youtube-player", {
             height: "450",
             width: "800",
             videoId: id,
@@ -123,7 +123,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
                 setIsPlaying(playing)
                 onPlayerStateChange?.(playing)
               },
-              onError: (event: { data: number }) => {
+              onError: () => {
                 setIsLoadingVideo(false)
                 youtubeErrors.videoLoadError()
               },
@@ -226,61 +226,3 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
   }
 }
 
-export const useYouTubeAPI = () => {
-  const { isYouTubeAPIReady } = useYouTube()
-  return { isYouTubeAPIReady }
-}
-
-export const useYouTubePlayer = ({ player, duration }: { player: YouTubePlayer | null, duration: number }) => {
-  const youtubeHook = useYouTube()
-  
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (player && youtubeHook.isPlaying) {
-      interval = setInterval(() => {
-        const time = player.getCurrentTime()
-        youtubeHook.setCurrentTime(time)
-      }, 100)
-    }
-    return () => clearInterval(interval)
-  }, [player, youtubeHook.isPlaying, youtubeHook.setCurrentTime])
-  
-  return {
-    isPlaying: youtubeHook.isPlaying,
-    setIsPlaying: youtubeHook.setIsPlaying,
-    currentTime: youtubeHook.currentTime,
-    setCurrentTime: youtubeHook.setCurrentTime,
-    playbackRate: youtubeHook.playbackRate,
-    togglePlayPause: youtubeHook.togglePlayPause,
-    seekBackward: youtubeHook.seekBackward,
-    seekForward: youtubeHook.seekForward,
-    seekBackward1Second: youtubeHook.seekBackward1Second,
-    seekForward1Second: youtubeHook.seekForward1Second,
-    seekToBeginning: youtubeHook.seekToBeginning,
-    changePlaybackRate: youtubeHook.changePlaybackRate,
-    seekTo: youtubeHook.seekTo,
-    getCurrentTimestamp: youtubeHook.getCurrentTimestamp
-  }
-}
-
-export const useYouTubeVideo = ({ isYouTubeAPIReady, setPlayer, setDuration, setIsPlaying }: {
-  isYouTubeAPIReady: boolean
-  setPlayer: (player: YouTubePlayer | null) => void
-  setDuration: (duration: number) => void
-  setIsPlaying: (isPlaying: boolean) => void
-}) => {
-  const youtubeHook = useYouTube({
-    onPlayerReady: setPlayer,
-    onPlayerStateChange: setIsPlaying,
-    onDurationChange: setDuration
-  })
-  
-  return {
-    youtubeUrl: youtubeHook.youtubeUrl,
-    setYoutubeUrl: youtubeHook.setYoutubeUrl,
-    videoId: youtubeHook.videoId,
-    player: youtubeHook.player,
-    isLoadingVideo: youtubeHook.isLoadingVideo,
-    loadYouTubeVideo: youtubeHook.loadYouTubeVideo
-  }
-}
