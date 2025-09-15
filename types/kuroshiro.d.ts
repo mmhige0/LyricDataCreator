@@ -2,6 +2,7 @@ declare module 'kuroshiro' {
   interface ConvertOptions {
     to?: 'hiragana' | 'katakana' | 'romaji'
     mode?: 'normal' | 'spaced' | 'okurigana' | 'furigana'
+    romajiSystem?: 'nippon' | 'passport' | 'hepburn'
   }
 
   export default class Kuroshiro {

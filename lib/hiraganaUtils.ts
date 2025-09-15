@@ -78,6 +78,31 @@ class HiraganaConverter {
     return text
   }
 
+  async convertToRomaji(text: string): Promise<string> {
+    if (!text || text.trim() === '') return text
+
+    if (!this.isInitialized) {
+      await this.initialize()
+    }
+
+    if (!this.kuroshiro) {
+      throw new Error('変換エンジンが初期化されていません')
+    }
+
+    try {
+      // 日本式ローマ字で変換
+      const result = await this.kuroshiro.convert(text, {
+        to: 'romaji',
+        mode: 'spaced',
+        romajiSystem: 'nippon'
+      })
+      return result
+    } catch (error) {
+      console.error('Romaji conversion error:', error)
+      throw new Error('ローマ字変換中にエラーが発生しました')
+    }
+  }
+
   /**
    * テキストに漢字が含まれているかチェック
    */
@@ -125,6 +150,15 @@ export const getHiraganaConverterStatus = () => {
 }
 
 /**
+ * テキストをローマ字に変換する（日本式）
+ * @param text 変換対象のテキスト
+ * @returns ローマ字に変換されたテキスト
+ */
+export const convertToRomaji = async (text: string): Promise<string> => {
+  return converter.convertToRomaji(text)
+}
+
+/**
  * 歌詞配列の各行を一括でひらがなに変換（前処理付き）
  */
 export const convertLyricsArrayToHiragana = async (
@@ -137,6 +171,24 @@ export const convertLyricsArrayToHiragana = async (
       const preprocessed = preprocessAndConvertLyrics(line)
       // 漢字が含まれている場合はKuroshiroで変換
       return await convertKanjiToHiragana(preprocessed)
+    })
+  )
+  return convertedLyrics as [string, string, string, string]
+}
+
+/**
+ * 歌詞配列の各行を一括でローマ字に変換（日本式）
+ * 注意: 保存時に既に前処理済みのデータを想定（重複前処理を回避）
+ */
+export const convertLyricsArrayToRomaji = async (
+  lyrics: [string, string, string, string]
+): Promise<[string, string, string, string]> => {
+  const convertedLyrics = await Promise.all(
+    lyrics.map(async line => {
+      if (line.trim() === '') return ''
+      // 保存時に既に前処理済みのため、ひらがな変換とローマ字変換のみ実行
+      const hiragana = await convertKanjiToHiragana(line)
+      return await convertToRomaji(hiragana)
     })
   )
   return convertedLyrics as [string, string, string, string]
