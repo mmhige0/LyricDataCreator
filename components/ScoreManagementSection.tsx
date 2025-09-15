@@ -69,14 +69,14 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
     const currentIds = new Set(scoreEntries.map(entry => entry.id))
     setKpmDataMap(prev => {
       const newMap = new Map()
-      for (const [id, data] of prev) {
+      prev.forEach((data, id) => {
         if (currentIds.has(id)) {
           newMap.set(id, data)
         }
-      }
+      })
       return newMap
     })
-  }, [scoreEntries, kpmDataMap, calculatingIds])
+  }, [scoreEntries, kpmDataMap, calculatingIds, calculateSinglePageKpm])
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
       <CardHeader className="pb-4 flex-shrink-0">
