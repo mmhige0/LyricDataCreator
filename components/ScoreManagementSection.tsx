@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Upload, Download, Clock, Play, Copy, Edit, Trash2 } from "lucide-react"
@@ -36,7 +36,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   const [calculatingIds, setCalculatingIds] = useState<Set<string>>(new Set())
 
   // 単一ページのKPM計算
-  const calculateSinglePageKpm = async (entry: ScoreEntry, index: number) => {
+  const calculateSinglePageKpm = useCallback(async (entry: ScoreEntry, index: number) => {
     const nextEntry = scoreEntries[index + 1]
     const nextTimestamp = nextEntry ? nextEntry.timestamp : null
 
@@ -54,7 +54,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
         return newSet
       })
     }
-  }
+  }, [scoreEntries])
 
   // scoreEntriesの変更を監視して必要なページのみ再計算
   useEffect(() => {
@@ -76,7 +76,8 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
       })
       return newMap
     })
-  }, [scoreEntries, kpmDataMap, calculatingIds, calculateSinglePageKpm])
+  }, [scoreEntries, calculatingIds])
+
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
       <CardHeader className="pb-4 flex-shrink-0">
