@@ -190,7 +190,7 @@ export default function LyricsTypingApp() {
         <div className="mb-6">
           <div className="text-sm font-medium text-foreground mb-2">歌詞変換</div>
           <div className="text-sm text-muted-foreground">
-            <div>ページ追加時に記号削除・全角変換・カタカナ→ひらがな変換が行われます。</div>
+            <div>ページ保存・追加時に記号削除・半角→全角変換・カタカナ→ひらがな変換が行われます。</div>
           </div>
         </div>
 
