@@ -194,7 +194,7 @@ export default function LyricsTypingApp() {
           </div>
         </div>
 
-        {/* KMP Information */}
+        {/* KPM Information */}
         <div className="mb-6">
           <div className="text-sm font-medium text-foreground mb-2">KPM</div>
           <div className="text-sm text-muted-foreground">
