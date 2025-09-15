@@ -95,7 +95,7 @@ export default function LyricsTypingApp() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16">
       <input ref={fileInputRef} type="file" accept=".txt" onChange={handleFileImport} className="hidden" />
       
       {/* Header */}
@@ -183,8 +183,9 @@ export default function LyricsTypingApp() {
       </main>
       
       {/* Keyboard Shortcuts Help */}
-      <div className="mt-8 text-center">
-        <div className="text-sm text-muted-foreground flex flex-wrap justify-center gap-x-6 gap-y-2">
+      <div className="mt-8 max-w-[1600px] mx-auto px-8">
+        <div className="text-sm font-medium text-foreground mb-2">ショートカットキー</div>
+        <div className="text-sm text-muted-foreground flex flex-wrap gap-x-6 gap-y-2">
           <span className="inline-flex items-center gap-2">
             <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">F2</kbd>
             <span>タイムスタンプ取得</span>
@@ -205,6 +206,15 @@ export default function LyricsTypingApp() {
             <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+→</kbd>
             <span>1秒早送り</span>
           </span>
+        </div>
+      </div>
+
+      {/* KMP Information */}
+      <div className="mt-4 max-w-[1600px] mx-auto px-8">
+        <div className="text-sm font-medium text-foreground mb-2">KPM</div>
+        <div className="text-sm text-muted-foreground">
+          <div>ローマ字換算での計算です。</div>
+          <div>実際の打鍵数と誤差がある可能性があります。</div>
         </div>
       </div>
     </div>
