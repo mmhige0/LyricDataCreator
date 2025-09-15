@@ -182,39 +182,52 @@ export default function LyricsTypingApp() {
         </div>
       </main>
       
-      {/* Keyboard Shortcuts Help */}
+      {/* Help Section */}
       <div className="mt-8 max-w-[1600px] mx-auto px-8">
-        <div className="text-sm font-medium text-foreground mb-2">ショートカットキー</div>
-        <div className="text-sm text-muted-foreground flex flex-wrap gap-x-6 gap-y-2">
-          <span className="inline-flex items-center gap-2">
-            <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">F2</kbd>
-            <span>タイムスタンプ取得</span>
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+Enter</kbd>
-            <span>ページ追加</span>
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+Space</kbd>
-            <span>再生/一時停止</span>
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+←</kbd>
-            <span>1秒巻き戻し</span>
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+→</kbd>
-            <span>1秒早送り</span>
-          </span>
-        </div>
-      </div>
+        <div className="text-lg font-semibold text-foreground mb-6">使い方・機能説明</div>
 
-      {/* KMP Information */}
-      <div className="mt-4 max-w-[1600px] mx-auto px-8">
-        <div className="text-sm font-medium text-foreground mb-2">KPM</div>
-        <div className="text-sm text-muted-foreground">
-          <div>ローマ字換算での計算です。</div>
-          <div>実際の打鍵数と誤差がある可能性があります。</div>
+        {/* Text Processing Information */}
+        <div className="mb-6">
+          <div className="text-sm font-medium text-foreground mb-2">歌詞変換</div>
+          <div className="text-sm text-muted-foreground">
+            <div>ページ追加時に記号削除・全角変換・カタカナ→ひらがな変換が行われます。</div>
+          </div>
+        </div>
+
+        {/* KMP Information */}
+        <div className="mb-6">
+          <div className="text-sm font-medium text-foreground mb-2">KPM</div>
+          <div className="text-sm text-muted-foreground">
+            <div>ローマ字換算での計算です。</div>
+            <div>実際の打鍵数と誤差がある可能性があります。</div>
+          </div>
+        </div>
+
+        {/* Keyboard Shortcuts Help */}
+        <div className="mb-0">
+          <div className="text-sm font-medium text-foreground mb-2">ショートカットキー</div>
+          <div className="text-sm text-muted-foreground flex flex-wrap gap-x-6 gap-y-2">
+            <span className="inline-flex items-center gap-2">
+              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">F2</kbd>
+              <span>タイムスタンプ取得</span>
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+Enter</kbd>
+              <span>ページ追加</span>
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+Space</kbd>
+              <span>再生/一時停止</span>
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+←</kbd>
+              <span>1秒巻き戻し</span>
+            </span>
+            <span className="inline-flex items-center gap-2">
+              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+→</kbd>
+              <span>1秒早送り</span>
+            </span>
+          </div>
         </div>
       </div>
     </div>
