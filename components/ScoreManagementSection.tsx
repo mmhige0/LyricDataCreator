@@ -6,6 +6,56 @@ import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import type { ScoreEntry, YouTubePlayer } from '@/lib/types'
 import { calculatePageKpm, type PageKpmInfo } from '@/lib/kpmUtils'
 
+interface EntryDisplayProps {
+  entry: ScoreEntry
+  getEntryHash: (entry: ScoreEntry) => string
+  kpmDataMap: Map<string, PageKpmInfo>
+  calculatingIds: Set<string>
+}
+
+const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, getEntryHash, kpmDataMap, calculatingIds }) => {
+  const entryHash = getEntryHash(entry)
+
+  if (kpmDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
+    // KPM表示モード（常に表示）
+    return (
+      <div className="space-y-1">
+        {kpmDataMap.get(entryHash)!.lines.map((lineKpm, lineIndex) => (
+          <div key={lineIndex} className="flex justify-between items-center">
+            <div className={lineKpm.charCount > 0 ? "" : "text-muted-foreground"}>
+              {entry.lyrics[lineIndex] || "!"}
+            </div>
+            <div className="text-xs font-mono text-muted-foreground ml-2">
+              {lineKpm.kpm > 0 && `${lineKpm.kpm.toFixed(1)} KPM`}
+            </div>
+          </div>
+        ))}
+        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right">
+          {kpmDataMap.get(entryHash)!.totalKpm.toFixed(1)} KPM
+        </div>
+      </div>
+    )
+  }
+
+  if (calculatingIds.has(entryHash)) {
+    // 計算中
+    return <div className="text-muted-foreground">KPM計算中...</div>
+  }
+
+  // 歌詞のみ表示（KPM計算前）
+  return (
+    <>
+      {entry.lyrics.map((line, lineIndex) => (
+        <div key={lineIndex} className={line ? "" : "text-muted-foreground"}>
+          {line || "!"}
+        </div>
+      ))}
+    </>
+  )
+})
+
+EntryDisplay.displayName = 'EntryDisplay'
+
 interface ScoreManagementSectionProps {
   scoreEntries: ScoreEntry[]
   player: YouTubePlayer | null
@@ -35,48 +85,57 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   const [kpmDataMap, setKpmDataMap] = useState<Map<string, PageKpmInfo>>(new Map())
   const [calculatingIds, setCalculatingIds] = useState<Set<string>>(new Set())
 
+  // エントリの内容からハッシュ値を生成
+  const getEntryHash = useCallback((entry: ScoreEntry) => {
+    const content = `${entry.timestamp}_${entry.lyrics.join('|')}`
+    // 日本語文字も含めてUTF-8でBase64エンコード
+    return btoa(encodeURIComponent(content)).replace(/[^a-zA-Z0-9]/g, '')
+  }, [])
+
   // 単一ページのKPM計算
   const calculateSinglePageKpm = useCallback(async (entry: ScoreEntry, index: number) => {
     const nextEntry = scoreEntries[index + 1]
     const nextTimestamp = nextEntry ? nextEntry.timestamp : null
+    const entryHash = getEntryHash(entry)
 
-    setCalculatingIds(prev => new Set(prev).add(entry.id))
+    setCalculatingIds(prev => new Set(prev).add(entryHash))
 
     try {
       const pageKpmInfo = await calculatePageKpm(entry, nextTimestamp)
-      setKpmDataMap(prev => new Map(prev).set(entry.id, pageKpmInfo))
+      setKpmDataMap(prev => new Map(prev).set(entryHash, pageKpmInfo))
     } catch (error) {
       console.error('KPM calculation error for entry:', entry.id, error)
     } finally {
       setCalculatingIds(prev => {
         const newSet = new Set(prev)
-        newSet.delete(entry.id)
+        newSet.delete(entryHash)
         return newSet
       })
     }
-  }, [scoreEntries])
+  }, [scoreEntries, getEntryHash])
 
   // scoreEntriesの変更を監視して必要なページのみ再計算
   useEffect(() => {
     scoreEntries.forEach((entry, index) => {
+      const entryHash = getEntryHash(entry)
       // まだ計算されていないページのみ計算
-      if (!kpmDataMap.has(entry.id) && !calculatingIds.has(entry.id)) {
+      if (!kpmDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
         calculateSinglePageKpm(entry, index)
       }
     })
 
     // 削除されたページのデータをクリーンアップ
-    const currentIds = new Set(scoreEntries.map(entry => entry.id))
+    const currentHashes = new Set(scoreEntries.map(entry => getEntryHash(entry)))
     setKpmDataMap(prev => {
       const newMap = new Map()
-      prev.forEach((data, id) => {
-        if (currentIds.has(id)) {
-          newMap.set(id, data)
+      prev.forEach((data, hash) => {
+        if (currentHashes.has(hash)) {
+          newMap.set(hash, data)
         }
       })
       return newMap
     })
-  }, [scoreEntries, calculatingIds])
+  }, [scoreEntries, calculatingIds, getEntryHash, calculateSinglePageKpm])
 
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
@@ -135,34 +194,12 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                       </div>
                     </div>
                     <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                      {kpmDataMap.has(entry.id) && !calculatingIds.has(entry.id) ? (
-                        // KPM表示モード（常に表示）
-                        <div className="space-y-1">
-                          {kpmDataMap.get(entry.id)!.lines.map((lineKpm, lineIndex) => (
-                            <div key={lineIndex} className="flex justify-between items-center">
-                              <div className={lineKpm.charCount > 0 ? "" : "text-muted-foreground"}>
-                                {entry.lyrics[lineIndex] || "!"}
-                              </div>
-                              <div className="text-xs font-mono text-muted-foreground ml-2">
-                                {lineKpm.kpm > 0 && `${lineKpm.kpm.toFixed(1)} KPM`}
-                              </div>
-                            </div>
-                          ))}
-                          <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right">
-                            {kpmDataMap.get(entry.id)!.totalKpm.toFixed(1)} KPM
-                          </div>
-                        </div>
-                      ) : calculatingIds.has(entry.id) ? (
-                        // 計算中
-                        <div className="text-muted-foreground">KPM計算中...</div>
-                      ) : (
-                        // 歌詞のみ表示（KPM計算前）
-                        entry.lyrics.map((line, lineIndex) => (
-                          <div key={lineIndex} className={line ? "" : "text-muted-foreground"}>
-                            {line || "!"}
-                          </div>
-                        ))
-                      )}
+                      <EntryDisplay
+                        entry={entry}
+                        getEntryHash={getEntryHash}
+                        kpmDataMap={kpmDataMap}
+                        calculatingIds={calculatingIds}
+                      />
                     </div>
                     <div className="flex flex-col gap-1 min-w-fit self-center">
                       <Button
