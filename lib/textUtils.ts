@@ -25,7 +25,7 @@ export const convertAllLyricsToFullWidth = (
  * アルファベット・スペース以外の記号を削除する
  */
 export const removeSymbols = (text: string): string => {
-  return text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\uFF66-\uFF9Fa-zA-Z\s]/g, "")
+  return text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\uFF66-\uFF9F\uFF21-\uFF3A\uFF41-\uFF5Aa-zA-Z\s]/g, "")
 }
 
 /**
