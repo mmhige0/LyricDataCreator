@@ -78,7 +78,12 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
           <>
             <div className="h-6 border-l border-gray-300 mx-2" />
             <div className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">補正:</span>
+              <span
+                className="text-muted-foreground cursor-help"
+                title="タイムスタンプ取得時に一律で時間をずらす機能です。"
+              >
+                補正:
+              </span>
               <Button
                 variant="outline"
                 size="sm"
