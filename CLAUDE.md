@@ -12,6 +12,28 @@ This is a Next.js 14 application for creating lyric timing data for YouTube vide
 - `npm run build` - Build production version
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint for code quality checks
+- `npm run type-check` - Run TypeScript type checking
+- `npm run test` - Run full test suite (lint + type-check + build)
+- `npm run preview` - Build and serve production version locally
+- `npm run deploy-check` - Pre-deployment validation (same as test)
+
+## CI/CD Pipeline
+
+### GitHub Actions Workflows
+- **CI Workflow** (`.github/workflows/ci.yml`): Runs on all pushes and PRs except master
+  - ESLint code quality checks
+  - TypeScript type validation
+  - Build verification
+  - Static output validation
+- **Deploy Workflow** (`.github/workflows/deploy.yml`): Runs on master branch pushes
+  - Production build and deployment to GitHub Pages
+
+### Development Workflow
+1. **Development**: Use `npm run dev` for hot-reload development
+2. **Pre-commit**: Run `npm run test` to validate changes locally
+3. **Preview**: Use `npm run preview` to test production build locally
+4. **Push**: CI automatically validates code quality on push/PR
+5. **Deploy**: Merge to master triggers automatic deployment
 
 ## Architecture and Code Organization
 
