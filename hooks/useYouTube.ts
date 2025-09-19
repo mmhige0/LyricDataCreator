@@ -108,6 +108,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
               fs: 0,
               modestbranding: 1,
               rel: 0,
+              origin: window.location.origin,
             },
             events: {
               onReady: (event: { target: YouTubePlayer }) => {
