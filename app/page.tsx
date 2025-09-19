@@ -194,9 +194,9 @@ export default function LyricsTypingApp() {
           </div>
         </div>
 
-        {/* KPM Information */}
+        {/* kpm Information */}
         <div className="mb-6">
-          <div className="text-sm font-medium text-foreground mb-2">KPM</div>
+          <div className="text-sm font-medium text-foreground mb-2">kpm</div>
           <div className="text-sm text-muted-foreground">
             <div>ローマ字換算での計算です。</div>
             <div>実際の打鍵数と誤差がある可能性があります。</div>

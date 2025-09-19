@@ -17,7 +17,7 @@ const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, getEntryH
   const entryHash = getEntryHash(entry)
 
   if (kpmDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
-    // KPM表示モード（常に表示）
+    // kpm表示モード（常に表示）
     return (
       <div className="space-y-1">
         {kpmDataMap.get(entryHash)!.lines.map((lineKpm, lineIndex) => (
@@ -26,12 +26,12 @@ const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, getEntryH
               {entry.lyrics[lineIndex] || "!"}
             </div>
             <div className="text-xs font-mono text-muted-foreground ml-2">
-              {lineKpm.kpm > 0 && `${lineKpm.kpm.toFixed(1)} KPM`}
+              {lineKpm.kpm > 0 && `${lineKpm.kpm.toFixed(1)} kpm`}
             </div>
           </div>
         ))}
         <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right">
-          {kpmDataMap.get(entryHash)!.totalKpm.toFixed(1)} KPM
+          {kpmDataMap.get(entryHash)!.totalKpm.toFixed(1)} kpm
         </div>
       </div>
     )
@@ -39,10 +39,10 @@ const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, getEntryH
 
   if (calculatingIds.has(entryHash)) {
     // 計算中
-    return <div className="text-muted-foreground">KPM計算中...</div>
+    return <div className="text-muted-foreground">kpm計算中...</div>
   }
 
-  // 歌詞のみ表示（KPM計算前）
+  // 歌詞のみ表示（kpm計算前）
   return (
     <>
       {entry.lyrics.map((line, lineIndex) => (
@@ -92,7 +92,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
     return btoa(encodeURIComponent(content)).replace(/[^a-zA-Z0-9]/g, '')
   }, [])
 
-  // 単一ページのKPM計算
+  // 単一ページのkpm計算
   const calculateSinglePageKpm = useCallback(async (entry: ScoreEntry, index: number) => {
     const nextEntry = scoreEntries[index + 1]
     const nextTimestamp = nextEntry ? nextEntry.timestamp : null
@@ -104,7 +104,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
       const pageKpmInfo = await calculatePageKpm(entry, nextTimestamp)
       setKpmDataMap(prev => new Map(prev).set(entryHash, pageKpmInfo))
     } catch (error) {
-      console.error('KPM calculation error for entry:', entry.id, error)
+      console.error('kpm calculation error for entry:', entry.id, error)
     } finally {
       setCalculatingIds(prev => {
         const newSet = new Set(prev)
@@ -122,11 +122,11 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
     // 削除されたページを検出
     const deletedHashes = new Set(Array.from(prevHashes).filter(hash => !currentHashes.has(hash)))
 
-    // 削除されたページがある場合、影響を受けるページのKPMデータをクリア
+    // 削除されたページがある場合、影響を受けるページのkpmデータをクリア
     if (deletedHashes.size > 0) {
       setKpmDataMap(prev => {
         const newMap = new Map()
-        // 最後のページ以外は削除の影響を受ける可能性があるため、KPMデータをクリア
+        // 最後のページ以外は削除の影響を受ける可能性があるため、kpmデータをクリア
         scoreEntries.forEach((entry, index) => {
           const entryHash = getEntryHash(entry)
           const isLastPage = index === scoreEntries.length - 1
@@ -135,7 +135,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
           if (isLastPage && prev.has(entryHash)) {
             newMap.set(entryHash, prev.get(entryHash)!)
           }
-          // 最後以外のページは再計算が必要（KPMデータをクリアして再計算をトリガー）
+          // 最後以外のページは再計算が必要（kpmデータをクリアして再計算をトリガー）
         })
         return newMap
       })
