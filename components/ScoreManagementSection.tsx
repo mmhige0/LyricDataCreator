@@ -116,26 +116,50 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
 
   // scoreEntriesの変更を監視して必要なページのみ再計算
   useEffect(() => {
+    const currentHashes = new Set(scoreEntries.map(entry => getEntryHash(entry)))
+    const prevHashes = new Set(kpmDataMap.keys())
+
+    // 削除されたページを検出
+    const deletedHashes = new Set(Array.from(prevHashes).filter(hash => !currentHashes.has(hash)))
+
+    // 削除されたページがある場合、影響を受けるページのKPMデータをクリア
+    if (deletedHashes.size > 0) {
+      setKpmDataMap(prev => {
+        const newMap = new Map()
+        // 最後のページ以外は削除の影響を受ける可能性があるため、KPMデータをクリア
+        scoreEntries.forEach((entry, index) => {
+          const entryHash = getEntryHash(entry)
+          const isLastPage = index === scoreEntries.length - 1
+
+          // 最後のページは次のページがないので影響を受けない
+          if (isLastPage && prev.has(entryHash)) {
+            newMap.set(entryHash, prev.get(entryHash)!)
+          }
+          // 最後以外のページは再計算が必要（KPMデータをクリアして再計算をトリガー）
+        })
+        return newMap
+      })
+    } else {
+      // 削除がない場合は通常のクリーンアップのみ
+      setKpmDataMap(prev => {
+        const newMap = new Map()
+        prev.forEach((data, hash) => {
+          if (currentHashes.has(hash)) {
+            newMap.set(hash, data)
+          }
+        })
+        return newMap
+      })
+    }
+
+    // 新規ページまたは再計算が必要なページを計算
     scoreEntries.forEach((entry, index) => {
       const entryHash = getEntryHash(entry)
-      // まだ計算されていないページのみ計算
       if (!kpmDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
         calculateSinglePageKpm(entry, index)
       }
     })
-
-    // 削除されたページのデータをクリーンアップ
-    const currentHashes = new Set(scoreEntries.map(entry => getEntryHash(entry)))
-    setKpmDataMap(prev => {
-      const newMap = new Map()
-      prev.forEach((data, hash) => {
-        if (currentHashes.has(hash)) {
-          newMap.set(hash, data)
-        }
-      })
-      return newMap
-    })
-  }, [scoreEntries, calculatingIds, getEntryHash, calculateSinglePageKpm])
+  }, [scoreEntries, calculatingIds, getEntryHash, calculateSinglePageKpm, kpmDataMap])
 
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
