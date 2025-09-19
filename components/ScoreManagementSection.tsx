@@ -153,13 +153,18 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
     }
 
     // 新規ページまたは再計算が必要なページを計算
-    scoreEntries.forEach((entry, index) => {
-      const entryHash = getEntryHash(entry)
-      if (!kpmDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
-        calculateSinglePageKpm(entry, index)
-      }
-    })
-  }, [scoreEntries, calculatingIds, getEntryHash, calculateSinglePageKpm, kpmDataMap])
+    setTimeout(() => {
+      scoreEntries.forEach((entry, index) => {
+        const entryHash = getEntryHash(entry)
+        setKpmDataMap(currentKmpDataMap => {
+          if (!currentKmpDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
+            calculateSinglePageKpm(entry, index)
+          }
+          return currentKmpDataMap
+        })
+      })
+    }, 0)
+  }, [scoreEntries, calculatingIds, getEntryHash, calculateSinglePageKpm])
 
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
