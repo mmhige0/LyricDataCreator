@@ -10,9 +10,10 @@ import type { PageKpmInfo } from '@/lib/kpmUtils'
 interface EntryDisplayProps {
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
+  nextTimestamp: number | null
 }
 
-const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData }) => {
+const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData, nextTimestamp }) => {
   if (kpmData) {
     // kpm表示モード
     return (
@@ -27,8 +28,13 @@ const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData }
             </div>
           </div>
         ))}
-        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right">
-          {kpmData.totalKpm.toFixed(1)} kpm
+        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 flex justify-between">
+          <div>
+            {nextTimestamp !== null ? `${(nextTimestamp - entry.timestamp).toFixed(1)}s` : '最終ページ'}
+          </div>
+          <div>
+            {kpmData.totalKpm.toFixed(1)} kmp
+          </div>
         </div>
       </div>
     )
@@ -135,7 +141,11 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                       </div>
                     </div>
                     <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                      <EntryDisplay entry={entry} kpmData={kpmData} />
+                      <EntryDisplay
+                        entry={entry}
+                        kpmData={kpmData}
+                        nextTimestamp={scoreEntries[index + 1]?.timestamp || null}
+                      />
                     </div>
                     <div className="flex flex-col gap-1 min-w-fit self-center">
                       <Button
