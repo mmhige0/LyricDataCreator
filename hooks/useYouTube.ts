@@ -87,7 +87,15 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
 
     if (player) {
       player.loadVideoById(id)
-      setIsLoadingVideo(false)
+      // 新しい動画の総時間を取得するためのタイマーを設定
+      setTimeout(() => {
+        const videoDuration = player.getDuration()
+        if (videoDuration && videoDuration > 0) {
+          setDuration(videoDuration)
+          onDurationChange?.(videoDuration)
+        }
+        setIsLoadingVideo(false)
+      }, 1000)
     } else {
       setTimeout(() => {
         try {
