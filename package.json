@@ -10,7 +10,8 @@
     "type-check": "tsc --noEmit",
     "test": "npm run lint && npm run type-check && npm run build",
     "preview": "npm run build && npx serve out",
-    "deploy-check": "npm run test"
+    "deploy-check": "npm run test",
+    "postinstall": "mkdir -p public/dict && cp -r node_modules/kuromoji/dict/* public/dict/ 2>/dev/null || true"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",

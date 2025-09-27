@@ -45,7 +45,9 @@ class HiraganaConverter {
 
     try {
       this.kuroshiro = new Kuroshiro()
-      await this.kuroshiro.init(new KuromojiAnalyzer())
+      await this.kuroshiro.init(new KuromojiAnalyzer({
+        dictPath: '/dict/'
+      }))
     } catch (error) {
       console.error('Kuroshiro initialization error:', error)
       throw new Error('漢字変換エンジンの初期化に失敗しました')
