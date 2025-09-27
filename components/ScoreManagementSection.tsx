@@ -10,10 +10,9 @@ import type { PageKpmInfo } from '@/lib/kpmUtils'
 interface EntryDisplayProps {
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
-  nextTimestamp: number | null
 }
 
-const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData, nextTimestamp }) => {
+const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData }) => {
   if (kpmData) {
     // kpm表示モード
     return (
@@ -28,13 +27,8 @@ const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData, 
             </div>
           </div>
         ))}
-        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 flex justify-between">
-          <div>
-            {nextTimestamp !== null ? `${(nextTimestamp - entry.timestamp).toFixed(1)}s` : '最終ページ'}
-          </div>
-          <div>
-            {kpmData.totalKpm.toFixed(1)} kmp
-          </div>
+        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right">
+          {kpmData.totalKpm.toFixed(1)} kpm
         </div>
       </div>
     )
@@ -126,7 +120,14 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
-                      <div className="text-sm font-mono text-muted-foreground">#{index + 1}</div>
+                      <div className="text-sm font-mono text-muted-foreground flex items-center justify-between">
+                        <span>#{index + 1}</span>
+                        {scoreEntries[index + 1] && (
+                          <span className="text-xs">
+                            {(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-auto">
                         <Button
                           variant="outline"
@@ -141,11 +142,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                       </div>
                     </div>
                     <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                      <EntryDisplay
-                        entry={entry}
-                        kpmData={kpmData}
-                        nextTimestamp={scoreEntries[index + 1]?.timestamp || null}
-                      />
+                      <EntryDisplay entry={entry} kpmData={kpmData} />
                     </div>
                     <div className="flex flex-col gap-1 min-w-fit self-center">
                       <Button
