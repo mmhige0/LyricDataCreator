@@ -45,8 +45,14 @@ class HiraganaConverter {
 
     try {
       this.kuroshiro = new Kuroshiro()
+
+      // ベースパスを動的に判定
+      const isGitHubPages = window.location.hostname.includes('github.io')
+      const basePath = isGitHubPages ? '/LyricDataCreator' : ''
+      const dictPath = `${basePath}/dict/`
+
       await this.kuroshiro.init(new KuromojiAnalyzer({
-        dictPath: '/dict/'
+        dictPath: dictPath
       }))
     } catch (error) {
       console.error('Kuroshiro initialization error:', error)
