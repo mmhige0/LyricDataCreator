@@ -74,6 +74,8 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const [kpmDataMap, setKpmDataMap] = useState<Map<string, PageKpmInfo>>(new Map())
+  const prevScoreEntriesRef = useRef<ScoreEntry[]>([])
+  const prevKpmDataMapRef = useRef<Map<string, PageKpmInfo>>(new Map())
 
   // 変更されたページのKPMを再計算
   const recalculateKpm = useCallback(async (entryIds: string[]) => {
@@ -96,19 +98,21 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
 
   // scoreEntriesの変更を監視して、変更されたページのみ再計算
   useEffect(() => {
+    const prevScoreEntries = prevScoreEntriesRef.current
+    const prevKpmDataMap = prevKpmDataMapRef.current
     const changedEntryIds: string[] = []
 
     // 新規追加されたページを検出
     scoreEntries.forEach(entry => {
-      if (!kpmDataMap.has(entry.id)) {
+      if (!prevKpmDataMap.has(entry.id)) {
         changedEntryIds.push(entry.id)
       }
     })
 
     // 時間差が変わったページを検出（次のページのタイムスタンプが変わった場合）
     scoreEntries.forEach((entry, index) => {
-      if (kpmDataMap.has(entry.id)) {
-        const currentKpmData = kpmDataMap.get(entry.id)!
+      if (prevKpmDataMap.has(entry.id)) {
+        const currentKpmData = prevKpmDataMap.get(entry.id)!
         const nextEntry = scoreEntries[index + 1]
         const currentNextTimestamp = nextEntry ? nextEntry.timestamp : null
 
@@ -135,7 +139,11 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
     if (changedEntryIds.length > 0) {
       recalculateKpm(changedEntryIds)
     }
-  }, [scoreEntries, kpmDataMap, recalculateKpm])
+
+    // 現在の状態を保存
+    prevScoreEntriesRef.current = [...scoreEntries]
+    prevKpmDataMapRef.current = new Map(kpmDataMap)
+  }, [scoreEntries, recalculateKpm]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
@@ -246,9 +254,11 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
           </div>
         )}
 
-        {copyStatus.visible && (
-          <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
-            {copyStatus.message}
+        {copyStatus !== 'idle' && (
+          <div className={`fixed bottom-4 right-4 text-white px-4 py-2 rounded-lg shadow-lg ${
+            copyStatus === 'success' ? 'bg-green-500' : 'bg-red-500'
+          }`}>
+            {copyStatus === 'success' ? '歌詞をコピーしました' : 'コピーに失敗しました'}
           </div>
         )}
 
