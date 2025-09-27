@@ -199,55 +199,54 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                       <span className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
                         {entry.timestamp.toFixed(2)}s
                       </span>
-                      {isCurrentPage && (
-                        <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">
-                          再生中
-                        </span>
-                      )}
                       {isEditing && (
                         <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full">
                           編集中
                         </span>
                       )}
                     </div>
-                    <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => seekTo(entry.timestamp)}
+                      title="この時間にシーク"
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <EntryDisplay entry={entry} kpmData={kpmData} />
+                    </div>
+                    <div className="flex flex-col gap-1 min-w-fit">
                       <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => seekTo(entry.timestamp)}
-                        title="この時間にシーク"
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => copyLyricsToClipboard(entry.lyrics)}
-                        title="歌詞をコピー"
                       >
-                        <Copy className="h-4 w-4" />
+                        <Copy className="h-4 w-4 mr-2" />
+                        コピー
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => startEditScoreEntry(entry)}
                         disabled={!!editingId}
-                        title="編集"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-4 w-4 mr-2" />
+                        編集
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => deleteScoreEntry(entry.id)}
-                        title="削除"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        削除
                       </Button>
                     </div>
                   </div>
-
-                  <EntryDisplay entry={entry} kpmData={kpmData} />
                 </div>
               )
             })}
@@ -262,19 +261,21 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
           </div>
         )}
 
-        {scoreEntries.length > 0 && (
-          <div className="mt-6 pt-4 border-t">
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={clearAllScoreEntries}
-              className="w-full"
-            >
-              すべてクリア
-            </Button>
-          </div>
-        )}
       </CardContent>
+
+      {scoreEntries.length > 0 && (
+        <div className="px-4 py-2 border-t bg-gray-50 dark:bg-gray-800 flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={clearAllScoreEntries}
+            className="text-xs px-3 py-1.5"
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            全ページ削除
+          </Button>
+        </div>
+      )}
     </Card>
   )
 }
