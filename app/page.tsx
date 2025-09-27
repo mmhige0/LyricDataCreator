@@ -189,7 +189,7 @@ export default function LyricsTypingApp() {
         {/* Text Processing Information */}
         <div className="mb-6">
           <div className="text-sm font-medium text-foreground mb-2">歌詞変換</div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             <div>ページ保存・追加時に記号削除・半角→全角変換・カタカナ→ひらがな変換が行われます。</div>
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function LyricsTypingApp() {
         {/* kpm Information */}
         <div className="mb-6">
           <div className="text-sm font-medium text-foreground mb-2">kpm</div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
             <div>ローマ字換算での計算です。</div>
             <div>実際の打鍵数と誤差がある可能性があります。</div>
           </div>
@@ -206,7 +206,7 @@ export default function LyricsTypingApp() {
         {/* Keyboard Shortcuts Help */}
         <div className="mb-0">
           <div className="text-sm font-medium text-foreground mb-2">ショートカットキー</div>
-          <div className="text-sm text-muted-foreground flex flex-wrap gap-x-6 gap-y-2">
+          <div className="text-sm text-gray-700 dark:text-gray-300 flex flex-wrap gap-x-6 gap-y-2">
             <span className="inline-flex items-center gap-2">
               <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">F2</kbd>
               <span>タイムスタンプ取得</span>
