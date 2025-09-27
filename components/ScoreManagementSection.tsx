@@ -8,19 +8,15 @@ import { calculatePageKpm, type PageKpmInfo } from '@/lib/kpmUtils'
 
 interface EntryDisplayProps {
   entry: ScoreEntry
-  getEntryHash: (entry: ScoreEntry) => string
-  kpmDataMap: Map<string, PageKpmInfo>
-  calculatingIds: Set<string>
+  kpmData: PageKpmInfo | null
 }
 
-const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, getEntryHash, kpmDataMap, calculatingIds }) => {
-  const entryHash = getEntryHash(entry)
-
-  if (kpmDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
-    // kpm表示モード（常に表示）
+const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData }) => {
+  if (kpmData) {
+    // kpm表示モード
     return (
       <div className="space-y-1">
-        {kpmDataMap.get(entryHash)!.lines.map((lineKpm, lineIndex) => (
+        {kpmData.lines.map((lineKpm, lineIndex) => (
           <div key={lineIndex} className="flex justify-between items-center">
             <div className={lineKpm.charCount > 0 ? "" : "text-muted-foreground"}>
               {entry.lyrics[lineIndex] || "!"}
@@ -31,15 +27,10 @@ const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, getEntryH
           </div>
         ))}
         <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right">
-          {kpmDataMap.get(entryHash)!.totalKpm.toFixed(1)} kpm
+          {kpmData.totalKpm.toFixed(1)} kpm
         </div>
       </div>
     )
-  }
-
-  if (calculatingIds.has(entryHash)) {
-    // 計算中
-    return <div className="text-muted-foreground">kpm計算中...</div>
   }
 
   // 歌詞のみ表示（kpm計算前）
@@ -83,88 +74,68 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const [kpmDataMap, setKpmDataMap] = useState<Map<string, PageKpmInfo>>(new Map())
-  const [calculatingIds, setCalculatingIds] = useState<Set<string>>(new Set())
 
-  // エントリの内容からハッシュ値を生成
-  const getEntryHash = useCallback((entry: ScoreEntry) => {
-    const content = `${entry.timestamp}_${entry.lyrics.join('|')}`
-    // 日本語文字も含めてUTF-8でBase64エンコード
-    return btoa(encodeURIComponent(content)).replace(/[^a-zA-Z0-9]/g, '')
-  }, [])
+  // 変更されたページのKPMを再計算
+  const recalculateKpm = useCallback(async (entryIds: string[]) => {
+    for (const entryId of entryIds) {
+      const entryIndex = scoreEntries.findIndex(e => e.id === entryId)
+      if (entryIndex === -1) continue
 
-  // 単一ページのkpm計算
-  const calculateSinglePageKpm = useCallback(async (entry: ScoreEntry, index: number) => {
-    const nextEntry = scoreEntries[index + 1]
-    const nextTimestamp = nextEntry ? nextEntry.timestamp : null
-    const entryHash = getEntryHash(entry)
+      const entry = scoreEntries[entryIndex]
+      const nextEntry = scoreEntries[entryIndex + 1]
+      const nextTimestamp = nextEntry ? nextEntry.timestamp : null
 
-    setCalculatingIds(prev => new Set(prev).add(entryHash))
-
-    try {
-      const pageKpmInfo = await calculatePageKpm(entry, nextTimestamp)
-      setKpmDataMap(prev => new Map(prev).set(entryHash, pageKpmInfo))
-    } catch (error) {
-      console.error('kpm calculation error for entry:', entry.id, error)
-    } finally {
-      setCalculatingIds(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(entryHash)
-        return newSet
-      })
+      try {
+        const pageKpmInfo = await calculatePageKpm(entry, nextTimestamp)
+        setKpmDataMap(prev => new Map(prev).set(entry.id, pageKpmInfo))
+      } catch (error) {
+        console.error('kpm calculation error for entry:', entry.id, error)
+      }
     }
-  }, [scoreEntries, getEntryHash])
+  }, [scoreEntries])
 
-  // scoreEntriesの変更を監視して必要なページのみ再計算
+  // scoreEntriesの変更を監視して、変更されたページのみ再計算
   useEffect(() => {
-    const currentHashes = new Set(scoreEntries.map(entry => getEntryHash(entry)))
-    const prevHashes = new Set(kpmDataMap.keys())
+    const changedEntryIds: string[] = []
 
-    // 削除されたページを検出
-    const deletedHashes = new Set(Array.from(prevHashes).filter(hash => !currentHashes.has(hash)))
+    // 新規追加されたページを検出
+    scoreEntries.forEach(entry => {
+      if (!kpmDataMap.has(entry.id)) {
+        changedEntryIds.push(entry.id)
+      }
+    })
 
-    // 削除されたページがある場合、影響を受けるページのkpmデータをクリア
-    if (deletedHashes.size > 0) {
-      setKpmDataMap(prev => {
-        const newMap = new Map()
-        // 最後のページ以外は削除の影響を受ける可能性があるため、kpmデータをクリア
-        scoreEntries.forEach((entry, index) => {
-          const entryHash = getEntryHash(entry)
-          const isLastPage = index === scoreEntries.length - 1
+    // 時間差が変わったページを検出（次のページのタイムスタンプが変わった場合）
+    scoreEntries.forEach((entry, index) => {
+      if (kpmDataMap.has(entry.id)) {
+        const currentKpmData = kpmDataMap.get(entry.id)!
+        const nextEntry = scoreEntries[index + 1]
+        const currentNextTimestamp = nextEntry ? nextEntry.timestamp : null
 
-          // 最後のページは次のページがないので影響を受けない
-          if (isLastPage && prev.has(entryHash)) {
-            newMap.set(entryHash, prev.get(entryHash)!)
-          }
-          // 最後以外のページは再計算が必要（kpmデータをクリアして再計算をトリガー）
-        })
-        return newMap
+        // 次のページのタイムスタンプが変わった場合
+        if (currentKpmData.nextTimestamp !== currentNextTimestamp) {
+          changedEntryIds.push(entry.id)
+        }
+      }
+    })
+
+    // 削除されたページのデータをクリア
+    const currentEntryIds = new Set(scoreEntries.map(e => e.id))
+    setKpmDataMap(prev => {
+      const newMap = new Map()
+      prev.forEach((data, entryId) => {
+        if (currentEntryIds.has(entryId)) {
+          newMap.set(entryId, data)
+        }
       })
-    } else {
-      // 削除がない場合は通常のクリーンアップのみ
-      setKpmDataMap(prev => {
-        const newMap = new Map()
-        prev.forEach((data, hash) => {
-          if (currentHashes.has(hash)) {
-            newMap.set(hash, data)
-          }
-        })
-        return newMap
-      })
+      return newMap
+    })
+
+    // 変更されたページがあれば再計算
+    if (changedEntryIds.length > 0) {
+      recalculateKpm(changedEntryIds)
     }
-
-    // 新規ページまたは再計算が必要なページを計算
-    setTimeout(() => {
-      scoreEntries.forEach((entry, index) => {
-        const entryHash = getEntryHash(entry)
-        setKpmDataMap(currentKmpDataMap => {
-          if (!currentKmpDataMap.has(entryHash) && !calculatingIds.has(entryHash)) {
-            calculateSinglePageKpm(entry, index)
-          }
-          return currentKmpDataMap
-        })
-      })
-    }, 0)
-  }, [scoreEntries, calculatingIds, getEntryHash, calculateSinglePageKpm])
+  }, [scoreEntries, kpmDataMap, recalculateKpm])
 
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
@@ -188,89 +159,108 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col min-h-0">
+
+      <CardContent className="flex-1 overflow-auto">
         {scoreEntries.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
-            ページがありません。歌詞を入力して追加してください。
-          </p>
+          <div className="text-center text-muted-foreground py-8">
+            まだページが追加されていません
+          </div>
         ) : (
-          <div className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
+          <div className="space-y-3">
             {scoreEntries.map((entry, index) => {
-              const isCurrentlyPlaying = getCurrentLyricsIndex() === index
+              const isCurrentPage = getCurrentLyricsIndex() === index
               const isEditing = editingId === entry.id
+              const kpmData = kpmDataMap.get(entry.id) || null
 
               return (
                 <div
                   key={entry.id}
-                  className={`p-3 border rounded-lg hover:bg-muted/50 ${
-                    isCurrentlyPlaying ? "bg-primary/10 border-primary" : ""
-                  } ${isEditing ? "bg-blue-50 border-blue-200" : ""}`}
+                  className={`p-4 rounded-lg border transition-all duration-200 ${
+                    isCurrentPage
+                      ? 'bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-700'
+                      : isEditing
+                      ? 'bg-yellow-50 dark:bg-yellow-950 border-yellow-300 dark:border-yellow-700'
+                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-750'
+                  }`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
-                      <div className="text-sm font-mono text-muted-foreground">#{index + 1}</div>
-                      <div className="mt-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => seekTo(entry.timestamp)}
-                          disabled={!player}
-                          className="text-xs font-mono h-6 px-2"
-                        >
-                          <Play className="h-3 w-3 mr-1" />
-                          {entry.timestamp.toFixed(2)}s
-                        </Button>
-                      </div>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        #{index + 1}
+                      </span>
+                      <span className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                        {entry.timestamp.toFixed(2)}s
+                      </span>
+                      {isCurrentPage && (
+                        <span className="text-xs bg-blue-500 text-white px-2 py-1 rounded-full">
+                          再生中
+                        </span>
+                      )}
+                      {isEditing && (
+                        <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full">
+                          編集中
+                        </span>
+                      )}
                     </div>
-                    <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                      <EntryDisplay
-                        entry={entry}
-                        getEntryHash={getEntryHash}
-                        kpmDataMap={kpmDataMap}
-                        calculatingIds={calculatingIds}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1 min-w-fit self-center">
+                    <div className="flex gap-1">
                       <Button
-                        variant="outline"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => seekTo(entry.timestamp)}
+                        title="この時間にシーク"
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => copyLyricsToClipboard(entry.lyrics)}
-                        className={`text-xs ${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+                        title="歌詞をコピー"
                       >
-                        <Copy className="h-3 w-3 mr-1" />
-                        コピー
+                        <Copy className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
                         onClick={() => startEditScoreEntry(entry)}
-                        className={`text-xs ${isEditing ? 'bg-blue-100 border-blue-300' : ''}`}
+                        disabled={!!editingId}
+                        title="編集"
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        編集
+                        <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => deleteScoreEntry(entry.id)} className="text-xs">
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        削除
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteScoreEntry(entry.id)}
+                        title="削除"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
+
+                  <EntryDisplay entry={entry} kpmData={kpmData} />
                 </div>
               )
             })}
           </div>
         )}
-        
+
+        {copyStatus.visible && (
+          <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+            {copyStatus.message}
+          </div>
+        )}
+
         {scoreEntries.length > 0 && (
-          <div className="mt-4 pt-3 border-t flex justify-end">
+          <div className="mt-6 pt-4 border-t">
             <Button
-              variant="outline"
+              variant="destructive"
               size="sm"
               onClick={clearAllScoreEntries}
-              className="text-black hover:bg-gray-50 text-xs"
+              className="w-full"
             >
-              <Trash2 className="h-3 w-3 mr-1" />
-              全ページ削除
+              すべてクリア
             </Button>
           </div>
         )}
