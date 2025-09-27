@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Upload, Download, Clock, Play, Copy, Edit, Trash2 } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
+import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import type { ScoreEntry, YouTubePlayer } from '@/lib/types'
-import { calculatePageKpm, type PageKpmInfo } from '@/lib/kpmUtils'
+import type { PageKpmInfo } from '@/lib/kpmUtils'
 
 interface EntryDisplayProps {
   entry: ScoreEntry
@@ -73,77 +74,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   seekTo
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
-  const [kpmDataMap, setKpmDataMap] = useState<Map<string, PageKpmInfo>>(new Map())
-  const prevScoreEntriesRef = useRef<ScoreEntry[]>([])
-  const prevKpmDataMapRef = useRef<Map<string, PageKpmInfo>>(new Map())
-
-  // 変更されたページのKPMを再計算
-  const recalculateKpm = useCallback(async (entryIds: string[]) => {
-    for (const entryId of entryIds) {
-      const entryIndex = scoreEntries.findIndex(e => e.id === entryId)
-      if (entryIndex === -1) continue
-
-      const entry = scoreEntries[entryIndex]
-      const nextEntry = scoreEntries[entryIndex + 1]
-      const nextTimestamp = nextEntry ? nextEntry.timestamp : null
-
-      try {
-        const pageKpmInfo = await calculatePageKpm(entry, nextTimestamp)
-        setKpmDataMap(prev => new Map(prev).set(entry.id, pageKpmInfo))
-      } catch (error) {
-        console.error('kpm calculation error for entry:', entry.id, error)
-      }
-    }
-  }, [scoreEntries])
-
-  // scoreEntriesの変更を監視して、変更されたページのみ再計算
-  useEffect(() => {
-    const prevScoreEntries = prevScoreEntriesRef.current
-    const prevKpmDataMap = prevKpmDataMapRef.current
-    const changedEntryIds: string[] = []
-
-    // 新規追加されたページを検出
-    scoreEntries.forEach(entry => {
-      if (!prevKpmDataMap.has(entry.id)) {
-        changedEntryIds.push(entry.id)
-      }
-    })
-
-    // 時間差が変わったページを検出（次のページのタイムスタンプが変わった場合）
-    scoreEntries.forEach((entry, index) => {
-      if (prevKpmDataMap.has(entry.id)) {
-        const currentKpmData = prevKpmDataMap.get(entry.id)!
-        const nextEntry = scoreEntries[index + 1]
-        const currentNextTimestamp = nextEntry ? nextEntry.timestamp : null
-
-        // 次のページのタイムスタンプが変わった場合
-        if (currentKpmData.nextTimestamp !== currentNextTimestamp) {
-          changedEntryIds.push(entry.id)
-        }
-      }
-    })
-
-    // 削除されたページのデータをクリア
-    const currentEntryIds = new Set(scoreEntries.map(e => e.id))
-    setKpmDataMap(prev => {
-      const newMap = new Map()
-      prev.forEach((data, entryId) => {
-        if (currentEntryIds.has(entryId)) {
-          newMap.set(entryId, data)
-        }
-      })
-      return newMap
-    })
-
-    // 変更されたページがあれば再計算
-    if (changedEntryIds.length > 0) {
-      recalculateKpm(changedEntryIds)
-    }
-
-    // 現在の状態を保存
-    prevScoreEntriesRef.current = [...scoreEntries]
-    prevKpmDataMapRef.current = new Map(kpmDataMap)
-  }, [scoreEntries, recalculateKpm]) // eslint-disable-line react-hooks/exhaustive-deps
+  const { kpmDataMap } = useKpmCalculation(scoreEntries)
 
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
@@ -168,81 +99,65 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-auto">
+      <CardContent className="flex-1 flex flex-col min-h-0">
         {scoreEntries.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            まだページが追加されていません
-          </div>
+          <p className="text-center text-muted-foreground py-8">
+            ページがありません。歌詞を入力して追加してください。
+          </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
             {scoreEntries.map((entry, index) => {
-              const isCurrentPage = getCurrentLyricsIndex() === index
+              const isCurrentlyPlaying = getCurrentLyricsIndex() === index
               const isEditing = editingId === entry.id
               const kpmData = kpmDataMap.get(entry.id) || null
 
               return (
                 <div
                   key={entry.id}
-                  className={`p-4 rounded-lg border transition-all duration-200 ${
-                    isCurrentPage
-                      ? 'bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-700'
-                      : isEditing
-                      ? 'bg-yellow-50 dark:bg-yellow-950 border-yellow-300 dark:border-yellow-700'
-                      : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-750'
-                  }`}
+                  className={`p-3 border rounded-lg hover:bg-muted/50 ${
+                    isCurrentlyPlaying ? "bg-primary/10 border-primary" : ""
+                  } ${isEditing ? "bg-blue-50 border-blue-200" : ""}`}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        #{index + 1}
-                      </span>
-                      <span className="text-sm font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-                        {entry.timestamp.toFixed(2)}s
-                      </span>
-                      {isEditing && (
-                        <span className="text-xs bg-yellow-500 text-white px-2 py-1 rounded-full">
-                          編集中
-                        </span>
-                      )}
+                  <div className="flex items-start gap-4">
+                    <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
+                      <div className="text-sm font-mono text-muted-foreground">#{index + 1}</div>
+                      <div className="mt-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => seekTo(entry.timestamp)}
+                          disabled={!player}
+                          className="text-xs font-mono h-6 px-2"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          {entry.timestamp.toFixed(2)}s
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => seekTo(entry.timestamp)}
-                      title="この時間にシーク"
-                    >
-                      <Play className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="flex-1">
+                    <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
                       <EntryDisplay entry={entry} kpmData={kpmData} />
                     </div>
-                    <div className="flex flex-col gap-1 min-w-fit">
+                    <div className="flex flex-col gap-1 min-w-fit self-center">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => copyLyricsToClipboard(entry.lyrics)}
+                        className={`text-xs ${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
                       >
-                        <Copy className="h-4 w-4 mr-2" />
+                        <Copy className="h-3 w-3 mr-1" />
                         コピー
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => startEditScoreEntry(entry)}
-                        disabled={!!editingId}
+                        className={`text-xs ${isEditing ? 'bg-blue-100 border-blue-300' : ''}`}
                       >
-                        <Edit className="h-4 w-4 mr-2" />
+                        <Edit className="h-3 w-3 mr-1" />
                         編集
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteScoreEntry(entry.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
+                      <Button variant="outline" size="sm" onClick={() => deleteScoreEntry(entry.id)} className="text-xs">
+                        <Trash2 className="h-3 w-3 mr-1" />
                         削除
                       </Button>
                     </div>
@@ -253,29 +168,21 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
           </div>
         )}
 
-        {copyStatus !== 'idle' && (
-          <div className={`fixed bottom-4 right-4 text-white px-4 py-2 rounded-lg shadow-lg ${
-            copyStatus === 'success' ? 'bg-green-500' : 'bg-red-500'
-          }`}>
-            {copyStatus === 'success' ? '歌詞をコピーしました' : 'コピーに失敗しました'}
+        {scoreEntries.length > 0 && (
+          <div className="mt-4 pt-3 border-t flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearAllScoreEntries}
+              className="text-black hover:bg-gray-50 text-xs"
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              全ページ削除
+            </Button>
           </div>
         )}
 
       </CardContent>
-
-      {scoreEntries.length > 0 && (
-        <div className="px-4 py-2 border-t bg-gray-50 dark:bg-gray-800 flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={clearAllScoreEntries}
-            className="text-xs px-3 py-1.5"
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-            全ページ削除
-          </Button>
-        </div>
-      )}
     </Card>
   )
 }
