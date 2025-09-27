@@ -96,7 +96,7 @@ export default function LyricsTypingApp() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16">
-      <input ref={fileInputRef} type="file" accept=".txt" onChange={handleFileImport} className="hidden" />
+      <input ref={fileInputRef} type="file" accept=".txt,.lrc" onChange={handleFileImport} className="hidden" />
       
       {/* Header */}
       <header className="border-b bg-white dark:bg-slate-950">

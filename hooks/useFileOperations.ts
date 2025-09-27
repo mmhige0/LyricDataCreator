@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import type { ScoreEntry } from '@/lib/types'
+import { parseLrcToScoreEntries } from '@/lib/lrcUtils'
 
 interface FileOperationsProps {
   scoreEntries: ScoreEntry[]
@@ -68,16 +69,45 @@ export const useFileOperations = ({
     if (!file) return
 
     const filename = file.name
-    // 現在のエクスポート形式: 曲名_YYYY-MM-DD_HH-MM-SS.txt
-    const match = filename.match(/^(.+)_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.txt$/)
-    if (match) {
-      setSongTitle(match[1])
+    const fileExtension = filename.split('.').pop()?.toLowerCase()
+
+    // ファイル名から曲名を抽出（txtファイルの場合）
+    if (fileExtension === 'txt') {
+      const match = filename.match(/^(.+)_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.txt$/)
+      if (match) {
+        setSongTitle(match[1])
+      }
+    } else if (fileExtension === 'lrc') {
+      // LRCファイルの場合、拡張子を除いたファイル名を曲名に設定
+      const titleFromFilename = filename.replace(/\.lrc$/i, '')
+      setSongTitle(titleFromFilename)
     }
 
     const reader = new FileReader()
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string
+
+        // LRCファイルの場合
+        if (fileExtension === 'lrc') {
+          const newEntries = parseLrcToScoreEntries(content)
+
+          if (newEntries.length === 0) {
+            alert("有効な歌詞データが見つかりませんでした。")
+            return
+          }
+
+          if (scoreEntries.length > 0) {
+            const replace = confirm("既存のページを置き換えますか？")
+            if (!replace) return
+          }
+
+          setScoreEntries(newEntries)
+          alert(`${newEntries.length}件のページをインポートしました。`)
+          return
+        }
+
+        // 既存のTXTファイル処理
         const lines = content.trim().split("\n")
 
         if (lines.length < 1) {
