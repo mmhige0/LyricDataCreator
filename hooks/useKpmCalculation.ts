@@ -39,15 +39,20 @@ export const useKpmCalculation = (scoreEntries: ScoreEntry[]) => {
       }
     })
 
-    // 時間差が変わったページを検出（次のページのタイムスタンプが変わった場合）
+    // 既存ページの変更を検出
     scoreEntries.forEach((entry, index) => {
       if (prevKpmDataMap.has(entry.id)) {
         const currentKpmData = prevKpmDataMap.get(entry.id)!
         const nextEntry = scoreEntries[index + 1]
         const currentNextTimestamp = nextEntry ? nextEntry.timestamp : null
 
-        // 次のページのタイムスタンプが変わった場合
-        if (currentKpmData.nextTimestamp !== currentNextTimestamp) {
+        // 前回の状態から変更があった場合を検出
+        const prevEntry = prevScoreEntries.find(e => e.id === entry.id)
+        const lyricsChanged = !prevEntry || JSON.stringify(prevEntry.lyrics) !== JSON.stringify(entry.lyrics)
+        const timestampChanged = !prevEntry || prevEntry.timestamp !== entry.timestamp
+        const nextTimestampChanged = currentKpmData.nextTimestamp !== currentNextTimestamp
+
+        if (lyricsChanged || timestampChanged || nextTimestampChanged) {
           changedEntryIds.push(entry.id)
         }
       }
