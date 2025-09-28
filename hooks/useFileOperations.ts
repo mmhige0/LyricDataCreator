@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { toast } from 'sonner'
 import type { ScoreEntry } from '@/lib/types'
 import { parseLrcToScoreEntries } from '@/lib/lrcUtils'
 
@@ -103,7 +104,7 @@ export const useFileOperations = ({
           }
 
           setScoreEntries(newEntries)
-          alert(`${newEntries.length}件のページをインポートしました。`)
+          toast.success(`${newEntries.length}件のページをインポートしました。`)
           return
         }
 
@@ -177,7 +178,7 @@ export const useFileOperations = ({
 
         setScoreEntries(newEntries)
         setDuration(fileDuration)
-        alert(`${newEntries.length}件のページをインポートしました。`)
+        toast.success(`${newEntries.length}件のページをインポートしました。`)
       } catch (error) {
         alert("ファイルの読み込みに失敗しました。")
       }
