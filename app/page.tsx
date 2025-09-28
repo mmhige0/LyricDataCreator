@@ -6,6 +6,7 @@ import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useFileOperations } from "@/hooks/useFileOperations"
+import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
 import { LyricsEditCard } from "@/components/LyricsEditCard"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
@@ -73,6 +74,20 @@ export default function LyricsTypingApp() {
     setTimestamp(timestampValue)
   }
 
+  // Initialize lyrics copy/paste hook
+  const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
+
+  const handlePasteLyrics = async () => {
+    const pastedLyrics = await pasteLyricsFromClipboard()
+    if (pastedLyrics) {
+      if (editingId) {
+        setEditingLyrics(pastedLyrics)
+      } else {
+        setLyrics(pastedLyrics)
+      }
+    }
+  }
+
   // Initialize keyboard shortcuts hook
   useKeyboardShortcuts({
     player,
@@ -82,7 +97,8 @@ export default function LyricsTypingApp() {
     seekForward1Second,
     lyricsInputRefs,
     timestampInputRef,
-    timestampOffset
+    timestampOffset,
+    pasteLyrics: handlePasteLyrics
   })
 
   // Initialize file operations hook

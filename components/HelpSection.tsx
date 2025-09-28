@@ -85,13 +85,13 @@ export const HelpSection: React.FC = () => {
           <div className="text-lg text-gray-700 dark:text-gray-300">
             <div className="grid grid-cols-1 gap-3">
               <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <div className="flex items-center gap-1 w-[140px]">
+                <div className="flex items-center gap-1 w-[180px]">
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">F2</kbd>
                 </div>
                 <span className="text-base">タイムスタンプ入力</span>
               </div>
               <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <div className="flex items-center gap-1 w-[140px]">
+                <div className="flex items-center gap-1 w-[180px]">
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Ctrl</kbd>
                   <span className="text-sm text-gray-500">+</span>
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Enter</kbd>
@@ -99,7 +99,7 @@ export const HelpSection: React.FC = () => {
                 <span className="text-base">ページ追加</span>
               </div>
               <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <div className="flex items-center gap-1 w-[140px]">
+                <div className="flex items-center gap-1 w-[180px]">
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Ctrl</kbd>
                   <span className="text-sm text-gray-500">+</span>
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Space</kbd>
@@ -107,7 +107,7 @@ export const HelpSection: React.FC = () => {
                 <span className="text-base">再生/一時停止</span>
               </div>
               <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <div className="flex items-center gap-1 w-[140px]">
+                <div className="flex items-center gap-1 w-[180px]">
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Ctrl</kbd>
                   <span className="text-sm text-gray-500">+</span>
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">←</kbd>
@@ -115,12 +115,22 @@ export const HelpSection: React.FC = () => {
                 <span className="text-base">1秒巻き戻し</span>
               </div>
               <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                <div className="flex items-center gap-1 w-[140px]">
+                <div className="flex items-center gap-1 w-[180px]">
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Ctrl</kbd>
                   <span className="text-sm text-gray-500">+</span>
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">→</kbd>
                 </div>
                 <span className="text-base">1秒早送り</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <div className="flex items-center gap-1 w-[180px]">
+                  <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Ctrl</kbd>
+                  <span className="text-sm text-gray-500">+</span>
+                  <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Shift</kbd>
+                  <span className="text-sm text-gray-500">+</span>
+                  <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">V</kbd>
+                </div>
+                <span className="text-base">歌詞貼り付け</span>
               </div>
             </div>
           </div>

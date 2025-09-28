@@ -10,6 +10,7 @@ interface KeyboardShortcutsProps {
   lyricsInputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>
   timestampInputRef: React.MutableRefObject<HTMLInputElement | null>
   timestampOffset?: number
+  pasteLyrics?: () => void
 }
 
 /**
@@ -23,7 +24,8 @@ export const useKeyboardShortcuts = ({
   seekForward1Second,
   lyricsInputRefs,
   timestampInputRef,
-  timestampOffset = 0
+  timestampOffset = 0,
+  pasteLyrics
 }: KeyboardShortcutsProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -68,6 +70,14 @@ export const useKeyboardShortcuts = ({
         return
       }
 
+      if (event.ctrlKey && event.shiftKey && (event.key === "V" || event.key === "v")) {
+        event.preventDefault()
+        if (pasteLyrics) {
+          pasteLyrics()
+        }
+        return
+      }
+
       if (event.key === "Tab" && isInputFocused) {
         const currentIndex = lyricsInputRefs.current.findIndex((ref) => ref === activeElement)
         if (currentIndex >= 0 && currentIndex < 3) {
@@ -82,5 +92,5 @@ export const useKeyboardShortcuts = ({
 
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [player, getCurrentTimestamp, addScoreEntry, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef, timestampOffset])
+  }, [player, getCurrentTimestamp, addScoreEntry, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef, timestampOffset, pasteLyrics])
 }
