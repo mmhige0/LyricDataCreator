@@ -132,6 +132,14 @@ export const HelpSection: React.FC = () => {
                 </div>
                 <span className="text-base">歌詞貼り付け</span>
               </div>
+              <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <div className="flex items-center gap-1 w-[180px]">
+                  <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Ctrl</kbd>
+                  <span className="text-sm text-gray-500">+</span>
+                  <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">Z</kbd>
+                </div>
+                <span className="text-base">元に戻す</span>
+              </div>
             </div>
           </div>
         </div>

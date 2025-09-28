@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
+import { toast } from "sonner"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
@@ -66,7 +67,10 @@ export default function LyricsTypingApp() {
     cancelEditScoreEntry,
     addScoreEntry,
     getCurrentLyricsIndex,
-    clearAllScoreEntries
+    clearAllScoreEntries,
+    undoLastOperation,
+    canUndo,
+    saveCurrentState
   } = useScoreManagement({ currentTime, currentPlayer: player })
 
   const handleGetCurrentTimestamp = () => {
@@ -90,12 +94,13 @@ export default function LyricsTypingApp() {
 
   // Bulk timing adjustment function
   const handleBulkTimingAdjust = (offsetSeconds: number) => {
+    saveCurrentState()
     const adjustedEntries = scoreEntries.map(entry => ({
       ...entry,
       timestamp: Math.max(0, entry.timestamp + offsetSeconds)
     }))
     setScoreEntries(adjustedEntries)
-    alert(`${scoreEntries.length}件のページのタイミングを${offsetSeconds > 0 ? '+' : ''}${offsetSeconds.toFixed(2)}秒調整しました。`)
+    toast.success(`${scoreEntries.length}件のページのタイミングを${offsetSeconds > 0 ? '+' : ''}${offsetSeconds.toFixed(2)}秒調整しました`)
   }
 
   // Initialize keyboard shortcuts hook
@@ -108,7 +113,8 @@ export default function LyricsTypingApp() {
     lyricsInputRefs,
     timestampInputRef,
     timestampOffset,
-    pasteLyrics: handlePasteLyrics
+    pasteLyrics: handlePasteLyrics,
+    undoLastOperation
   })
 
   // Initialize file operations hook
@@ -205,6 +211,8 @@ export default function LyricsTypingApp() {
               clearAllScoreEntries={clearAllScoreEntries}
               seekTo={seekTo}
               bulkAdjustTimings={handleBulkTimingAdjust}
+              undoLastOperation={undoLastOperation}
+              canUndo={canUndo}
             />
           </div>
         </div>

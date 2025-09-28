@@ -15,6 +15,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [editingLyrics, setEditingLyrics] = useState<LyricsArray>(["", "", "", ""])
   const [editingTimestamp, setEditingTimestamp] = useState<string>("0.00")
   const [timestampOffset, setTimestampOffset] = useState<number>(0)
+  const [previousScoreEntries, setPreviousScoreEntries] = useState<ScoreEntry[] | null>(null)
 
   const lyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const timestampInputRef = useRef<HTMLInputElement>(null)
@@ -32,11 +33,22 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     localStorage.setItem('timestampOffset', timestampOffset.toString())
   }, [timestampOffset])
 
-  const deleteScoreEntry = (id: string) => {
-    const confirm = window.confirm("このページエントリを削除しますか？")
-    if (confirm) {
-      setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
+  // Save current state before modification
+  const saveCurrentState = () => {
+    setPreviousScoreEntries([...scoreEntries])
+  }
+
+  // Undo last operation
+  const undoLastOperation = () => {
+    if (previousScoreEntries !== null) {
+      setScoreEntries(previousScoreEntries)
+      setPreviousScoreEntries(null)
     }
+  }
+
+  const deleteScoreEntry = (id: string) => {
+    saveCurrentState()
+    setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
   }
 
   const startEditScoreEntry = (entry: ScoreEntry) => {
@@ -48,6 +60,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const saveEditScoreEntry = () => {
     if (!editingId) return
 
+    saveCurrentState()
     const convertedLyrics = processLyricsForSave(editingLyrics)
 
     setScoreEntries((prev) => {
@@ -71,6 +84,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const addScoreEntry = () => {
+    saveCurrentState()
     const currentLyrics = processLyricsForSave(lyrics)
     const currentTimestamp = timestamp || "0.00"
 
@@ -102,10 +116,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const clearAllScoreEntries = () => {
-    const confirm = window.confirm("すべてのページを削除しますか？この操作は取り消せません。")
-    if (confirm) {
-      setScoreEntries([])
-    }
+    saveCurrentState()
+    setScoreEntries([])
   }
 
   return {
@@ -133,6 +145,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     cancelEditScoreEntry,
     addScoreEntry,
     getCurrentLyricsIndex,
-    clearAllScoreEntries
+    clearAllScoreEntries,
+    undoLastOperation,
+    canUndo: previousScoreEntries !== null,
+    saveCurrentState
   }
 }
