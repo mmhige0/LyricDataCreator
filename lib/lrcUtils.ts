@@ -1,4 +1,5 @@
 import type { ScoreEntry, LyricsArray } from '@/lib/types'
+import { preprocessAndConvertLyrics } from '@/lib/textUtils'
 
 export interface LrcEntry {
   timestamp: number
@@ -30,13 +31,13 @@ export const parseLrcContent = (content: string): LrcEntry[] => {
 }
 
 /**
- * LrcEntryの配列をScoreEntryの配列に変換
+ * LrcEntryの配列をScoreEntryの配列に変換（基本的なテキスト変換付き）
  */
 export const convertLrcToScoreEntries = (lrcEntries: LrcEntry[]): ScoreEntry[] => {
   return lrcEntries.map((entry, index) => ({
     id: `lrc-${Date.now()}-${index}`,
     timestamp: entry.timestamp,
-    lyrics: [entry.lyrics, '', '', ''] as LyricsArray
+    lyrics: [preprocessAndConvertLyrics(entry.lyrics), '', '', ''] as LyricsArray
   }))
 }
 
