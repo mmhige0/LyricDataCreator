@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { ScoreEntry, LyricsArray, YouTubePlayer } from '@/lib/types'
 import { processLyricsForSave } from '@/lib/textUtils'
+import { toast } from 'sonner'
 
 interface UseScoreManagementProps {
   currentTime: number
@@ -49,6 +50,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const deleteScoreEntry = (id: string) => {
     saveCurrentState()
     setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
+    toast.success('ページを削除しました')
   }
 
   const startEditScoreEntry = (entry: ScoreEntry) => {
@@ -117,7 +119,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
   const clearAllScoreEntries = () => {
     saveCurrentState()
+    const count = scoreEntries.length
     setScoreEntries([])
+    toast.success(`${count}件のページを削除しました`)
   }
 
   return {
