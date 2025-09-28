@@ -32,6 +32,8 @@ export default function LyricsTypingApp() {
     currentTime,
     duration,
     playbackRate,
+    volume,
+    isMuted,
     togglePlayPause,
     seekBackward,
     seekForward,
@@ -39,6 +41,9 @@ export default function LyricsTypingApp() {
     seekForward1Second,
     seekToBeginning,
     changePlaybackRate,
+    setPlayerVolume,
+    adjustVolume,
+    toggleMute,
     seekTo,
     getCurrentTimestamp,
     seekToInput
@@ -163,6 +168,8 @@ export default function LyricsTypingApp() {
               currentTime={currentTime}
               duration={duration}
               playbackRate={playbackRate}
+              volume={volume}
+              isMuted={isMuted}
               isLoadingVideo={isLoadingVideo}
               isYouTubeAPIReady={isYouTubeAPIReady}
               loadYouTubeVideo={loadYouTubeVideo}
@@ -173,6 +180,9 @@ export default function LyricsTypingApp() {
               seekForward1Second={seekForward1Second}
               seekToBeginning={seekToBeginning}
               changePlaybackRate={changePlaybackRate}
+              setPlayerVolume={setPlayerVolume}
+              adjustVolume={adjustVolume}
+              toggleMute={toggleMute}
               seekTo={seekTo}
             />
 

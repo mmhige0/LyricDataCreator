@@ -31,6 +31,8 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
   const [currentTime, setCurrentTime] = useState<number>(0)
   const [duration, setDuration] = useState<number>(0)
   const [playbackRate, setPlaybackRate] = useState<number>(1)
+  const [volume, setVolume] = useState<number>(100)
+  const [isMuted, setIsMuted] = useState<boolean>(false)
 
   useEffect(() => {
     if (!window.YT) {
@@ -127,6 +129,13 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
                 setPlayer(event.target)
                 const videoDuration = event.target.getDuration()
                 setDuration(videoDuration)
+
+                // 初期音量とミュート状態を取得
+                const initialVolume = event.target.getVolume()
+                const initialMuted = event.target.isMuted()
+                setVolume(initialVolume)
+                setIsMuted(initialMuted)
+
                 setIsLoadingVideo(false)
                 onPlayerReady?.(event.target)
                 onDurationChange?.(videoDuration)
@@ -194,6 +203,33 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     }
   }
 
+  const setPlayerVolume = (newVolume: number) => {
+    if (player) {
+      const clampedVolume = Math.max(0, Math.min(100, newVolume))
+      player.setVolume(clampedVolume)
+      setVolume(clampedVolume)
+      if (clampedVolume > 0 && isMuted) {
+        setIsMuted(false)
+      }
+    }
+  }
+
+  const adjustVolume = (delta: number) => {
+    setPlayerVolume(volume + delta)
+  }
+
+  const toggleMute = () => {
+    if (player) {
+      if (isMuted) {
+        player.unMute()
+        setIsMuted(false)
+      } else {
+        player.mute()
+        setIsMuted(true)
+      }
+    }
+  }
+
   const getCurrentTimestamp = (offset: number = 0) => {
     if (player) {
       const currentTime = player.getCurrentTime()
@@ -227,6 +263,8 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     setCurrentTime,
     duration,
     playbackRate,
+    volume,
+    isMuted,
     togglePlayPause,
     seekBackward,
     seekForward,
@@ -234,6 +272,9 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     seekForward1Second,
     seekToBeginning,
     changePlaybackRate,
+    setPlayerVolume,
+    adjustVolume,
+    toggleMute,
     seekTo,
     getCurrentTimestamp,
     seekToInput
