@@ -78,7 +78,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries)
-  const [adjustValue, setAdjustValue] = useState<string>('0.1')
+  const [adjustValue, setAdjustValue] = useState<string>('0')
 
 
   const handleBulkTimingAdjust = () => {
@@ -200,7 +200,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                 <span className="text-sm font-medium text-muted-foreground">全ページタイム調整</span>
                 <Input
                   type="number"
-                  step="0.1"
+                  step="0.01"
                   min="-10"
                   max="10"
                   value={adjustValue}

@@ -95,7 +95,7 @@ export default function LyricsTypingApp() {
       timestamp: Math.max(0, entry.timestamp + offsetSeconds)
     }))
     setScoreEntries(adjustedEntries)
-    alert(`${scoreEntries.length}件のページのタイミングを${offsetSeconds > 0 ? '+' : ''}${offsetSeconds.toFixed(1)}秒調整しました。`)
+    alert(`${scoreEntries.length}件のページのタイミングを${offsetSeconds > 0 ? '+' : ''}${offsetSeconds.toFixed(2)}秒調整しました。`)
   }
 
   // Initialize keyboard shortcuts hook
