@@ -88,6 +88,16 @@ export default function LyricsTypingApp() {
     }
   }
 
+  // Bulk timing adjustment function
+  const handleBulkTimingAdjust = (offsetSeconds: number) => {
+    const adjustedEntries = scoreEntries.map(entry => ({
+      ...entry,
+      timestamp: Math.max(0, entry.timestamp + offsetSeconds)
+    }))
+    setScoreEntries(adjustedEntries)
+    alert(`${scoreEntries.length}件のページのタイミングを${offsetSeconds > 0 ? '+' : ''}${offsetSeconds.toFixed(1)}秒調整しました。`)
+  }
+
   // Initialize keyboard shortcuts hook
   useKeyboardShortcuts({
     player,
@@ -194,6 +204,7 @@ export default function LyricsTypingApp() {
               startEditScoreEntry={startEditScoreEntry}
               clearAllScoreEntries={clearAllScoreEntries}
               seekTo={seekTo}
+              bulkAdjustTimings={handleBulkTimingAdjust}
             />
           </div>
         </div>

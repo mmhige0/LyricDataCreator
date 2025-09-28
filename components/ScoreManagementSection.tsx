@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Upload, Download, Clock, Play, Copy, Edit, Trash2 } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
@@ -59,6 +60,7 @@ interface ScoreManagementSectionProps {
   startEditScoreEntry: (entry: ScoreEntry) => void
   clearAllScoreEntries: () => void
   seekTo: (time: number) => void
+  bulkAdjustTimings: (offsetSeconds: number) => void
 }
 
 export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
@@ -71,10 +73,28 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   deleteScoreEntry,
   startEditScoreEntry,
   clearAllScoreEntries,
-  seekTo
+  seekTo,
+  bulkAdjustTimings
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries)
+  const [adjustValue, setAdjustValue] = useState<string>('0.1')
+
+
+  const handleBulkTimingAdjust = () => {
+    const value = parseFloat(adjustValue)
+    if (isNaN(value)) {
+      alert('正しい数値を入力してください。')
+      return
+    }
+
+    if (Math.abs(value) > 10) {
+      alert('調整値は-10秒から+10秒の範囲で入力してください。')
+      return
+    }
+
+    bulkAdjustTimings(value)
+  }
 
   return (
     <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
@@ -105,7 +125,8 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
             ページがありません。歌詞を入力して追加してください。
           </p>
         ) : (
-          <div className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
             {scoreEntries.map((entry, index) => {
               const isCurrentlyPlaying = getCurrentLyricsIndex() === index
               const isEditing = editingId === entry.id
@@ -172,20 +193,42 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                 </div>
               )
             })}
-          </div>
-        )}
+            </div>
 
-        {scoreEntries.length > 0 && (
-          <div className="mt-4 pt-3 border-t flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearAllScoreEntries}
-              className="text-black hover:bg-gray-50 text-xs"
-            >
-              <Trash2 className="h-3 w-3 mr-1" />
-              全ページ削除
-            </Button>
+            <div className="mt-3 pt-3 border-t flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">全ページタイム調整</span>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="-10"
+                  max="10"
+                  value={adjustValue}
+                  onChange={(e) => setAdjustValue(e.target.value)}
+                  placeholder="秒"
+                  className="w-20 text-xs h-7"
+                  disabled={scoreEntries.length === 0}
+                />
+                <Button
+                  onClick={handleBulkTimingAdjust}
+                  disabled={scoreEntries.length === 0}
+                  variant="outline"
+                  size="sm"
+                  className="px-3 text-xs h-7"
+                >
+                  適用
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllScoreEntries}
+                className="text-black hover:bg-gray-50 text-xs"
+              >
+                <Trash2 className="h-3 w-3 mr-1" />
+                全ページ削除
+              </Button>
+            </div>
           </div>
         )}
 
