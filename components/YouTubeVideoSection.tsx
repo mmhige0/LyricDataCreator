@@ -183,7 +183,6 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
                 onChange={(e) => seekTo(Number(e.target.value))}
                 className="w-full"
               />
-              <div className="text-xs text-muted-foreground text-center">動画の総時間: {duration.toFixed(1)}秒</div>
             </div>
           </div>
         )}

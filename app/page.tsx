@@ -211,6 +211,7 @@ export default function LyricsTypingApp() {
           <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
             <ScoreManagementSection
               scoreEntries={scoreEntries}
+              duration={duration}
               player={player}
               editingId={editingId}
               getCurrentLyricsIndex={getCurrentLyricsIndex}

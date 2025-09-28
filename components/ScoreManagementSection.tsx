@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
+import { formatTime } from '@/lib/timeUtils'
 import type { ScoreEntry, YouTubePlayer } from '@/lib/types'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
 
@@ -52,6 +53,7 @@ EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
   scoreEntries: ScoreEntry[]
+  duration: number
   player: YouTubePlayer | null
   editingId: string | null
   getCurrentLyricsIndex: () => number
@@ -68,6 +70,7 @@ interface ScoreManagementSectionProps {
 
 export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   scoreEntries,
+  duration,
   player,
   editingId,
   getCurrentLyricsIndex,
@@ -135,6 +138,16 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col min-h-0">
+        {/* 動画の総時間表示 */}
+        {duration > 0 && (
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Clock className="h-4 w-4" />
+              動画の総時間: {duration.toFixed(1)}秒
+            </div>
+          </div>
+        )}
+
         {scoreEntries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
             ページがありません。歌詞を入力して追加してください。
