@@ -7,6 +7,8 @@ interface KeyboardShortcutsProps {
   addScoreEntry: () => void
   seekBackward1Second: () => void
   seekForward1Second: () => void
+  adjustVolume?: (delta: number) => void
+  toggleMute?: () => void
   lyricsInputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>
   timestampInputRef: React.MutableRefObject<HTMLInputElement | null>
   timestampOffset?: number
@@ -23,6 +25,8 @@ export const useKeyboardShortcuts = ({
   addScoreEntry,
   seekBackward1Second,
   seekForward1Second,
+  adjustVolume,
+  toggleMute,
   lyricsInputRefs,
   timestampInputRef,
   timestampOffset = 0,

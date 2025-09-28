@@ -1,6 +1,7 @@
 /**
  * エラーハンドリング関連のユーティリティ
  */
+import { toast } from 'sonner'
 
 interface ErrorNotification {
   type: 'error' | 'warning' | 'info' | 'success'
@@ -10,18 +11,24 @@ interface ErrorNotification {
 
 /**
  * ユーザーフレンドリーなエラー通知を表示
- * 将来的にtoastライブラリに置き換え可能
  */
 export const showNotification = ({ type, title, message }: ErrorNotification) => {
-  // 現在はalertを使用、将来的にtoastに置き換え予定
-  const icon = {
-    error: '❌',
-    warning: '⚠️', 
-    info: 'ℹ️',
-    success: '✅'
-  }[type]
-  
-  alert(`${icon} ${title}\n\n${message}`)
+  const fullMessage = `${title}\n\n${message}`
+
+  switch (type) {
+    case 'error':
+      toast.error(fullMessage)
+      break
+    case 'warning':
+      toast.warning(fullMessage)
+      break
+    case 'info':
+      toast.info(fullMessage)
+      break
+    case 'success':
+      toast.success(fullMessage)
+      break
+  }
 }
 
 /**

@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { toast } from 'sonner'
 import type { ScoreEntry } from '@/lib/types'
 import { parseLrcToScoreEntries } from '@/lib/lrcUtils'
 
@@ -23,7 +24,7 @@ export const useFileOperations = ({
 
   const exportScoreData = () => {
     if (scoreEntries.length === 0) {
-      alert("ページがありません。")
+      toast.error("ページがありません。")
       return
     }
 
@@ -93,7 +94,7 @@ export const useFileOperations = ({
           const newEntries = parseLrcToScoreEntries(content)
 
           if (newEntries.length === 0) {
-            alert("有効な歌詞データが見つかりませんでした。")
+            toast.error("有効な歌詞データが見つかりませんでした。")
             return
           }
 
@@ -103,7 +104,7 @@ export const useFileOperations = ({
           }
 
           setScoreEntries(newEntries)
-          alert(`${newEntries.length}件のページをインポートしました。`)
+          toast.success(`${newEntries.length}件のページをインポートしました。`)
           return
         }
 
@@ -111,13 +112,13 @@ export const useFileOperations = ({
         const lines = content.trim().split("\n")
 
         if (lines.length < 1) {
-          alert("ファイルが空です。")
+          toast.error("ファイルが空です。")
           return
         }
 
         const fileDuration = Number.parseFloat(lines[0])
         if (isNaN(fileDuration)) {
-          alert("1行目の総時間が正しくありません。")
+          toast.error("1行目の総時間が正しくありません。")
           return
         }
 
@@ -164,7 +165,7 @@ export const useFileOperations = ({
         }
 
         if (errors.length > 0) {
-          alert(`以下のエラーがありました:\n${errors.join("\n")}`)
+          toast.error(`以下のエラーがありました:\n${errors.join("\n")}`)
           return
         }
 
@@ -177,9 +178,9 @@ export const useFileOperations = ({
 
         setScoreEntries(newEntries)
         setDuration(fileDuration)
-        alert(`${newEntries.length}件のページをインポートしました。`)
+        toast.success(`${newEntries.length}件のページをインポートしました。`)
       } catch (error) {
-        alert("ファイルの読み込みに失敗しました。")
+        toast.error("ファイルの読み込みに失敗しました。")
       }
     }
 

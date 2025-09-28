@@ -13,6 +13,12 @@ export interface YouTubePlayer {
   setPlaybackRate(suggestedRate: number): void
   loadVideoById(videoId: string): void
   getPlayerState(): number
+  // Volume control methods
+  getVolume(): number
+  setVolume(volume: number): void
+  mute(): void
+  unMute(): void
+  isMuted(): boolean
 }
 
 export type LyricsArray = [string, string, string, string]
