@@ -15,7 +15,9 @@ export const HelpSection: React.FC = () => {
         <div className="text-lg text-gray-700 dark:text-gray-300">
           <ol className="list-decimal ml-4 space-y-1">
             <li>作成する曲のYouTubeのURLを入力し、「読み込み」をクリック</li>
-            <li>1ページ単位での歌詞（最大4行）と、そのページの表示開始のタイムスタンプを入力し、「ページ追加」ボタンをクリック<br />（何も表示されないページを追加する場合は、4行とも空行にして追加）</li>
+            <li>動画を再生し、歌詞を表示したいタイミングで<kbd className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono">F2</kbd>キーでタイムスタンプを入力<br />
+            💡 入力されるタイミングは「補正」で微調整できます（-0.2〜-0.1秒がおすすめ）</li>
+            <li>歌詞（最大4行）を入力し、「ページ追加」をクリック（何も表示されないページを追加する場合は、4行とも空行にして追加）</li>
             <li>すべてのページを追加し終わったら、「エクスポート」をクリック</li>
           </ol>
         </div>
@@ -86,7 +88,7 @@ export const HelpSection: React.FC = () => {
                 <div className="flex items-center gap-1 w-[140px]">
                   <kbd className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 border rounded font-mono text-center">F2</kbd>
                 </div>
-                <span className="text-base">タイムスタンプ取得</span>
+                <span className="text-base">タイムスタンプ入力</span>
               </div>
               <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
                 <div className="flex items-center gap-1 w-[140px]">
