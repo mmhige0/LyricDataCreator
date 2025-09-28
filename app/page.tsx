@@ -181,55 +181,137 @@ export default function LyricsTypingApp() {
           </div>
         </div>
       </main>
-      
-      {/* Help Section */}
+{/* Help Section */}
       <div className="mt-8 max-w-[1600px] mx-auto px-8">
         <div className="text-lg font-semibold text-foreground mb-6">使い方・機能説明</div>
 
-        {/* Text Processing Information */}
-        <div className="mb-6">
-          <div className="text-sm font-medium text-foreground mb-2">歌詞変換</div>
+        {/* 1. Basic Usage */}
+        <div className="mb-8">
+          <div className="text-base font-semibold text-foreground mb-4 border-b pb-2">基本的な使い方</div>
           <div className="text-sm text-gray-700 dark:text-gray-300">
-            <div>ページ保存・追加時に記号削除・半角→全角変換・カタカナ→ひらがな変換が行われます。</div>
+            <ol className="list-decimal ml-4 space-y-1">
+              <li>作成する曲のYouTubeのURLを入力し、「読み込み」をクリック</li>
+              <li>1ページ単位での歌詞（最大4行）と、そのページの表示開始のタイムスタンプを入力し、「ページ追加」ボタンをクリック<br />（何も表示されないページを追加する場合は、4行とも空行にして追加）</li>
+              <li>すべてのページを追加し終わったら、「エクスポート」をクリック</li>
+            </ol>
           </div>
         </div>
 
-        {/* kpm Information */}
-        <div className="mb-6">
-          <div className="text-sm font-medium text-foreground mb-2">kpm</div>
-          <div className="text-sm text-gray-700 dark:text-gray-300">
-            <div>ローマ字換算での計算です。</div>
-            <div>実際の打鍵数と誤差がある可能性があります。</div>
+        {/* 2. File Operations */}
+        <div className="mb-8">
+          <div className="text-base font-semibold text-foreground mb-4 border-b pb-2">ファイル操作</div>
+          
+          {/* Import/Export Information */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-foreground mb-3">インポート・エクスポート</div>
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 dark:bg-gray-800/50">
+                    <th className="text-left py-2 pr-4 font-medium w-32 border-b border-gray-200 dark:border-gray-700 pl-2">操作</th>
+                    <th className="text-left py-2 font-medium border-b border-gray-200 dark:border-gray-700 pl-2">対応形式・備考</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <td className="py-3 pr-4 font-medium align-top pl-2">インポート</td>
+                    <td className="py-3 pl-2">
+                      <div className="mb-2">
+                        <span className="font-mono text-xs bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded mr-2">.txt</span>
+                        <span className="font-mono text-xs bg-purple-100 dark:bg-purple-900/30 px-2 py-1 rounded">.lrc</span>
+                      </div>
+                      <div className="text-xs text-gray-700 dark:text-gray-300">
+                        ※ LRCファイル：1行目に歌詞が読み込まれ、2〜4行目は空行になります
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 pr-4 font-medium align-top pl-2">エクスポート</td>
+                    <td className="py-3 pl-2">
+                      <span className="font-mono text-xs bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">.txt</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* File Format Information */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-foreground mb-2">ファイルフォーマット <span className="font-mono text-xs bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded">.txt</span></div>
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="font-mono text-xs bg-gray-100 dark:bg-gray-800 p-4 rounded mb-3">
+                <div className="text-blue-600 dark:text-blue-400">120.5</div>
+                <div>最初の歌詞/!/!/!/12.50</div>
+                <div>次の歌詞/2行目/!/!/25.30</div>
+                <div>!/!/!/!/999.9</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Keyboard Shortcuts Help */}
-        <div className="mb-0">
-          <div className="text-sm font-medium text-foreground mb-2">ショートカットキー</div>
-          <div className="text-sm text-gray-700 dark:text-gray-300 flex flex-wrap gap-x-6 gap-y-2">
-            <span className="inline-flex items-center gap-2">
-              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">F2</kbd>
-              <span>タイムスタンプ取得</span>
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+Enter</kbd>
-              <span>ページ追加</span>
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+Space</kbd>
-              <span>再生/一時停止</span>
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+←</kbd>
-              <span>1秒巻き戻し</span>
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <kbd className="px-2 py-1 text-sm bg-gray-100 dark:bg-gray-800 border rounded">Ctrl+→</kbd>
-              <span>1秒早送り</span>
-            </span>
+        {/* 3. Controls and Shortcuts */}
+        <div className="mb-8">
+          <div className="text-base font-semibold text-foreground mb-4 border-b pb-2">ショートカットキー</div>
+          
+          {/* Keyboard Shortcuts Help */}
+          <div className="mb-6">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <kbd className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono min-w-[80px] text-center">F2</kbd>
+                  <span className="text-sm">タイムスタンプ取得</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <kbd className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono min-w-[80px] text-center">Ctrl+Enter</kbd>
+                  <span className="text-sm">ページ追加</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <kbd className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono min-w-[80px] text-center">Ctrl+Space</kbd>
+                  <span className="text-sm">再生/一時停止</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <kbd className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono min-w-[80px] text-center">Ctrl+←</kbd>
+                  <span className="text-sm">1秒巻き戻し</span>
+                </div>
+                <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                  <kbd className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono min-w-[80px] text-center">Ctrl+→</kbd>
+                  <span className="text-sm">1秒早送り</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Other Features */}
+        <div className="mb-8">
+          <div className="text-base font-semibold text-foreground mb-4 border-b pb-2">その他の機能</div>
+          
+          {/* Text Processing Information */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-foreground mb-2">歌詞変換</div>
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <div>ページ追加・編集時に以下の変換が自動で行われます：</div>
+              <ul className="ml-4 mt-1 list-disc">
+                <li>前後のスペース削除</li>
+                <li>記号削除</li>
+                <li>半角文字 → 全角文字変換</li>
+                <li>カタカナ → ひらがな変換</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* kpm Information */}
+          <div className="mb-6">
+            <div className="text-sm font-medium text-foreground mb-2">kpm計算</div>
+            <div className="text-sm text-gray-700 dark:text-gray-300">
+              <div>打ち切りに必要なkpmをローマ字入力換算で計算します。</div>
+              <div className="text-xs mt-1 text-gray-700 dark:text-gray-300">※ 実際の打鍵数と誤差が生じる場合があります</div>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
   )
 }
