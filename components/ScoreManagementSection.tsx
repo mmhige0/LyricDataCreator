@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -88,12 +89,12 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   const handleBulkTimingAdjust = () => {
     const value = parseFloat(adjustValue)
     if (isNaN(value)) {
-      alert('正しい数値を入力してください。')
+      toast.error('正しい数値を入力してください。')
       return
     }
 
     if (Math.abs(value) > 10) {
-      alert('調整値は-10秒から+10秒の範囲で入力してください。')
+      toast.error('調整値は-10秒から+10秒の範囲で入力してください。')
       return
     }
 

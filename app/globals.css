@@ -59,3 +59,62 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 }
+
+/* Sonner Toast Customization */
+@layer components {
+  [data-sonner-toaster] {
+    --normal-bg: hsl(var(--background));
+    --normal-border: hsl(var(--border));
+    --normal-text: hsl(var(--foreground));
+
+    --success-bg: hsl(142 76% 36%);
+    --success-border: hsl(142 76% 40%);
+    --success-text: hsl(142 85% 96%);
+
+    --error-bg: hsl(var(--destructive));
+    --error-border: hsl(var(--destructive));
+    --error-text: hsl(var(--destructive-foreground));
+
+    --warning-bg: hsl(38 92% 50%);
+    --warning-border: hsl(38 92% 54%);
+    --warning-text: hsl(48 96% 89%);
+
+    --info-bg: hsl(var(--primary));
+    --info-border: hsl(var(--primary));
+    --info-text: hsl(var(--primary-foreground));
+  }
+
+  [data-sonner-toast][data-type="success"] {
+    background-color: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success-text);
+  }
+
+  [data-sonner-toast][data-type="error"] {
+    background-color: var(--error-bg);
+    border-color: var(--error-border);
+    color: var(--error-text);
+  }
+
+  [data-sonner-toast][data-type="warning"] {
+    background-color: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: var(--warning-text);
+  }
+
+  [data-sonner-toast][data-type="info"] {
+    background-color: var(--info-bg);
+    border-color: var(--info-border);
+    color: var(--info-text);
+  }
+
+  [data-sonner-toast] [data-title] {
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  [data-sonner-toast] [data-description] {
+    opacity: 0.9;
+    font-size: 0.8rem;
+  }
+}

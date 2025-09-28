@@ -44,6 +44,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     if (previousScoreEntries !== null) {
       setScoreEntries(previousScoreEntries)
       setPreviousScoreEntries(null)
+      toast.success('操作を元に戻しました')
+    } else {
+      toast.info('元に戻す操作がありません')
     }
   }
 
