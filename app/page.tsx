@@ -229,7 +229,28 @@ export default function LyricsTypingApp() {
           </div>
         </div>
       </main>
-<HelpSection />
+
+      <HelpSection />
+
+      {/* Footer with Credits */}
+      <footer className="mt-16 py-8 border-t">
+        <div className="max-w-[1600px] mx-auto px-8">
+          <div className="flex items-center justify-end text-sm text-muted-foreground">
+            <div className="flex items-center space-x-1">
+              <span>Favicon from</span>
+              <a
+                href="https://illust-stock.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+              >
+                イラストストック
+              </a>
+              <span>様</span>
+            </div>
+          </div>
+        </div>
+      </footer>
 
     </div>
   )
