@@ -65,9 +65,81 @@ export const useFileOperations = ({
     fileInputRef.current?.click()
   }
 
+  // ファイルアップロードセキュリティ設定
+  const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+  const ALLOWED_TYPES = ['text/plain']
+  const ALLOWED_EXTENSIONS = ['.txt', '.lrc']
+  const MAX_LINES = 1000
+  const MAX_CONTENT_LENGTH = 100 * 1024 // 100KB
+
+  const validateFile = (file: File): boolean => {
+    // ファイルサイズチェック
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('ファイルサイズが大きすぎます（5MB以下にしてください）')
+      return false
+    }
+
+    // ファイル拡張子チェック
+    const extension = '.' + file.name.split('.').pop()?.toLowerCase()
+    if (!ALLOWED_EXTENSIONS.includes(extension)) {
+      toast.error('対応していないファイル形式です（.txt, .lrc のみサポート）')
+      return false
+    }
+
+    // MIMEタイプチェック（一部のブラウザでは空の場合があるため、警告のみ）
+    if (file.type && !ALLOWED_TYPES.includes(file.type)) {
+      console.warn('Unexpected MIME type:', file.type)
+    }
+
+    return true
+  }
+
+  const validateFileContent = (content: string): boolean => {
+    // 行数制限
+    const lines = content.split('\n')
+    if (lines.length > MAX_LINES) {
+      toast.error(`ファイルの行数が多すぎます（${MAX_LINES}行以下にしてください）`)
+      return false
+    }
+
+    // 文字数制限
+    if (content.length > MAX_CONTENT_LENGTH) {
+      toast.error('ファイルの内容が大きすぎます（100KB以下にしてください）')
+      return false
+    }
+
+    // 不正な文字パターンの検出
+    const suspiciousPatterns = [
+      /<script/i,
+      /javascript:/i,
+      /data:/i,
+      /<iframe/i,
+      /<object/i,
+      /<embed/i
+    ]
+
+    for (const pattern of suspiciousPatterns) {
+      if (pattern.test(content)) {
+        toast.error('不正な内容が検出されました')
+        return false
+      }
+    }
+
+    return true
+  }
+
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
+
+    // ファイルバリデーション
+    if (!validateFile(file)) {
+      // ファイル入力をリセット
+      if (event.target) {
+        event.target.value = ''
+      }
+      return
+    }
 
     const filename = file.name
     const fileExtension = filename.split('.').pop()?.toLowerCase()
@@ -88,6 +160,11 @@ export const useFileOperations = ({
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string
+
+        // ファイル内容のバリデーション
+        if (!validateFileContent(content)) {
+          return
+        }
 
         // LRCファイルの場合
         if (fileExtension === 'lrc') {
@@ -180,12 +257,25 @@ export const useFileOperations = ({
         setDuration(fileDuration)
         toast.success(`${newEntries.length}件のページをインポートしました。`)
       } catch (error) {
-        toast.error("ファイルの読み込みに失敗しました。")
+        console.error('File import error:', error)
+        const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+        toast.error(`ファイルの読み込みに失敗しました: ${errorMessage}`)
+      } finally {
+        // ファイル入力をリセット（同じファイルを再選択可能にする）
+        if (event.target) {
+          event.target.value = ''
+        }
+      }
+    }
+
+    reader.onerror = () => {
+      toast.error("ファイルの読み込み中にエラーが発生しました")
+      if (event.target) {
+        event.target.value = ''
       }
     }
 
     reader.readAsText(file, "utf-8")
-    event.target.value = ""
   }
 
   return {
