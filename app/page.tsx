@@ -45,6 +45,7 @@ export default function LyricsTypingApp() {
     adjustVolume,
     toggleMute,
     seekTo,
+    seekToAndPlay,
     getCurrentTimestamp,
     seekToInput
   } = useYouTube()
@@ -221,6 +222,7 @@ export default function LyricsTypingApp() {
               startEditScoreEntry={startEditScoreEntry}
               clearAllScoreEntries={clearAllScoreEntries}
               seekTo={seekTo}
+              seekToAndPlay={seekToAndPlay}
               bulkAdjustTimings={handleBulkTimingAdjust}
               undoLastOperation={undoLastOperation}
               canUndo={canUndo}

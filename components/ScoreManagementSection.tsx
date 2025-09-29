@@ -63,6 +63,7 @@ interface ScoreManagementSectionProps {
   startEditScoreEntry: (entry: ScoreEntry) => void
   clearAllScoreEntries: () => void
   seekTo: (time: number) => void
+  seekToAndPlay: (time: number) => void
   bulkAdjustTimings: (offsetSeconds: number) => void
   undoLastOperation: () => void
   canUndo: boolean
@@ -80,6 +81,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   startEditScoreEntry,
   clearAllScoreEntries,
   seekTo,
+  seekToAndPlay,
   bulkAdjustTimings,
   undoLastOperation,
   canUndo
@@ -181,7 +183,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => seekTo(entry.timestamp)}
+                          onClick={() => seekToAndPlay(entry.timestamp)}
                           disabled={!player}
                           className="text-xs font-mono h-6 px-2"
                         >

@@ -243,9 +243,15 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     if (inputValue && player) {
       const time = parseFloat(inputValue)
       if (!isNaN(time)) {
-        seekTo(time)
-        player.playVideo()
+        seekToAndPlay(time)
       }
+    }
+  }
+
+  const seekToAndPlay = (time: number) => {
+    if (player) {
+      seekTo(time)
+      player.playVideo()
     }
   }
 
@@ -276,6 +282,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     adjustVolume,
     toggleMute,
     seekTo,
+    seekToAndPlay,
     getCurrentTimestamp,
     seekToInput
   }
