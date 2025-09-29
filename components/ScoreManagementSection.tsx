@@ -7,7 +7,6 @@ import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, ScrollText, Sc
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
-import { formatTime } from '@/lib/timeUtils'
 import type { ScoreEntry, YouTubePlayer } from '@/lib/types'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
 
@@ -63,7 +62,6 @@ interface ScoreManagementSectionProps {
   deleteScoreEntry: (id: string) => void
   startEditScoreEntry: (entry: ScoreEntry) => void
   clearAllScoreEntries: () => void
-  seekTo: (time: number) => void
   seekToAndPlay: (time: number) => void
   bulkAdjustTimings: (offsetSeconds: number) => void
   undoLastOperation: () => void
@@ -81,7 +79,6 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   deleteScoreEntry,
   startEditScoreEntry,
   clearAllScoreEntries,
-  seekTo,
   seekToAndPlay,
   bulkAdjustTimings,
   undoLastOperation,

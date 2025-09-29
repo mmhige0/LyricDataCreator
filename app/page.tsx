@@ -221,7 +221,6 @@ export default function LyricsTypingApp() {
               deleteScoreEntry={deleteScoreEntry}
               startEditScoreEntry={startEditScoreEntry}
               clearAllScoreEntries={clearAllScoreEntries}
-              seekTo={seekTo}
               seekToAndPlay={seekToAndPlay}
               bulkAdjustTimings={handleBulkTimingAdjust}
               undoLastOperation={undoLastOperation}
