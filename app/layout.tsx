@@ -2,9 +2,14 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from 'sonner'
 
+const basePath = process.env.NODE_ENV === 'production' ? '/LyricDataCreator' : ''
+
 export const metadata: Metadata = {
   title: 'Lyric Data Creator',
   description: 'YouTube video lyrics timing tool',
+  icons: {
+    icon: `${basePath}/favicon.ico`,
+  },
 }
 
 export default function RootLayout({
