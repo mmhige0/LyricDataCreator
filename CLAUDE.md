@@ -4,124 +4,101 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Next.js 14 application for creating lyric timing data for YouTube videos. The app allows users to input lyrics with precise timestamps and export them in a custom format. It features a YouTube video player integration with playback controls and lyrics synchronization.
+Lyric Data Creator is a Next.js 14 web application for creating synchronized lyric timing data for YouTube videos. The app allows users to input lyrics and capture precise timestamps while watching YouTube videos, then export the data in various formats.
 
 ## Development Commands
 
-- `npm run dev` - Start development server (port varies based on availability)
-- `npm run build` - Build production version
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint for code quality checks
+### Core Commands
+- `npm run dev` - Start development server
+- `npm run build` - Build for production (static export)
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript type checking
-- `npm run test` - Run full test suite (lint + type-check + build)
-- `npm run preview` - Build and serve production version locally
-- `npm run deploy-check` - Pre-deployment validation (same as test)
+- `npm test` - Run full test suite (lint + type-check + build)
+- `npm run preview` - Build and serve locally with static server
+- `npm run deploy-check` - Pre-deployment validation
 
-## CI/CD Pipeline
+### Dependencies
+- Kuromoji dictionaries are automatically installed to `public/dict/` via postinstall script
+- Production build uses static export with GitHub Pages configuration
 
-### GitHub Actions Workflows
-- **CI Workflow** (`.github/workflows/ci.yml`): Runs on all pushes and PRs except master
-  - ESLint code quality checks
-  - TypeScript type validation
-  - Build verification
-  - Static output validation
-- **Deploy Workflow** (`.github/workflows/deploy.yml`): Runs on master branch pushes
-  - Production build and deployment to GitHub Pages
+## Architecture
 
-### Development Workflow
-1. **Development**: Use `npm run dev` for hot-reload development
-2. **Pre-commit**: Run `npm run test` to validate changes locally
-3. **Preview**: Use `npm run preview` to test production build locally
-4. **Push**: CI automatically validates code quality on push/PR
-5. **Deploy**: Merge to master triggers automatic deployment
+### Application Structure
+The app follows Next.js 14 App Router patterns with a custom hook-based architecture:
 
-## Architecture and Code Organization
+**Main Layout:**
+- `app/page.tsx` - Main application component with two-column layout
+- Left column: YouTube video player and lyrics input
+- Right column: Score management (saved lyrics pages)
 
-### Directory Structure (Recently Refactored)
-```
-app/                      # Next.js App Router pages
-├── layout.tsx           # Root layout with metadata and styling
-├── page.tsx             # Main lyrics typing application
-└── globals.css          # Global styles with Tailwind CSS
-components/
-├── ui/                  # shadcn/ui base components
-│   ├── button.tsx
-│   ├── card.tsx
-│   ├── input.tsx
-│   └── label.tsx
-├── LyricsInputFields.tsx        # 4-line lyrics input component
-├── TimestampInput.tsx           # Timestamp input with capture button
-├── LyricsEditCard.tsx           # Page add/edit functionality
-├── ScoreManagementSection.tsx   # Page list/management functionality
-└── YouTubeVideoSection.tsx      # Video player controls
-hooks/
-├── useYouTube.ts               # Consolidated YouTube functionality
-├── useScoreManagement.ts       # Lyrics entries CRUD operations
-├── useKeyboardShortcuts.ts     # Global keyboard shortcuts
-└── useFileOperations.ts        # Import/export functionality
-lib/
-├── types.ts                    # Centralized TypeScript interfaces
-├── textUtils.ts                # Text processing & conversion
-├── timeUtils.ts                # Time formatting utilities
-├── youtubeUtils.ts            # YouTube URL parsing
-└── utils.ts                   # General utilities (cn function)
-```
+### Core Hooks System
 
-### Key Technologies
-- **Next.js 14.2.5** with App Router and TypeScript
-- **React 18** with strict TypeScript configuration
-- **Tailwind CSS v3** with proper configuration and utilities
-- **shadcn/ui** components with class-variance-authority
-- **Lucide React** icons for UI elements
-- **YouTube IFrame API** for video integration
+**State Management Hooks:**
+- `useYouTube` - YouTube player integration, video controls, playback state
+- `useScoreManagement` - Lyrics entries, timestamps, editing state, undo functionality
+- `useKeyboardShortcuts` - Global keyboard shortcuts (F2, Ctrl+Enter, etc.)
+- `useFileOperations` - Import/export functionality for lyric data files
+- `useLyricsCopyPaste` - Clipboard integration for lyrics
+- `useAutoScroll` - Auto-scroll behavior for lyrics list
 
-### Refactored Architecture Highlights
+### Key Data Types
+- `ScoreEntry` - Individual lyric page with timestamp and 4-line lyrics array
+- `YouTubePlayer` - Interface for YouTube IFrame API player methods
+- `LyricsArray` - Tuple type for 4-line lyrics format
 
-**Recent Consolidation Improvements:**
-- **Hooks Consolidation**: All YouTube-related functionality (`useYouTubeAPI`, `useYouTubePlayer`, `useYouTubeVideo`) merged into single `useYouTube.ts`
-- **Type Unification**: All TypeScript interfaces consolidated in `lib/types.ts` (eliminated duplicate definitions across components)
-- **Simplified Structure**: Flattened component hierarchy by removing unnecessary `shared/` directory
-- **Text Processing**: All text conversion utilities unified in `lib/textUtils.ts`
+### Component Architecture
+- **YouTubeVideoSection** - Video player with custom controls
+- **LyricsEditCard** - Input form for lyrics and timestamps
+- **ScoreManagementSection** - List management for saved lyric pages
+- **HelpSection** - Keyboard shortcuts and usage instructions
 
-### Core Application Features
+### Utility Libraries
+- `lib/youtubeUtils.ts` - YouTube URL/ID extraction and validation
+- `lib/timeUtils.ts` - Time formatting and parsing utilities
+- `lib/textUtils.ts` - Text processing and character conversion
+- `lib/errorUtils.ts` - Centralized error handling
+- `lib/kpmUtils.ts` - KPM (Keystrokes Per Minute) calculation
+- `lib/hiraganaUtils.ts` - Japanese text processing with Kuroshiro
+- `lib/lrcUtils.ts` - LRC format export utilities
 
-1. **YouTube Video Integration** (`useYouTube.ts` + `YouTubeVideoSection.tsx`)
-   - Dynamic video loading via YouTube IFrame API with consolidated state management
-   - Custom playback controls with keyboard shortcuts
-   - Playback speed control (0.25x to 2x)
-   - Precision seeking (5-second and 1-second increments)
+## Key Features
 
-2. **Lyrics Management System** (`useScoreManagement.ts`)
-   - 4-line lyrics input with timestamp association using shared components
-   - CRUD operations for lyrics entries (add, edit, delete)
-   - Real-time lyrics highlighting during playback
-   - Automatic sorting by timestamp
+### YouTube Integration
+- YouTube IFrame API for video playback control
+- Custom video controls with precise seeking (1s/5s intervals)
+- Playback rate adjustment (0.25x - 2x)
+- Volume control and muting
 
-3. **File Operations** (`useFileOperations.ts`)
-   - Custom export format: `総時間\n歌詞1/歌詞2/歌詞3/歌詞4/タイムスタンプ`
-   - Import with validation and conflict resolution
-   - Automatic song title detection from filename patterns (`曲名_YYYY-MM-DD_HH-MM-SS.txt`)
-   - Batch operations (clear all entries)
+### Lyrics Input System
+- 4-line lyrics input format
+- Real-time timestamp capture with offset adjustment
+- Half-width to full-width character conversion
+- Clipboard paste support for bulk lyrics entry
 
-4. **Keyboard Shortcuts** (`useKeyboardShortcuts.ts`)
-   - `F2`: Capture current video timestamp
-   - `Ctrl+Enter`: Add score entry  
-   - `Ctrl+Space`: Toggle play/pause
-   - `Ctrl+←/→`: 1-second seek backward/forward
-   - `Tab`: Navigate between input fields
+### Export Formats
+- Custom format: `timestamp/line1/line2/line3/line4/totalDuration`
+- LRC format support
+- Automatic filename generation with timestamp
 
-### Key Architectural Patterns
+## Development Notes
 
-- **Hook-Based State Management**: Each major feature isolated in custom hooks with proper TypeScript typing
-- **Simple Component Structure**: Flattened hierarchy with direct component imports for better maintainability
-- **Centralized Types**: All interfaces defined once in `lib/types.ts` (`ScoreEntry`, `YouTubePlayer`, `LyricsArray`)
-- **Utility Separation**: Text processing, time formatting, YouTube parsing in dedicated lib files
-- **Component Composition**: Main page orchestrates feature components rather than implementing directly
+### Configuration
+- Static export configuration for GitHub Pages deployment
+- Base path `/LyricDataCreator` in production
+- TypeScript strict mode enabled
+- Path aliases: `@/*` maps to project root
 
-### Development Notes
+### External Dependencies
+- Kuroshiro + Kuromoji for Japanese text processing
+- shadcn/ui components with Tailwind CSS
+- Sonner for toast notifications
+- YouTube IFrame API for video integration
 
-- **Port Flexibility**: Dev server automatically finds available port (typically 3000-3007 range)
-- **Cache Management**: Clear `.next` folder if experiencing build issues after refactoring
-- **Type Safety**: All `any` types replaced with proper TypeScript interfaces from `lib/types.ts`
-- **Import Paths**: Uses `@/` aliases for clean imports across the codebase
-- **Text Processing**: Japanese text support with half-width to full-width conversion utilities
+### State Persistence
+- Timestamp offset saved to localStorage
+- Undo functionality for score entry operations
+- Song title persistence across sessions
+
+### Important Notes
+- This project implements a KPM (Keys Per Minute) calculation feature to measure typing speed. Be absolutely careful not to confuse kpm and kmp during coding.
