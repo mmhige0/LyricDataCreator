@@ -3,9 +3,10 @@ import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo } from "lucide-react"
+import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, ScrollText, Scroll } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
+import { useAutoScroll } from '@/hooks/useAutoScroll'
 import { formatTime } from '@/lib/timeUtils'
 import type { ScoreEntry, YouTubePlayer } from '@/lib/types'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
@@ -89,6 +90,13 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries)
   const [adjustValue, setAdjustValue] = useState<string>('0')
+  const [autoScroll, setAutoScroll] = useState<boolean>(false)
+
+  const { entryRefs, scrollContainerRef } = useAutoScroll({
+    getCurrentLyricsIndex,
+    scoreEntries,
+    enabled: autoScroll
+  })
 
 
   const handleBulkTimingAdjust = () => {
@@ -156,7 +164,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
           </p>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
-            <div className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
+            <div ref={scrollContainerRef} className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
             {scoreEntries.map((entry, index) => {
               const isCurrentlyPlaying = getCurrentLyricsIndex() === index
               const isEditing = editingId === entry.id
@@ -165,6 +173,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
               return (
                 <div
                   key={entry.id}
+                  ref={(el) => { entryRefs.current[index] = el }}
                   className={`p-3 border rounded-lg hover:bg-muted/50 ${
                     isCurrentlyPlaying ? "bg-primary/10 border-primary" : ""
                   } ${isEditing ? "bg-blue-50 border-blue-200" : ""}`}
@@ -249,15 +258,26 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                   適用
                 </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAllScoreEntries}
-                className="text-black hover:bg-gray-50 text-xs"
-              >
-                <Trash2 className="h-3 w-3 mr-1" />
-                全ページ削除
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAutoScroll(!autoScroll)}
+                  className={`text-xs ${autoScroll ? 'bg-blue-50 border-blue-200' : ''}`}
+                >
+                  {autoScroll ? <ScrollText className="h-3 w-3 mr-1" /> : <Scroll className="h-3 w-3 mr-1" />}
+                  自動スクロール
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearAllScoreEntries}
+                  className="text-black hover:bg-gray-50 text-xs"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  全ページ削除
+                </Button>
+              </div>
             </div>
           </div>
         )}
