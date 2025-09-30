@@ -92,7 +92,8 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
     scoreEntries,
-    enabled: autoScroll
+    enabled: autoScroll,
+    onUserScroll: () => setAutoScroll(false)
   })
 
 
