@@ -114,6 +114,8 @@ export default function LyricsTypingApp() {
     player,
     getCurrentTimestamp: handleGetCurrentTimestamp,
     addScoreEntry,
+    saveScoreEntry: saveEditScoreEntry,
+    editingId,
     seekBackward1Second,
     seekForward1Second,
     lyricsInputRefs,

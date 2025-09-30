@@ -5,6 +5,8 @@ interface KeyboardShortcutsProps {
   player: YouTubePlayer | null
   getCurrentTimestamp: () => void
   addScoreEntry: () => void
+  saveScoreEntry?: () => void
+  editingId?: string | null
   seekBackward1Second: () => void
   seekForward1Second: () => void
   adjustVolume?: (delta: number) => void
@@ -23,6 +25,8 @@ export const useKeyboardShortcuts = ({
   player,
   getCurrentTimestamp,
   addScoreEntry,
+  saveScoreEntry,
+  editingId,
   seekBackward1Second,
   seekForward1Second,
   adjustVolume,
@@ -47,7 +51,11 @@ export const useKeyboardShortcuts = ({
 
       if (event.ctrlKey && event.key === "Enter") {
         event.preventDefault()
-        addScoreEntry()
+        if (editingId && saveScoreEntry) {
+          saveScoreEntry()
+        } else {
+          addScoreEntry()
+        }
         return
       }
 
@@ -106,5 +114,5 @@ export const useKeyboardShortcuts = ({
 
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [player, getCurrentTimestamp, addScoreEntry, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef, timestampOffset, pasteLyrics, undoLastOperation])
+  }, [player, getCurrentTimestamp, addScoreEntry, saveScoreEntry, editingId, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef, timestampOffset, pasteLyrics, undoLastOperation])
 }
