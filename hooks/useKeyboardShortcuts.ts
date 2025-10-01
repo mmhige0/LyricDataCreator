@@ -16,6 +16,7 @@ interface KeyboardShortcutsProps {
   timestampOffset?: number
   pasteLyrics?: () => void
   undoLastOperation?: () => void
+  redoLastOperation?: () => void
 }
 
 /**
@@ -35,7 +36,8 @@ export const useKeyboardShortcuts = ({
   timestampInputRef,
   timestampOffset = 0,
   pasteLyrics,
-  undoLastOperation
+  undoLastOperation,
+  redoLastOperation
 }: KeyboardShortcutsProps) => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -100,6 +102,14 @@ export const useKeyboardShortcuts = ({
         return
       }
 
+      if (event.ctrlKey && (event.key === "y" || event.key === "Y")) {
+        event.preventDefault()
+        if (redoLastOperation) {
+          redoLastOperation()
+        }
+        return
+      }
+
       if (event.key === "Tab" && isInputFocused) {
         const currentIndex = lyricsInputRefs.current.findIndex((ref) => ref === activeElement)
         if (currentIndex >= 0 && currentIndex < 3) {
@@ -114,5 +124,5 @@ export const useKeyboardShortcuts = ({
 
     document.addEventListener("keydown", handleKeyDown)
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [player, getCurrentTimestamp, addScoreEntry, saveScoreEntry, editingId, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef, timestampOffset, pasteLyrics, undoLastOperation])
+  }, [player, getCurrentTimestamp, addScoreEntry, saveScoreEntry, editingId, seekBackward1Second, seekForward1Second, lyricsInputRefs, timestampInputRef, timestampOffset, pasteLyrics, undoLastOperation, redoLastOperation])
 }
