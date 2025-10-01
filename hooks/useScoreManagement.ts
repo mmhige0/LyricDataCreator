@@ -83,7 +83,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const deleteScoreEntry = (id: string) => {
     saveCurrentState()
     setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
-    toast.success('ページを削除しました')
+    toast.success('ページを削除しました (Ctrl+Zで元に戻せます)')
   }
 
   const startEditScoreEntry = (entry: ScoreEntry) => {
@@ -154,7 +154,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveCurrentState()
     const count = scoreEntries.length
     setScoreEntries([])
-    toast.success(`${count}件のページを削除しました`)
+    toast.success(`${count}件のページを削除しました (Ctrl+Zで元に戻せます)`)
   }
 
   return {
