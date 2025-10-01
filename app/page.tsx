@@ -75,7 +75,9 @@ export default function LyricsTypingApp() {
     getCurrentLyricsIndex,
     clearAllScoreEntries,
     undoLastOperation,
+    redoLastOperation,
     canUndo,
+    canRedo,
     saveCurrentState
   } = useScoreManagement({ currentTime, currentPlayer: player })
 
@@ -122,7 +124,8 @@ export default function LyricsTypingApp() {
     timestampInputRef,
     timestampOffset,
     pasteLyrics: handlePasteLyrics,
-    undoLastOperation
+    undoLastOperation,
+    redoLastOperation
   })
 
   // Initialize file operations hook
@@ -226,7 +229,9 @@ export default function LyricsTypingApp() {
               seekToAndPlay={seekToAndPlay}
               bulkAdjustTimings={handleBulkTimingAdjust}
               undoLastOperation={undoLastOperation}
+              redoLastOperation={redoLastOperation}
               canUndo={canUndo}
+              canRedo={canRedo}
             />
           </div>
         </div>

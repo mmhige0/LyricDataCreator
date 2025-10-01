@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, ScrollText, Scroll } from "lucide-react"
+import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, Redo, ScrollText, Scroll } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
@@ -65,7 +65,9 @@ interface ScoreManagementSectionProps {
   seekToAndPlay: (time: number) => void
   bulkAdjustTimings: (offsetSeconds: number) => void
   undoLastOperation: () => void
+  redoLastOperation: () => void
   canUndo: boolean
+  canRedo: boolean
 }
 
 export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
@@ -82,7 +84,9 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   seekToAndPlay,
   bulkAdjustTimings,
   undoLastOperation,
-  canUndo
+  redoLastOperation,
+  canUndo,
+  canRedo
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries)
@@ -120,19 +124,9 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
             <div className="p-2 rounded-lg bg-purple-500 text-white">
               <Clock className="h-5 w-5" />
             </div>
-            ページ一覧 ({scoreEntries.length}件)
+            ページ一覧
           </CardTitle>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={undoLastOperation}
-              disabled={!canUndo}
-              className="text-xs"
-            >
-              <Undo className="h-4 w-4 mr-2" />
-              元に戻す
-            </Button>
             <Button variant="outline" size="sm" onClick={importScoreData}>
               <Upload className="h-4 w-4 mr-2" />
               インポート
@@ -146,15 +140,35 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col min-h-0">
-        {/* 動画の総時間表示 */}
-        {duration > 0 && (
-          <div className="mb-4 p-3 bg-muted rounded-lg">
+        {/* 動画の総時間表示とUndo/Redoボタン */}
+        <div className="mb-4 flex items-center justify-between">
+          {duration > 0 && (
             <div className="flex items-center gap-2 text-sm font-medium">
               <Clock className="h-4 w-4" />
               動画の総時間: {duration.toFixed(1)}秒
             </div>
+          )}
+          <div className="flex gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={undoLastOperation}
+              disabled={!canUndo}
+              className="text-xs h-7"
+            >
+              <Undo className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={redoLastOperation}
+              disabled={!canRedo}
+              className="text-xs h-7"
+            >
+              <Redo className="h-3 w-3" />
+            </Button>
           </div>
-        )}
+        </div>
 
         {scoreEntries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">

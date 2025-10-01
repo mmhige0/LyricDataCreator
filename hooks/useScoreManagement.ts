@@ -3,6 +3,8 @@ import type { ScoreEntry, LyricsArray, YouTubePlayer } from '@/lib/types'
 import { processLyricsForSave } from '@/lib/textUtils'
 import { toast } from 'sonner'
 
+const MAX_HISTORY = 15
+
 interface UseScoreManagementProps {
   currentTime: number
   currentPlayer: YouTubePlayer | null
@@ -16,7 +18,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [editingLyrics, setEditingLyrics] = useState<LyricsArray>(["", "", "", ""])
   const [editingTimestamp, setEditingTimestamp] = useState<string>("0.00")
   const [timestampOffset, setTimestampOffset] = useState<number>(0)
-  const [previousScoreEntries, setPreviousScoreEntries] = useState<ScoreEntry[] | null>(null)
+  const [undoHistory, setUndoHistory] = useState<ScoreEntry[][]>([])
+  const [redoHistory, setRedoHistory] = useState<ScoreEntry[][]>([])
 
   const lyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const timestampInputRef = useRef<HTMLInputElement>(null)
@@ -36,24 +39,51 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
   // Save current state before modification
   const saveCurrentState = () => {
-    setPreviousScoreEntries([...scoreEntries])
+    setUndoHistory((prev) => {
+      const newHistory = [[...scoreEntries], ...prev]
+      return newHistory.slice(0, MAX_HISTORY)
+    })
+    setRedoHistory([])
   }
 
   // Undo last operation
   const undoLastOperation = () => {
-    if (previousScoreEntries !== null) {
-      setScoreEntries(previousScoreEntries)
-      setPreviousScoreEntries(null)
-      toast.success('操作を元に戻しました')
-    } else {
+    if (undoHistory.length === 0) {
       toast.info('元に戻す操作がありません')
+      return
     }
+
+    const [previousState, ...restUndo] = undoHistory
+    setRedoHistory((prev) => {
+      const newHistory = [[...scoreEntries], ...prev]
+      return newHistory.slice(0, MAX_HISTORY)
+    })
+    setUndoHistory(restUndo)
+    setScoreEntries(previousState)
+    toast.success('操作を元に戻しました')
+  }
+
+  // Redo last undone operation
+  const redoLastOperation = () => {
+    if (redoHistory.length === 0) {
+      toast.info('やり直す操作がありません')
+      return
+    }
+
+    const [nextState, ...restRedo] = redoHistory
+    setUndoHistory((prev) => {
+      const newHistory = [[...scoreEntries], ...prev]
+      return newHistory.slice(0, MAX_HISTORY)
+    })
+    setRedoHistory(restRedo)
+    setScoreEntries(nextState)
+    toast.success('操作をやり直しました')
   }
 
   const deleteScoreEntry = (id: string) => {
     saveCurrentState()
     setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
-    toast.success('ページを削除しました')
+    toast.success('ページを削除しました (Ctrl+Zで元に戻せます)')
   }
 
   const startEditScoreEntry = (entry: ScoreEntry) => {
@@ -124,7 +154,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveCurrentState()
     const count = scoreEntries.length
     setScoreEntries([])
-    toast.success(`${count}件のページを削除しました`)
+    toast.success(`${count}件のページを削除しました (Ctrl+Zで元に戻せます)`)
   }
 
   return {
@@ -154,7 +184,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     getCurrentLyricsIndex,
     clearAllScoreEntries,
     undoLastOperation,
-    canUndo: previousScoreEntries !== null,
+    redoLastOperation,
+    canUndo: undoHistory.length > 0,
+    canRedo: redoHistory.length > 0,
     saveCurrentState
   }
 }
