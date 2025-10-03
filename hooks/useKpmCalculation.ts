@@ -2,83 +2,86 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import type { ScoreEntry } from '@/lib/types'
 import { calculatePageKpm, type PageKpmInfo } from '@/lib/kpmUtils'
 
+// エントリの変更検出用のキーを生成
+const getEntrySignature = (entry: ScoreEntry, nextTimestamp: number | null): string => {
+  return `${entry.id}_${entry.timestamp}_${JSON.stringify(entry.lyrics)}_${nextTimestamp}`
+}
+
 export const useKpmCalculation = (scoreEntries: ScoreEntry[]) => {
   const [kpmDataMap, setKpmDataMap] = useState<Map<string, PageKpmInfo>>(new Map())
-  const prevScoreEntriesRef = useRef<ScoreEntry[]>([])
-  const prevKpmDataMapRef = useRef<Map<string, PageKpmInfo>>(new Map())
+  const processedSignaturesRef = useRef<Map<string, string>>(new Map())
+  const isCalculatingRef = useRef(false)
 
-  // 変更されたページのKPMを再計算
-  const recalculateKpm = useCallback(async (entryIds: string[]) => {
-    for (const entryId of entryIds) {
-      const entryIndex = scoreEntries.findIndex(e => e.id === entryId)
-      if (entryIndex === -1) continue
-
-      const entry = scoreEntries[entryIndex]
-      const nextEntry = scoreEntries[entryIndex + 1]
-      const nextTimestamp = nextEntry ? nextEntry.timestamp : null
-
-      try {
-        const pageKpmInfo = await calculatePageKpm(entry, nextTimestamp)
-        setKpmDataMap(prev => new Map(prev).set(entry.id, pageKpmInfo))
-      } catch (error) {
-        console.error('kpm calculation error for entry:', entry.id, error)
-      }
-    }
-  }, [scoreEntries])
-
-  // scoreEntriesの変更を監視して、変更されたページのみ再計算
   useEffect(() => {
-    const prevScoreEntries = prevScoreEntriesRef.current
-    const prevKpmDataMap = prevKpmDataMapRef.current
-    const changedEntryIds: string[] = []
+    // 既に計算中の場合はスキップ
+    if (isCalculatingRef.current) return
 
-    // 新規追加されたページを検出
-    scoreEntries.forEach(entry => {
-      if (!prevKpmDataMap.has(entry.id)) {
-        changedEntryIds.push(entry.id)
-      }
-    })
+    const recalculateKpm = async () => {
+      isCalculatingRef.current = true
 
-    // 既存ページの変更を検出
-    scoreEntries.forEach((entry, index) => {
-      if (prevKpmDataMap.has(entry.id)) {
-        const currentKpmData = prevKpmDataMap.get(entry.id)!
+      const currentEntryIds = new Set(scoreEntries.map(e => e.id))
+      const newSignatures = new Map<string, string>()
+      const updates = new Map<string, PageKpmInfo>()
+      const entriesToCalculate: Array<{
+        entry: ScoreEntry
+        nextTimestamp: number | null
+      }> = []
+
+      // 計算が必要なエントリを収集
+      for (let index = 0; index < scoreEntries.length; index++) {
+        const entry = scoreEntries[index]
         const nextEntry = scoreEntries[index + 1]
-        const currentNextTimestamp = nextEntry ? nextEntry.timestamp : null
+        const nextTimestamp = nextEntry ? nextEntry.timestamp : null
+        const signature = getEntrySignature(entry, nextTimestamp)
 
-        // 前回の状態から変更があった場合を検出
-        const prevEntry = prevScoreEntries.find(e => e.id === entry.id)
-        const lyricsChanged = !prevEntry || JSON.stringify(prevEntry.lyrics) !== JSON.stringify(entry.lyrics)
-        const timestampChanged = !prevEntry || prevEntry.timestamp !== entry.timestamp
-        const nextTimestampChanged = currentKpmData.nextTimestamp !== currentNextTimestamp
+        newSignatures.set(entry.id, signature)
 
-        if (lyricsChanged || timestampChanged || nextTimestampChanged) {
-          changedEntryIds.push(entry.id)
+        // 前回と署名が異なる場合は再計算が必要
+        if (processedSignaturesRef.current.get(entry.id) !== signature) {
+          entriesToCalculate.push({ entry, nextTimestamp })
         }
       }
-    })
 
-    // 削除されたページのデータをクリア
-    const currentEntryIds = new Set(scoreEntries.map(e => e.id))
-    setKpmDataMap(prev => {
-      const newMap = new Map()
-      prev.forEach((data, entryId) => {
-        if (currentEntryIds.has(entryId)) {
+      // バッチで計算を実行
+      if (entriesToCalculate.length > 0) {
+        await Promise.all(
+          entriesToCalculate.map(async ({ entry, nextTimestamp }) => {
+            try {
+              const pageKpmInfo = await calculatePageKpm(entry, nextTimestamp)
+              updates.set(entry.id, pageKpmInfo)
+            } catch (error) {
+              console.error('kpm calculation error for entry:', entry.id, error)
+            }
+          })
+        )
+      }
+
+      // 状態を一度だけ更新
+      setKpmDataMap(prev => {
+        const newMap = new Map<string, PageKpmInfo>()
+        
+        // 既存のデータをコピー（削除されたエントリは除外）
+        prev.forEach((data, entryId) => {
+          if (currentEntryIds.has(entryId)) {
+            newMap.set(entryId, data)
+          }
+        })
+        
+        // 新しく計算されたデータを追加
+        updates.forEach((data, entryId) => {
           newMap.set(entryId, data)
-        }
+        })
+        
+        return newMap
       })
-      return newMap
-    })
 
-    // 変更されたページがあれば再計算
-    if (changedEntryIds.length > 0) {
-      recalculateKpm(changedEntryIds)
+      // 処理済み署名を更新
+      processedSignaturesRef.current = newSignatures
+      isCalculatingRef.current = false
     }
 
-    // 現在の状態を保存
-    prevScoreEntriesRef.current = [...scoreEntries]
-    prevKpmDataMapRef.current = new Map(kpmDataMap)
-  }, [scoreEntries, recalculateKpm]) // eslint-disable-line react-hooks/exhaustive-deps
+    recalculateKpm()
+  }, [scoreEntries])
 
   return {
     kpmDataMap
