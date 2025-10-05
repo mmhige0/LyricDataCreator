@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
@@ -81,15 +81,15 @@ export default function LyricsTypingApp() {
     saveCurrentState
   } = useScoreManagement({ currentTime, currentPlayer: player })
 
-  const handleGetCurrentTimestamp = () => {
+  const handleGetCurrentTimestamp = useCallback(() => {
     const timestampValue = getCurrentTimestamp(timestampOffset)
     setTimestamp(timestampValue)
-  }
+  }, [getCurrentTimestamp, timestampOffset, setTimestamp])
 
   // Initialize lyrics copy/paste hook
   const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
 
-  const handlePasteLyrics = async () => {
+  const handlePasteLyrics = useCallback(async () => {
     const pastedLyrics = await pasteLyricsFromClipboard()
     if (pastedLyrics) {
       if (editingId) {
@@ -98,10 +98,10 @@ export default function LyricsTypingApp() {
         setLyrics(pastedLyrics)
       }
     }
-  }
+  }, [pasteLyricsFromClipboard, editingId, setEditingLyrics, setLyrics])
 
   // Bulk timing adjustment function
-  const handleBulkTimingAdjust = (offsetSeconds: number) => {
+  const handleBulkTimingAdjust = useCallback((offsetSeconds: number) => {
     saveCurrentState()
     const adjustedEntries = scoreEntries.map(entry => ({
       ...entry,
@@ -109,10 +109,10 @@ export default function LyricsTypingApp() {
     }))
     setScoreEntries(adjustedEntries)
     toast.success(`${scoreEntries.length}件のページのタイミングを${offsetSeconds > 0 ? '+' : ''}${offsetSeconds.toFixed(2)}秒調整しました`)
-  }
+  }, [saveCurrentState, scoreEntries, setScoreEntries])
 
-  // Initialize keyboard shortcuts hook
-  useKeyboardShortcuts({
+  // Get keyboard shortcut handler
+  const handleKeyDown = useKeyboardShortcuts({
     player,
     getCurrentTimestamp: handleGetCurrentTimestamp,
     addScoreEntry,
@@ -127,6 +127,14 @@ export default function LyricsTypingApp() {
     undoLastOperation,
     redoLastOperation
   })
+
+  // Register keyboard event listener
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown)
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [handleKeyDown])
 
   // Initialize file operations hook
   const { fileInputRef, exportScoreData, importScoreData, handleFileImport } = useFileOperations({
