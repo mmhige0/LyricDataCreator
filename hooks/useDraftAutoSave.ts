@@ -27,13 +27,11 @@ export function useDraftAutoSave({
     const sessionId = getSessionId()
     if (!sessionId) return
 
-    // Check if any values have changed
-    const hasChanged =
-      youtubeUrl !== previousValuesRef.current.youtubeUrl ||
-      scoreEntries !== previousValuesRef.current.scoreEntries ||
-      songTitle !== previousValuesRef.current.songTitle
+    // Serialize values for deep comparison
+    const currentSerialized = JSON.stringify({ youtubeUrl, scoreEntries, songTitle })
+    const previousSerialized = JSON.stringify(previousValuesRef.current)
 
-    if (!hasChanged) return
+    if (currentSerialized === previousSerialized) return
 
     // Clear existing timeout
     if (timeoutRef.current) {

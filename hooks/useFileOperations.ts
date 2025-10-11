@@ -60,9 +60,10 @@ export const useFileOperations = ({
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
 
-    // Call callback when export is complete
+    // Call callback after a short delay to ensure download has started
+    // This reduces the risk of data loss if download fails
     if (onComplete) {
-      onComplete()
+      setTimeout(onComplete, 500)
     }
   }
 

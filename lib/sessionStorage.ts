@@ -6,7 +6,7 @@ const SESSION_KEY = 'lyric-session-info'
  * Generate a unique session ID
  */
 function generateSessionId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }
 
 /**

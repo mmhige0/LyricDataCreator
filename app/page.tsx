@@ -15,7 +15,7 @@ import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from "@/lib/types"
-import { getOrCreateSessionId, clearSessionId } from "@/lib/sessionStorage"
+import { getOrCreateSessionId } from "@/lib/sessionStorage"
 import { loadDraft, deleteDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
 
 
@@ -178,7 +178,7 @@ export default function LyricsTypingApp() {
       setSongTitle(draft.songTitle)
       toast.success('下書きを復元しました')
     }
-  }, [setYoutubeUrl, setScoreEntries])
+  }, [])
 
   // Auto-save draft
   useDraftAutoSave({
