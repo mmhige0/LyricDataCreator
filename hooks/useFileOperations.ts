@@ -22,7 +22,7 @@ export const useFileOperations = ({
 }: FileOperationsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const exportScoreData = () => {
+  const exportScoreData = (onComplete?: () => void) => {
     if (scoreEntries.length === 0) {
       toast.error("ページがありません。")
       return
@@ -47,11 +47,11 @@ export const useFileOperations = ({
     const link = document.createElement("a")
     link.href = url
     const now = new Date()
-    const timestamp = now.getFullYear() + "-" + 
-      String(now.getMonth() + 1).padStart(2, "0") + "-" + 
-      String(now.getDate()).padStart(2, "0") + "_" + 
-      String(now.getHours()).padStart(2, "0") + "-" + 
-      String(now.getMinutes()).padStart(2, "0") + "-" + 
+    const timestamp = now.getFullYear() + "-" +
+      String(now.getMonth() + 1).padStart(2, "0") + "-" +
+      String(now.getDate()).padStart(2, "0") + "_" +
+      String(now.getHours()).padStart(2, "0") + "-" +
+      String(now.getMinutes()).padStart(2, "0") + "-" +
       String(now.getSeconds()).padStart(2, "0")
     const filename = title ? `${title}_${timestamp}.txt` : `譜面_${timestamp}.txt`
     link.download = filename
@@ -59,6 +59,11 @@ export const useFileOperations = ({
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
+
+    // Call callback when export is complete
+    if (onComplete) {
+      onComplete()
+    }
   }
 
   const importScoreData = () => {
