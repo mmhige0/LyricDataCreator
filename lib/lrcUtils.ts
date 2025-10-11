@@ -9,7 +9,7 @@ export interface LrcEntry {
 /**
  * LRCファイルの内容を解析してLrcEntryの配列に変換
  */
-export const parseLrcContent = (content: string): LrcEntry[] => {
+const parseLrcContent = (content: string): LrcEntry[] => {
   const lines = content.split('\n').filter(line => line.trim())
   const entries: LrcEntry[] = []
 
@@ -33,7 +33,7 @@ export const parseLrcContent = (content: string): LrcEntry[] => {
 /**
  * LrcEntryの配列をScoreEntryの配列に変換（基本的なテキスト変換付き）
  */
-export const convertLrcToScoreEntries = (lrcEntries: LrcEntry[]): ScoreEntry[] => {
+const convertLrcToScoreEntries = (lrcEntries: LrcEntry[]): ScoreEntry[] => {
   return lrcEntries.map((entry, index) => ({
     id: `lrc-${Date.now()}-${index}`,
     timestamp: entry.timestamp,

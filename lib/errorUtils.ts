@@ -12,7 +12,7 @@ interface ErrorNotification {
 /**
  * ユーザーフレンドリーなエラー通知を表示
  */
-export const showNotification = ({ type, title, message }: ErrorNotification) => {
+const showNotification = ({ type, title, message }: ErrorNotification) => {
   const fullMessage = `${title}\n\n${message}`
 
   switch (type) {

@@ -26,7 +26,7 @@ export interface PageKpmInfo {
 /**
  * ローマ字文字列から文字数をカウント（スペースを除く、長音記号付き文字は2文字）
  */
-export const countRomajiCharacters = (romaji: string): number => {
+const countRomajiCharacters = (romaji: string): number => {
   // スペースを除去
   const noSpaces = romaji.replace(/\s/g, '')
 
@@ -46,7 +46,7 @@ export const countRomajiCharacters = (romaji: string): number => {
  * @param durationSeconds 時間（秒）
  * @returns KPM値
  */
-export const calculateKpm = (charCount: number, durationSeconds: number): number => {
+const calculateKpm = (charCount: number, durationSeconds: number): number => {
   if (durationSeconds <= 0) return 0
   return Math.round((charCount / durationSeconds) * 60 * 10) / 10 // 小数点1桁で四捨五入
 }
