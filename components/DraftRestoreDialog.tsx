@@ -64,7 +64,7 @@ export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreD
       <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold">下書きから復元</h2>
+          <h2 className="text-xl font-semibold">下書き</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
