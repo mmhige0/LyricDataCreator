@@ -16,7 +16,7 @@ import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from "@/lib/types"
 import { getOrCreateSessionId } from "@/lib/sessionStorage"
-import { loadDraft, deleteDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
+import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
 
 
 export default function LyricsTypingApp() {
@@ -198,12 +198,9 @@ export default function LyricsTypingApp() {
     setSongTitle
   })
 
-  // Handle export with draft cleanup
-  const handleExportWithCleanup = useCallback(() => {
-    const sessionId = getOrCreateSessionId()
+  // Handle export
+  const handleExport = useCallback(() => {
     exportScoreData(() => {
-      // Delete draft after successful export
-      deleteDraft(sessionId)
       toast.success('保存が完了しました')
     })
   }, [exportScoreData])
@@ -292,7 +289,7 @@ export default function LyricsTypingApp() {
               editingId={editingId}
               getCurrentLyricsIndex={getCurrentLyricsIndex}
               importScoreData={importScoreData}
-              exportScoreData={handleExportWithCleanup}
+              exportScoreData={handleExport}
               deleteScoreEntry={deleteScoreEntry}
               startEditScoreEntry={startEditScoreEntry}
               clearAllScoreEntries={clearAllScoreEntries}
