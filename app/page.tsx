@@ -8,15 +8,21 @@ import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
+import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
 import { LyricsEditCard } from "@/components/LyricsEditCard"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { HelpSection } from "@/components/HelpSection"
+import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from "@/lib/types"
+import { getOrCreateSessionId } from "@/lib/sessionStorage"
+import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
 
 
 export default function LyricsTypingApp() {
   const [songTitle, setSongTitle] = useState<string>("")
+  const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
 
   // YouTube統合フック
@@ -136,6 +142,52 @@ export default function LyricsTypingApp() {
     }
   }, [handleKeyDown])
 
+  // Initialize session and check for drafts
+  useEffect(() => {
+    // Cleanup expired drafts
+    cleanupExpiredDrafts()
+
+    // Get or create session ID
+    const sessionId = getOrCreateSessionId()
+
+    // Try to load draft for current session
+    const draft = loadDraft(sessionId)
+    if (draft) {
+      setYoutubeUrl(draft.youtubeUrl)
+      setScoreEntries(draft.scoreEntries)
+      setSongTitle(draft.songTitle)
+      toast.success('下書きを復元しました')
+    }
+
+    // Check if there are other drafts available
+    const draftList = getDraftList()
+    if (draftList.length > 0 && !draft) {
+      // Show restore dialog if drafts exist but none for current session
+      setIsRestoreDialogOpen(true)
+    }
+
+    setIsInitialized(true)
+  }, [])
+
+  // Restore draft from dialog
+  const handleRestoreDraft = useCallback((sessionId: string) => {
+    const draft = loadDraft(sessionId)
+    if (draft) {
+      setYoutubeUrl(draft.youtubeUrl)
+      setScoreEntries(draft.scoreEntries)
+      setSongTitle(draft.songTitle)
+      toast.success('下書きを復元しました')
+    }
+  }, [])
+
+  // Auto-save draft
+  useDraftAutoSave({
+    youtubeUrl,
+    scoreEntries,
+    songTitle,
+    enabled: isInitialized
+  })
+
   // Initialize file operations hook
   const { fileInputRef, exportScoreData, importScoreData, handleFileImport } = useFileOperations({
     scoreEntries,
@@ -145,6 +197,13 @@ export default function LyricsTypingApp() {
     songTitle,
     setSongTitle
   })
+
+  // Handle export
+  const handleExport = useCallback(() => {
+    exportScoreData(() => {
+      toast.success('保存が完了しました')
+    })
+  }, [exportScoreData])
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16">
@@ -230,7 +289,7 @@ export default function LyricsTypingApp() {
               editingId={editingId}
               getCurrentLyricsIndex={getCurrentLyricsIndex}
               importScoreData={importScoreData}
-              exportScoreData={exportScoreData}
+              exportScoreData={handleExport}
               deleteScoreEntry={deleteScoreEntry}
               startEditScoreEntry={startEditScoreEntry}
               clearAllScoreEntries={clearAllScoreEntries}
@@ -267,6 +326,12 @@ export default function LyricsTypingApp() {
         </div>
       </footer>
 
+      {/* Draft Restore Dialog */}
+      <DraftRestoreDialog
+        isOpen={isRestoreDialogOpen}
+        onClose={() => setIsRestoreDialogOpen(false)}
+        onRestore={handleRestoreDraft}
+      />
     </div>
   )
 }

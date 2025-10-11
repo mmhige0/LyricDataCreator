@@ -22,3 +22,23 @@ export interface YouTubePlayer {
 }
 
 export type LyricsArray = [string, string, string, string]
+
+// Draft management types
+export interface SessionInfo {
+  sessionId: string
+}
+
+export interface LyricDraft {
+  sessionId: string
+  youtubeUrl: string
+  scoreEntries: ScoreEntry[]
+  songTitle: string
+  lastModified: number
+}
+
+export interface DraftListEntry {
+  sessionId: string
+  songTitle: string
+  pageCount: number
+  lastModified: number
+}

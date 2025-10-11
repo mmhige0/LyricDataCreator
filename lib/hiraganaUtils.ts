@@ -143,26 +143,11 @@ export const convertKanjiToHiragana = async (text: string): Promise<string> => {
 }
 
 /**
- * 漢字変換エンジンを事前初期化する
- * アプリ起動時に呼び出すことで、初回変換の遅延を回避
- */
-export const initializeHiraganaConverter = async (): Promise<void> => {
-  return converter.initialize()
-}
-
-/**
- * 変換エンジンの初期化状態を取得
- */
-export const getHiraganaConverterStatus = () => {
-  return converter.getInitializationStatus()
-}
-
-/**
  * テキストをローマ字に変換する（日本式）
  * @param text 変換対象のテキスト
  * @returns ローマ字に変換されたテキスト
  */
-export const convertToRomaji = async (text: string): Promise<string> => {
+const convertToRomaji = async (text: string): Promise<string> => {
   return converter.convertToRomaji(text)
 }
 
