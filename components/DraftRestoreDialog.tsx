@@ -64,7 +64,7 @@ export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreD
       <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold">下書き</h2>
+          <h2 className="text-xl font-semibold">履歴</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -78,7 +78,7 @@ export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreD
           {drafts.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>保存された下書きはありません</p>
+              <p>保存された履歴はありません</p>
             </div>
           ) : (
             <div className="space-y-3">
