@@ -85,7 +85,8 @@ export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreD
               {drafts.map(draft => (
                 <div
                   key={draft.sessionId}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                  onClick={() => handleRestore(draft.sessionId)}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">
@@ -97,17 +98,14 @@ export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreD
                   </div>
                   <div className="flex items-center gap-2 ml-4">
                     <button
-                      onClick={() => handleRestore(draft.sessionId)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      復元
-                    </button>
-                    <button
-                      onClick={() => handleDelete(draft.sessionId)}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDelete(draft.sessionId)
+                      }}
+                      className="p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                       title="削除"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-6 h-6" />
                     </button>
                   </div>
                 </div>
