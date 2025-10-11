@@ -27,6 +27,9 @@ export function useDraftAutoSave({
     const sessionId = getSessionId()
     if (!sessionId) return
 
+    // Don't save if both YouTube URL is empty and there are no score entries
+    if (!youtubeUrl && scoreEntries.length === 0) return
+
     // Serialize values for deep comparison
     const currentSerialized = JSON.stringify({ youtubeUrl, scoreEntries, songTitle })
     const previousSerialized = JSON.stringify(previousValuesRef.current)
