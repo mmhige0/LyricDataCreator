@@ -20,7 +20,10 @@ export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
   return (
     <>
       {lyrics.map((line, index) => (
-        <div key={index}>
+        <div key={index} className="flex items-center gap-2">
+          <Label className="text-sm text-muted-foreground min-w-[3rem]">
+            {index + 1}行目
+          </Label>
           <Input
             ref={lyricsInputRefs ? (el) => {
               lyricsInputRefs.current[index] = el
