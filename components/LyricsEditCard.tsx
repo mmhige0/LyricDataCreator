@@ -114,19 +114,21 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <TimestampInput
-          timestamp={timestamp}
-          setTimestamp={setTimestamp}
-          player={player}
-          seekToInput={seekToInput}
-          timestampInputRef={timestampInputRef}
-          timestampOffset={timestampOffset}
-          setTimestampOffset={setTimestampOffset}
-          getCurrentTimestamp={getCurrentTimestamp}
-        />
+        <div className="mb-8">
+          <TimestampInput
+            timestamp={timestamp}
+            setTimestamp={setTimestamp}
+            player={player}
+            seekToInput={seekToInput}
+            timestampInputRef={timestampInputRef}
+            timestampOffset={timestampOffset}
+            setTimestampOffset={setTimestampOffset}
+            getCurrentTimestamp={getCurrentTimestamp}
+          />
+        </div>
 
         <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-medium text-muted-foreground">歌詞入力</div>
+          <div className="text-base font-medium text-muted-foreground">歌詞</div>
           <div className="flex gap-2">
             <Button
               variant="outline"

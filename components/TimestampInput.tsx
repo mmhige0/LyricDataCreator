@@ -45,7 +45,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
 
   return (
     <div>
-      <div className="text-sm font-medium text-muted-foreground mb-2">開始時間（秒）</div>
+      <div className="text-base font-medium text-muted-foreground mb-2">ページ表示タイミング（秒）</div>
       <div className="flex gap-2 items-center flex-wrap">
         <Button
           variant="outline"

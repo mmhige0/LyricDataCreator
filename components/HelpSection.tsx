@@ -15,10 +15,10 @@ export const HelpSection: React.FC = () => {
         <div className="text-lg text-gray-700 dark:text-gray-300">
           <ol className="list-decimal ml-4 space-y-1">
             <li>作成する曲のYouTubeのURLを入力し、「読み込み」をクリック</li>
-            <li>動画を再生し、歌詞を表示したいタイミングで<kbd className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono">F2</kbd>キーでタイムスタンプを入力<br />
+            <li>動画を再生し、ページを表示したいタイミングで<kbd className="px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 border rounded font-mono">F2</kbd>キーでタイムスタンプを入力<br />
             💡 入力されるタイミングは「補正」で微調整できます（-0.2〜-0.1秒がおすすめ）</li>
-            <li>歌詞（最大4行）を入力し、「ページ追加」をクリック（何も表示されないページを追加する場合は、4行とも空行にして追加）</li>
-            <li>すべてのページを追加し終わったら、「エクスポート」をクリック</li>
+            <li>歌詞（最大4行）を入力し、「ページ追加」をクリック（歌詞のないページを追加する場合は、4行とも空行にして追加）</li>
+            <li>2,3を繰り返して、すべてのページを追加し終わったら、「エクスポート」をクリック</li>
           </ol>
         </div>
       </div>
