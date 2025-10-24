@@ -15,7 +15,7 @@ import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from "@/lib/types"
-import { getOrCreateSessionId } from "@/lib/sessionStorage"
+import { setSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
 
 
@@ -147,22 +147,14 @@ export default function LyricsTypingApp() {
     // Cleanup expired drafts
     cleanupExpiredDrafts()
 
-    // Get or create session ID
-    const sessionId = getOrCreateSessionId()
+    // Always create a new session ID (even on page refresh)
+    const sessionId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
+    setSessionId(sessionId)
 
-    // Try to load draft for current session
-    const draft = loadDraft(sessionId)
-    if (draft) {
-      setYoutubeUrl(draft.youtubeUrl)
-      setScoreEntries(draft.scoreEntries)
-      setSongTitle(draft.songTitle)
-      toast.success('下書きを復元しました')
-    }
-
-    // Check if there are other drafts available
+    // Check if there are drafts available
     const draftList = getDraftList()
-    if (draftList.length > 0 && !draft) {
-      // Show restore dialog if drafts exist but none for current session
+    if (draftList.length > 0) {
+      // Show restore dialog if any drafts exist
       setIsRestoreDialogOpen(true)
     }
 
@@ -178,7 +170,7 @@ export default function LyricsTypingApp() {
       setSongTitle(draft.songTitle)
       toast.success('下書きを復元しました')
     }
-  }, [])
+  }, [setYoutubeUrl, setScoreEntries])
 
   // Auto-save draft
   useDraftAutoSave({
