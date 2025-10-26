@@ -269,6 +269,7 @@ export default function LyricsTypingApp() {
               timestampOffset={timestampOffset}
               setTimestampOffset={setTimestampOffset}
               getCurrentTimestamp={getCurrentTimestamp}
+              saveCurrentState={saveCurrentState}
             />
           </div>
 

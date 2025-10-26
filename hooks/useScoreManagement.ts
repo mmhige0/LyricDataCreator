@@ -5,6 +5,15 @@ import { toast } from 'sonner'
 
 const MAX_HISTORY = 15
 
+interface AppState {
+  scoreEntries: ScoreEntry[]
+  lyrics: LyricsArray
+  timestamp: string
+  editingId: string | null
+  editingLyrics: LyricsArray
+  editingTimestamp: string
+}
+
 interface UseScoreManagementProps {
   currentTime: number
   currentPlayer: YouTubePlayer | null
@@ -18,8 +27,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [editingLyrics, setEditingLyrics] = useState<LyricsArray>(["", "", "", ""])
   const [editingTimestamp, setEditingTimestamp] = useState<string>("0.00")
   const [timestampOffset, setTimestampOffset] = useState<number>(0)
-  const [undoHistory, setUndoHistory] = useState<ScoreEntry[][]>([])
-  const [redoHistory, setRedoHistory] = useState<ScoreEntry[][]>([])
+  const [undoHistory, setUndoHistory] = useState<AppState[]>([])
+  const [redoHistory, setRedoHistory] = useState<AppState[]>([])
 
   const lyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const timestampInputRef = useRef<HTMLInputElement>(null)
@@ -39,8 +48,16 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
   // Save current state before modification
   const saveCurrentState = () => {
+    const currentState: AppState = {
+      scoreEntries: [...scoreEntries],
+      lyrics: [...lyrics],
+      timestamp,
+      editingId,
+      editingLyrics: [...editingLyrics],
+      editingTimestamp
+    }
     setUndoHistory((prev) => {
-      const newHistory = [[...scoreEntries], ...prev]
+      const newHistory = [currentState, ...prev]
       return newHistory.slice(0, MAX_HISTORY)
     })
     setRedoHistory([])
@@ -54,12 +71,29 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     }
 
     const [previousState, ...restUndo] = undoHistory
+
+    // Save current state to redo history
+    const currentState: AppState = {
+      scoreEntries: [...scoreEntries],
+      lyrics: [...lyrics],
+      timestamp,
+      editingId,
+      editingLyrics: [...editingLyrics],
+      editingTimestamp
+    }
     setRedoHistory((prev) => {
-      const newHistory = [[...scoreEntries], ...prev]
+      const newHistory = [currentState, ...prev]
       return newHistory.slice(0, MAX_HISTORY)
     })
+
+    // Restore previous state
     setUndoHistory(restUndo)
-    setScoreEntries(previousState)
+    setScoreEntries(previousState.scoreEntries)
+    setLyrics(previousState.lyrics)
+    setTimestamp(previousState.timestamp)
+    setEditingId(previousState.editingId)
+    setEditingLyrics(previousState.editingLyrics)
+    setEditingTimestamp(previousState.editingTimestamp)
     toast.success('操作を元に戻しました')
   }
 
@@ -71,12 +105,29 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     }
 
     const [nextState, ...restRedo] = redoHistory
+
+    // Save current state to undo history
+    const currentState: AppState = {
+      scoreEntries: [...scoreEntries],
+      lyrics: [...lyrics],
+      timestamp,
+      editingId,
+      editingLyrics: [...editingLyrics],
+      editingTimestamp
+    }
     setUndoHistory((prev) => {
-      const newHistory = [[...scoreEntries], ...prev]
+      const newHistory = [currentState, ...prev]
       return newHistory.slice(0, MAX_HISTORY)
     })
+
+    // Restore next state
     setRedoHistory(restRedo)
-    setScoreEntries(nextState)
+    setScoreEntries(nextState.scoreEntries)
+    setLyrics(nextState.lyrics)
+    setTimestamp(nextState.timestamp)
+    setEditingId(nextState.editingId)
+    setEditingLyrics(nextState.editingLyrics)
+    setEditingTimestamp(nextState.editingTimestamp)
     toast.success('操作をやり直しました')
   }
 
