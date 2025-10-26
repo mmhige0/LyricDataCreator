@@ -35,6 +35,9 @@ interface LyricsEditCardProps {
   timestampOffset?: number
   setTimestampOffset?: (offset: number) => void
   getCurrentTimestamp?: (offset: number) => string
+
+  // Undo/Redo support
+  saveCurrentState?: () => void
 }
 
 export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
@@ -53,7 +56,8 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   timestampInputRef,
   timestampOffset,
   setTimestampOffset,
-  getCurrentTimestamp
+  getCurrentTimestamp,
+  saveCurrentState
 }) => {
   const { pasteLyricsFromClipboard, copyStatus } = useLyricsCopyPaste()
   const [isConverting, setIsConverting] = useState(false)
@@ -84,6 +88,10 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   }
 
   const handleClearLyrics = () => {
+    // Save current state before clearing (only if lyrics are not empty)
+    if (saveCurrentState && lyrics.some(line => line.trim() !== '')) {
+      saveCurrentState()
+    }
     setLyrics(["", "", "", ""])
   }
 

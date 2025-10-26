@@ -94,7 +94,12 @@ export const useKeyboardShortcuts = ({
       return
     }
 
+    // Ctrl+Z: 入力フィールド内ではブラウザネイティブのUndo、それ以外ではアプリレベルのUndo
     if (event.ctrlKey && (event.key === "z" || event.key === "Z")) {
+      if (isInputFocused) {
+        // 入力フィールド内ではブラウザのデフォルト動作を許可
+        return
+      }
       event.preventDefault()
       if (undoLastOperation) {
         undoLastOperation()
@@ -102,7 +107,12 @@ export const useKeyboardShortcuts = ({
       return
     }
 
+    // Ctrl+Y: 入力フィールド内ではブラウザネイティブのRedo、それ以外ではアプリレベルのRedo
     if (event.ctrlKey && (event.key === "y" || event.key === "Y")) {
+      if (isInputFocused) {
+        // 入力フィールド内ではブラウザのデフォルト動作を許可
+        return
+      }
       event.preventDefault()
       if (redoLastOperation) {
         redoLastOperation()
