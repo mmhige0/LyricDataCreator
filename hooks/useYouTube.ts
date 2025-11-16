@@ -21,6 +21,18 @@ interface UseYouTubeProps {
   onDurationChange?: (duration: number) => void
 }
 
+const VOLUME_STORAGE_KEY = 'youtube-player-volume'
+
+const getStoredVolume = (): number => {
+  if (typeof window === 'undefined') return 100
+  const stored = localStorage.getItem(VOLUME_STORAGE_KEY)
+  if (stored) {
+    const volume = parseInt(stored, 10)
+    return isNaN(volume) ? 100 : Math.max(0, Math.min(100, volume))
+  }
+  return 100
+}
+
 export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChange }: UseYouTubeProps = {}) => {
   const [isYouTubeAPIReady, setIsYouTubeAPIReady] = useState<boolean>(false)
   const [youtubeUrl, setYoutubeUrl] = useState<string>("")
@@ -31,7 +43,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
   const [currentTime, setCurrentTime] = useState<number>(0)
   const [duration, setDuration] = useState<number>(0)
   const [playbackRate, setPlaybackRate] = useState<number>(1)
-  const [volume, setVolume] = useState<number>(100)
+  const [volume, setVolume] = useState<number>(getStoredVolume)
   const [isMuted, setIsMuted] = useState<boolean>(false)
 
   useEffect(() => {
@@ -130,10 +142,12 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
                 const videoDuration = event.target.getDuration()
                 setDuration(videoDuration)
 
-                // 初期音量とミュート状態を取得
-                const initialVolume = event.target.getVolume()
+                // localStorageから保存された音量を適用
+                const storedVolume = getStoredVolume()
+                event.target.setVolume(storedVolume)
+
+                // ミュート状態を取得
                 const initialMuted = event.target.isMuted()
-                setVolume(initialVolume)
                 setIsMuted(initialMuted)
 
                 setIsLoadingVideo(false)
@@ -208,6 +222,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
       const clampedVolume = Math.max(0, Math.min(100, newVolume))
       player.setVolume(clampedVolume)
       setVolume(clampedVolume)
+      localStorage.setItem(VOLUME_STORAGE_KEY, clampedVolume.toString())
       if (clampedVolume > 0 && isMuted) {
         setIsMuted(false)
       }
