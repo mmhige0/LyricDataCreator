@@ -106,8 +106,12 @@ export const useTypingGame = ({
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    correctSoundRef.current = new Audio('/sounds/daken.mp3')
-    missSoundRef.current = new Audio('/sounds/miss.mp3')
+    const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io')
+    const basePath = isGitHubPages ? '/LyricDataCreator' : ''
+    const soundBasePath = `${basePath}/sounds`
+
+    correctSoundRef.current = new Audio(`${soundBasePath}/daken.mp3`)
+    missSoundRef.current = new Audio(`${soundBasePath}/miss.mp3`)
 
     if (correctSoundRef.current) {
       correctSoundRef.current.volume = 1
