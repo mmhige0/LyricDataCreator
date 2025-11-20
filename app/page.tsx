@@ -112,8 +112,12 @@ export default function LyricsTypingApp() {
 
   const handleGetCurrentTimestamp = useCallback(() => {
     const timestampValue = getCurrentTimestamp(timestampOffset)
-    setTimestamp(timestampValue)
-  }, [getCurrentTimestamp, timestampOffset, setTimestamp])
+    if (editingId) {
+      setEditingTimestamp(timestampValue)
+    } else {
+      setTimestamp(timestampValue)
+    }
+  }, [getCurrentTimestamp, timestampOffset, editingId, setTimestamp, setEditingTimestamp])
 
   const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
 
