@@ -68,6 +68,7 @@ interface ScoreManagementSectionProps {
   redoLastOperation: () => void
   canUndo: boolean
   canRedo: boolean
+  readOnly?: boolean
 }
 
 export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
@@ -86,12 +87,13 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
   undoLastOperation,
   redoLastOperation,
   canUndo,
-  canRedo
+  canRedo,
+  readOnly = false
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries)
   const [adjustValue, setAdjustValue] = useState<string>('0')
-  const [autoScroll, setAutoScroll] = useState<boolean>(false)
+  const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
 
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
@@ -126,49 +128,53 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
             </div>
             ページ一覧
           </CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={importScoreData}>
-              <Upload className="h-4 w-4 mr-2" />
-              インポート
-            </Button>
-            <Button variant="outline" size="sm" onClick={exportScoreData} disabled={scoreEntries.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
-              エクスポート
-            </Button>
-          </div>
+          {!readOnly && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={importScoreData}>
+                <Upload className="h-4 w-4 mr-2" />
+                インポート
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportScoreData} disabled={scoreEntries.length === 0}>
+                <Download className="h-4 w-4 mr-2" />
+                エクスポート
+              </Button>
+            </div>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col min-h-0">
         {/* 動画の総時間表示とUndo/Redoボタン */}
-        <div className="mb-4 flex items-center justify-between">
-          {duration > 0 && (
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Clock className="h-4 w-4" />
-              動画の総時間: {duration.toFixed(1)}秒
+        {!readOnly && (
+          <div className="mb-4 flex items-center justify-between">
+            {duration > 0 && (
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Clock className="h-4 w-4" />
+                動画の総時間: {duration.toFixed(1)}秒
+              </div>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={undoLastOperation}
+                disabled={!canUndo}
+                className="text-xs h-7"
+              >
+                <Undo className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={redoLastOperation}
+                disabled={!canRedo}
+                className="text-xs h-7"
+              >
+                <Redo className="h-3 w-3" />
+              </Button>
             </div>
-          )}
-          <div className="flex gap-2 ml-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={undoLastOperation}
-              disabled={!canUndo}
-              className="text-xs h-7"
-            >
-              <Undo className="h-3 w-3" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={redoLastOperation}
-              disabled={!canRedo}
-              className="text-xs h-7"
-            >
-              <Redo className="h-3 w-3" />
-            </Button>
           </div>
-        </div>
+        )}
 
         {scoreEntries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
@@ -188,89 +194,127 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                   ref={(el) => { entryRefs.current[index] = el }}
                   className={`p-3 border rounded-lg hover:bg-muted/50 ${
                     isCurrentlyPlaying ? "bg-primary/10 border-primary" : ""
-                  } ${isEditing ? "bg-blue-50 border-blue-200" : ""}`}
+                  } ${isEditing ? "bg-blue-50 border-blue-200" : ""} ${
+                    readOnly && player ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() => {
+                    if (readOnly && player) {
+                      seekToAndPlay(entry.timestamp)
+                    }
+                  }}
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
                       <div className="text-sm font-mono text-muted-foreground flex items-center justify-between">
                         <span>#{index + 1}</span>
-                        {scoreEntries[index + 1] && (
+                        {!readOnly && scoreEntries[index + 1] && (
                           <span className="text-xs">
                             {(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s
                           </span>
                         )}
                       </div>
-                      <div className="mt-auto">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => seekToAndPlay(entry.timestamp)}
-                          disabled={!player}
-                          className="text-xs font-mono h-6 px-2"
-                        >
-                          <Play className="h-3 w-3 mr-1" />
-                          {entry.timestamp.toFixed(2)}s
-                        </Button>
-                      </div>
+                      {!readOnly && (
+                        <div className="mt-auto">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => seekToAndPlay(entry.timestamp)}
+                            disabled={!player}
+                            className="text-xs font-mono h-6 px-2"
+                          >
+                            <Play className="h-3 w-3 mr-1" />
+                            {entry.timestamp.toFixed(2)}s
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
                       <EntryDisplay entry={entry} kpmData={kpmData} />
                     </div>
-                    <div className="flex flex-col gap-1 min-w-fit self-center">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => copyLyricsToClipboard(entry.lyrics)}
-                        className={`text-xs ${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
-                      >
-                        <Copy className="h-3 w-3 mr-1" />
-                        コピー
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => startEditScoreEntry(entry)}
-                        className={`text-xs ${isEditing ? 'bg-blue-100 border-blue-300' : ''}`}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        編集
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => deleteScoreEntry(entry.id)} className="text-xs">
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        削除
-                      </Button>
-                    </div>
+                    {!readOnly && (
+                      <div className="flex flex-col gap-1 min-w-fit self-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyLyricsToClipboard(entry.lyrics)}
+                          className={`text-xs ${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          コピー
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEditScoreEntry(entry)}
+                          className={`text-xs ${isEditing ? 'bg-blue-100 border-blue-300' : ''}`}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          編集
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => deleteScoreEntry(entry.id)} className="text-xs">
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          削除
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
             })}
             </div>
 
-            <div className="mt-3 pt-3 border-t flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-muted-foreground">全ページタイム調整</span>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="-10"
-                  max="10"
-                  value={adjustValue}
-                  onChange={(e) => setAdjustValue(e.target.value)}
-                  placeholder="秒"
-                  className="w-20 text-xs h-7"
-                  disabled={scoreEntries.length === 0}
-                />
-                <Button
-                  onClick={handleBulkTimingAdjust}
-                  disabled={scoreEntries.length === 0}
-                  variant="outline"
-                  size="sm"
-                  className="px-3 text-xs h-7"
-                >
-                  適用
-                </Button>
+            {/* 編集モード: タイム調整 + 自動スクロール + 全ページ削除 */}
+            {!readOnly && (
+              <div className="mt-3 pt-3 border-t flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">全ページタイム調整</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="-10"
+                    max="10"
+                    value={adjustValue}
+                    onChange={(e) => setAdjustValue(e.target.value)}
+                    placeholder="秒"
+                    className="w-20 text-xs h-7"
+                    disabled={scoreEntries.length === 0}
+                  />
+                  <Button
+                    onClick={handleBulkTimingAdjust}
+                    disabled={scoreEntries.length === 0}
+                    variant="outline"
+                    size="sm"
+                    className="px-3 text-xs h-7"
+                  >
+                    適用
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAutoScroll(!autoScroll)}
+                    className={`text-xs ${autoScroll ? 'bg-blue-50 border-blue-200' : ''}`}
+                  >
+                    {autoScroll ? <ScrollText className="h-3 w-3 mr-1" /> : <Scroll className="h-3 w-3 mr-1" />}
+                    自動スクロール
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearAllScoreEntries}
+                    className="text-black hover:bg-gray-50 text-xs"
+                  >
+                    <Trash2 className="h-3 w-3 mr-1" />
+                    全ページ削除
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+            )}
+
+            {/* タイピングモード: 自動スクロールボタンのみ */}
+            {readOnly && scoreEntries.length > 0 && (
+              <div className="mt-3 pt-3 border-t flex justify-end">
                 <Button
                   variant="outline"
                   size="sm"
@@ -280,17 +324,8 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                   {autoScroll ? <ScrollText className="h-3 w-3 mr-1" /> : <Scroll className="h-3 w-3 mr-1" />}
                   自動スクロール
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearAllScoreEntries}
-                  className="text-black hover:bg-gray-50 text-xs"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  全ページ削除
-                </Button>
               </div>
-            </div>
+            )}
           </div>
         )}
 

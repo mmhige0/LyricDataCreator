@@ -19,6 +19,7 @@ export interface YouTubePlayer {
   mute(): void
   unMute(): void
   isMuted(): boolean
+  destroy(): void
 }
 
 export type LyricsArray = [string, string, string, string]

@@ -19,6 +19,11 @@ interface UseYouTubeProps {
   onPlayerReady?: (player: YouTubePlayer) => void
   onPlayerStateChange?: (isPlaying: boolean) => void
   onDurationChange?: (duration: number) => void
+  /**
+   * プレイヤーを埋め込む要素の ID
+   * デフォルトは "youtube-player"
+   */
+  elementId?: string
 }
 
 const VOLUME_STORAGE_KEY = 'youtube-player-volume'
@@ -33,7 +38,12 @@ const getStoredVolume = (): number => {
   return 100
 }
 
-export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChange }: UseYouTubeProps = {}) => {
+export const useYouTube = ({
+  onPlayerReady,
+  onPlayerStateChange,
+  onDurationChange,
+  elementId = 'youtube-player',
+}: UseYouTubeProps = {}) => {
   const [isYouTubeAPIReady, setIsYouTubeAPIReady] = useState<boolean>(false)
   const [youtubeUrl, setYoutubeUrl] = useState<string>("")
   const [videoId, setVideoId] = useState<string>("")
@@ -47,19 +57,21 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
   const [isMuted, setIsMuted] = useState<boolean>(false)
 
   useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement("script")
-      tag.src = "https://www.youtube.com/iframe_api"
-      const firstScriptTag = document.getElementsByTagName("script")[0]
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
-    }
+    const setupYouTubeAPI = () => {
+      if (!window.YT) {
+        const tag = document.createElement("script")
+        tag.src = "https://www.youtube.com/iframe_api"
+        const firstScriptTag = document.getElementsByTagName("script")[0]
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag)
+      }
 
-    window.onYouTubeIframeAPIReady = () => {
-      setIsYouTubeAPIReady(true)
-    }
+      window.onYouTubeIframeAPIReady = () => {
+        setIsYouTubeAPIReady(true)
+      }
 
-    if (window.YT && window.YT.Player) {
-      setIsYouTubeAPIReady(true)
+      if (window.YT && window.YT.Player) {
+        setIsYouTubeAPIReady(true)
+      }
     }
 
     const fallbackTimer = setTimeout(() => {
@@ -67,6 +79,8 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
         setIsYouTubeAPIReady(true)
       }
     }, 5000)
+
+    setupYouTubeAPI()
 
     return () => {
       clearTimeout(fallbackTimer)
@@ -83,6 +97,21 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     }
     return () => clearInterval(interval)
   }, [player, isPlaying])
+
+  const resetPlayer = () => {
+    if (player) {
+      try {
+        player.destroy()
+      } catch {
+        // ignore errors during cleanup
+      }
+    }
+
+    setPlayer(null)
+    setIsPlaying(false)
+    setCurrentTime(0)
+    setDuration(0)
+  }
 
   const loadYouTubeVideo = () => {
     const id = extractVideoId(youtubeUrl)
@@ -113,14 +142,14 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     } else {
       setTimeout(() => {
         try {
-          const playerDiv = document.getElementById("youtube-player")
+          const playerDiv = document.getElementById(elementId)
           if (!playerDiv) {
             setIsLoadingVideo(false)
             youtubeErrors.playerNotReady()
             return
           }
 
-          new window.YT.Player("youtube-player", {
+          new window.YT.Player(elementId, {
             height: "450",
             width: "800",
             videoId: id,
@@ -299,7 +328,7 @@ export const useYouTube = ({ onPlayerReady, onPlayerStateChange, onDurationChang
     seekTo,
     seekToAndPlay,
     getCurrentTimestamp,
-    seekToInput
+    seekToInput,
+    resetPlayer,
   }
 }
-
