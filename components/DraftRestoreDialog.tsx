@@ -18,8 +18,7 @@ export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreD
   useEffect(() => {
     if (isOpen) {
       const draftList = getDraftList()
-      // Sort by last modified (newest first)
-      const sorted = draftList.sort((a, b) => b.lastModified - a.lastModified)
+      const sorted = [...draftList].sort((a, b) => b.lastModified - a.lastModified)
       setDrafts(sorted)
     }
   }, [isOpen])

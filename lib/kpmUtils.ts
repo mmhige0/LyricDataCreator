@@ -46,7 +46,7 @@ const countRomajiCharacters = (romaji: string): number => {
  * @param durationSeconds 時間（秒）
  * @returns KPM値
  */
-const calculateKpm = (charCount: number, durationSeconds: number): number => {
+export const calculateKpm = (charCount: number, durationSeconds: number): number => {
   if (durationSeconds <= 0) return 0
   return Math.round((charCount / durationSeconds) * 60 * 10) / 10 // 小数点1桁で四捨五入
 }
