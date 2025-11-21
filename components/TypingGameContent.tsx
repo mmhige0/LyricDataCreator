@@ -124,6 +124,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     youtubeUrl: youtubeUrlFromHook,
     isYouTubeAPIReady,
     seekTo,
+    seekToAndPlay: seekToAndPlayRaw,
   } = useYouTube({ elementId: "typing-youtube-player" })
 
   const handlePageChange = (direction: 'prev' | 'next') => {
@@ -171,8 +172,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     scoreEntries,
     currentVideoTime: currentTime,
     onRestartVideo: () => {
-      seekToBeginning()
-      player?.pauseVideo()
+      seekToAndPlayRaw(0)
     },
     onTogglePlayPause: togglePlayPause,
      onSkipToNextPage: () => handlePageChange("next"),
