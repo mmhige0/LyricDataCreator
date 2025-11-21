@@ -18,30 +18,9 @@ import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
 import { TypingGameContent } from "@/components/TypingGameContent"
-import type { ScoreEntry } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { getOrCreateSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
-
-interface EditorReturnState {
-  scoreEntries?: ScoreEntry[]
-  songTitle?: string
-  youtubeUrl?: string
-}
-
-const restoreEditorStateFromSession = (): EditorReturnState | null => {
-  if (typeof window === "undefined") return null
-
-  try {
-    const dataString = sessionStorage.getItem("editorReturnState")
-    if (!dataString) return null
-
-    return JSON.parse(dataString) as EditorReturnState
-  } catch (e) {
-    console.error("Failed to restore editor state from sessionStorage:", e)
-    return null
-  }
-}
 
 export default function LyricsTypingApp() {
   const [songTitle, setSongTitle] = useState<string>("")
@@ -199,21 +178,6 @@ export default function LyricsTypingApp() {
 
     setIsInitialized(true)
   }, [])
-
-  useEffect(() => {
-    const data = restoreEditorStateFromSession()
-    if (!data) return
-
-    if (data.youtubeUrl) {
-      setYoutubeUrl(data.youtubeUrl)
-    }
-    if (data.scoreEntries && data.scoreEntries.length > 0) {
-      setScoreEntries(data.scoreEntries)
-    }
-    if (data.songTitle) {
-      setSongTitle(data.songTitle)
-    }
-  }, [setYoutubeUrl, setScoreEntries, setSongTitle])
 
   const handleRestoreDraft = useCallback(
     (sessionId: string) => {
