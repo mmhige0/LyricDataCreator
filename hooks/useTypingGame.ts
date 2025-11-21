@@ -101,6 +101,7 @@ export const useTypingGame = ({
   const { judgeInput } = useInputJudge()
   const hasInitializedPage = useRef(false)
   const hasInitializedOnMount = useRef(false)
+  const hasLoadedInputMode = useRef(false)
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null)
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
@@ -177,6 +178,24 @@ export const useTypingGame = ({
   const toggleInputMode = useCallback(() => {
     setInputMode((prev) => (prev === 'roma' ? 'kana' : 'roma'))
   }, [])
+
+  // 入力モードの保存・復元
+  useEffect(() => {
+    if (hasLoadedInputMode.current) return
+    hasLoadedInputMode.current = true
+
+    if (typeof window === 'undefined') return
+
+    const storedInputMode = localStorage.getItem('typingInputMode')
+    if (storedInputMode === 'roma' || storedInputMode === 'kana') {
+      setInputMode(storedInputMode)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('typingInputMode', inputMode)
+  }, [inputMode])
 
   // 初回マウント時にページ0を初期化
   useEffect(() => {

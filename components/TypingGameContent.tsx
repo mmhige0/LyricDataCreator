@@ -71,6 +71,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
   const [isTabEnabled, setIsTabEnabled] = useState(true)
   const hasLoadedData = useRef(false)
   const hasLoadedVideo = useRef(false)
+  const hasLoadedTabPreference = useRef(false)
 
   // セッションストレージからプレイ用データを取得
   useEffect(() => {
@@ -239,6 +240,24 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     window.addEventListener('keydown', handleTabKeyDown)
     return () => window.removeEventListener('keydown', handleTabKeyDown)
   }, [isTabEnabled, toggleInputMode])
+
+  // Tab 切り替え許可状態の保存・復元
+  useEffect(() => {
+    if (hasLoadedTabPreference.current) return
+    hasLoadedTabPreference.current = true
+
+    if (typeof window === 'undefined') return
+
+    const storedValue = localStorage.getItem('typingTabEnabled')
+    if (storedValue === 'true' || storedValue === 'false') {
+      setIsTabEnabled(storedValue === 'true')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('typingTabEnabled', String(isTabEnabled))
+  }, [isTabEnabled])
 
   const toggleTabEnabled = () => {
     setIsTabEnabled((prev) => !prev)
