@@ -71,6 +71,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
   const [isTabEnabled, setIsTabEnabled] = useState(true)
   const hasLoadedData = useRef(false)
   const hasLoadedVideo = useRef(false)
+  const hasLoadedTabPreference = useRef(false)
 
   // セッションストレージからプレイ用データを取得
   useEffect(() => {
@@ -124,6 +125,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     youtubeUrl: youtubeUrlFromHook,
     isYouTubeAPIReady,
     seekTo,
+    seekToAndPlay: seekToAndPlayRaw,
   } = useYouTube({ elementId: "typing-youtube-player" })
 
   const handlePageChange = (direction: 'prev' | 'next') => {
@@ -171,8 +173,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     scoreEntries,
     currentVideoTime: currentTime,
     onRestartVideo: () => {
-      seekToBeginning()
-      player?.pauseVideo()
+      seekToAndPlayRaw(0)
     },
     onTogglePlayPause: togglePlayPause,
      onSkipToNextPage: () => handlePageChange("next"),
@@ -239,6 +240,24 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     window.addEventListener('keydown', handleTabKeyDown)
     return () => window.removeEventListener('keydown', handleTabKeyDown)
   }, [isTabEnabled, toggleInputMode])
+
+  // Tab 切り替え許可状態の保存・復元
+  useEffect(() => {
+    if (hasLoadedTabPreference.current) return
+    hasLoadedTabPreference.current = true
+
+    if (typeof window === 'undefined') return
+
+    const storedValue = localStorage.getItem('typingTabEnabled')
+    if (storedValue === 'true' || storedValue === 'false') {
+      setIsTabEnabled(storedValue === 'true')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('typingTabEnabled', String(isTabEnabled))
+  }, [isTabEnabled])
 
   const toggleTabEnabled = () => {
     setIsTabEnabled((prev) => !prev)

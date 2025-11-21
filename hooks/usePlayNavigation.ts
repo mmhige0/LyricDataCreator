@@ -1,4 +1,3 @@
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import type { ScoreEntry } from '@/lib/types'
 
@@ -49,24 +48,3 @@ export const savePlayData = (params: PlayData): boolean => {
     return false
   }
 }
-
-/**
- * プレイ画面への遷移を管理するフック
- */
-export const usePlayNavigation = () => {
-  const router = useRouter()
-
-  const navigateToPlay = (
-    scoreEntries: ScoreEntry[],
-    songTitle: string,
-    youtubeUrl: string
-  ) => {
-    const ok = savePlayData({ scoreEntries, songTitle, youtubeUrl })
-    if (!ok) return
-
-    router.push('/typing')
-  }
-
-  return { navigateToPlay }
-}
-

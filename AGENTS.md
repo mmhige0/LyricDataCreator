@@ -1,0 +1,35 @@
+# Repository Guidelines
+
+## Project Structure & Module Organization
+- Next.js 14 App Router lives in `app/` (`layout.tsx`, `page.tsx`) with global styles in `app/globals.css`.
+- Reusable view logic sits in `components/` (shared UI in `components/ui/`), custom hooks in `hooks/`, helpers in `lib/`, and shared types in `types/`.
+- Static assets belong in `public/`; `postinstall` populates `public/dict/` with Kuromoji dictionaries required for Japanese text parsing.
+- Build output for static export lands in `out/` after `npm run build`; treat it as generated.
+
+## Build, Test, and Development Commands
+- `npm run dev` — start the local dev server at `http://localhost:3000`.
+- `npm run lint` / `npm run type-check` — ESLint (Next config) and TypeScript strict checks.
+- `npm run test` — runs lint, type-check, then `next build` to ensure the app still exports.
+- `npm run build` — production build (static export); respects `basePath` `/LyricDataCreator` when `NODE_ENV=production`.
+- `npm run preview` — build then serve the contents of `out/` for a pre-deploy check.
+- Run `npm install` once to copy Kuromoji dictionaries into `public/dict/` (handled by `postinstall`).
+
+## Coding Style & Naming Conventions
+- TypeScript with strict mode; prefer named functional components. Indent with 2 spaces, single quotes, and trailing commas where sensible.
+- Use Tailwind classes for styling; compose conditionals with `clsx`/`tailwind-merge`. Keep component styles co-located with the component.
+- Components: `PascalCase` filenames (e.g., `LyricsEditCard.tsx`); hooks: `useSomething`; utility modules: `camelCase`; types/interfaces: suffix with `Props`, `State`, or domain-specific names.
+- Use the `@/*` path alias for absolute imports from the repo root.
+
+## Testing Guidelines
+- No standalone unit/integration harness is present yet; the current guardrail is `npm run test` (lint + types + build).
+- When adding non-trivial logic (e.g., parsing, timing calculations), include targeted tests or lightweight validation scripts and wire them into `npm run test` if possible.
+- Keep fixtures small and commit only deterministic test assets.
+
+## Commit & Pull Request Guidelines
+- Write concise, imperative commit messages (e.g., `Add timing export controls`); group related changes.
+- For PRs, include: summary of behavior change, linked issue/feature, and manual test notes. Add screenshots or clips for UI-facing updates.
+- Ensure `npm run test` passes before requesting review; mention any skipped checks or follow-ups explicitly.
+
+## Security & Configuration Tips
+- The app exports statically with `basePath`/`assetPrefix` set for GitHub Pages; verify asset URLs when touching routes or public paths.
+- Avoid committing generated `out/` or large datasets; keep secrets out of config and favor environment variables when adding new integrations.
