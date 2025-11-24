@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { ScoreEntry } from '@/lib/types'
-import type { InputMode, LineWord } from '@/lib/typingUtils'
-import { initializeLineWord } from '@/lib/typingUtils'
-import { useInputJudge } from './useRomajiConverter'
+import type { BuiltMapLine, TypingWord, InputMode } from 'lyrics-typing-engine'
+import { evaluateKanaInput, evaluateRomaInput, isTypingKey } from 'lyrics-typing-engine'
+import { createTypingWordForPage } from '@/lib/typingEngineAdapter'
 
 type GameStatus = 'playing' | 'completed'
 
 interface PageState {
   pageIndex: number
-  currentLineIndex: number
-  lineWords: LineWord[]
+  typingWord: TypingWord
   pageStartTime: number | null
   pageLastInputTime: number | null
 }
@@ -22,6 +21,7 @@ interface GameStats {
 
 interface UseTypingGameProps {
   scoreEntries: ScoreEntry[]
+  builtMapLines: BuiltMapLine[]
   currentVideoTime: number
   onGameEnd?: () => void
   onRestartVideo?: () => void
@@ -31,16 +31,15 @@ interface UseTypingGameProps {
   isPlaying?: boolean
 }
 
-const createEmptyLineWord = (): LineWord => ({
-  correct: { k: '', r: '' },
-  nextChar: { k: '', r: [''], t: undefined },
-  word: [],
+const createEmptyTypingWord = (): TypingWord => ({
+  correct: { kana: '', roma: '' },
+  nextChunk: { kana: '', romaPatterns: [], point: 0, type: undefined },
+  wordChunks: [],
 })
 
 const createBeforeFirstPageState = (): PageState => ({
   pageIndex: -1,
-  currentLineIndex: 0,
-  lineWords: [createEmptyLineWord(), createEmptyLineWord(), createEmptyLineWord(), createEmptyLineWord()],
+  typingWord: createEmptyTypingWord(),
   pageStartTime: null,
   pageLastInputTime: null,
 })
@@ -54,27 +53,9 @@ const findTargetPageIndexByTime = (entries: ScoreEntry[], currentVideoTime: numb
   return -1
 }
 
-const isLineIncomplete = (lineWord: LineWord | undefined): boolean => {
-  if (!lineWord) return false
-  return !!lineWord.nextChar.k || lineWord.word.length > 0
-}
-
-const isEmptyLine = (line: string): boolean => {
-  return line.trim() === ''
-}
-
-const findNextNonEmptyLineIndex = (lyrics: string[], startIndex: number): number => {
-  for (let i = startIndex; i < lyrics.length; i++) {
-    if (!isEmptyLine(lyrics[i])) {
-      return i
-    }
-  }
-  // 空行しか残っていない場合は末尾を返す
-  return lyrics.length
-}
-
 export const useTypingGame = ({
   scoreEntries,
+  builtMapLines,
   currentVideoTime,
   onGameEnd,
   onRestartVideo,
@@ -87,8 +68,7 @@ export const useTypingGame = ({
   const [inputMode, setInputMode] = useState<InputMode>('roma')
   const [pageState, setPageState] = useState<PageState>({
     pageIndex: 0,
-    currentLineIndex: 0,
-    lineWords: [],
+    typingWord: createEmptyTypingWord(),
     pageStartTime: null,
     pageLastInputTime: null,
   })
@@ -98,7 +78,6 @@ export const useTypingGame = ({
   const [combo, setCombo] = useState(0)
   const [maxCombo, setMaxCombo] = useState(0)
 
-  const { judgeInput } = useInputJudge()
   const hasInitializedPage = useRef(false)
   const hasInitializedOnMount = useRef(false)
   const hasLoadedInputMode = useRef(false)
@@ -124,28 +103,25 @@ export const useTypingGame = ({
 
   const initializePage = useCallback(
     (pageIndex: number) => {
-      if (pageIndex >= scoreEntries.length) {
+      const playablePages = Math.max(0, builtMapLines.length - 1) // 最後のend行は除外
+      if (pageIndex >= playablePages) {
         setGameStatus('completed')
         onGameEnd?.()
         return
       }
 
-      const entry = scoreEntries[pageIndex]
-      const lineWords = entry.lyrics.map((line) => initializeLineWord(line))
-
-      const firstNonEmptyLineIndex = findNextNonEmptyLineIndex(entry.lyrics, 0)
+      const typingWord = skipSpaces(createTypingWordForPage(builtMapLines, pageIndex) ?? createEmptyTypingWord())
 
       setPageState({
         pageIndex,
-        currentLineIndex: firstNonEmptyLineIndex,
-        lineWords,
+        typingWord,
         pageStartTime: currentVideoTime,
         pageLastInputTime: null,
       })
 
       hasInitializedPage.current = true
     },
-    [scoreEntries, currentVideoTime, onGameEnd]
+    [builtMapLines, currentVideoTime, onGameEnd]
   )
 
   const startGame = useCallback(() => {
@@ -165,8 +141,7 @@ export const useTypingGame = ({
     setMaxCombo(0)
     setPageState({
       pageIndex: 0,
-      currentLineIndex: 0,
-      lineWords: [],
+      typingWord: createEmptyTypingWord(),
       pageStartTime: null,
       pageLastInputTime: null,
     })
@@ -199,15 +174,25 @@ export const useTypingGame = ({
 
   // 初回マウント時にページ0を初期化
   useEffect(() => {
-    if (!hasInitializedOnMount.current && gameStatus === 'playing' && scoreEntries.length > 0) {
+    if (
+      !hasInitializedOnMount.current &&
+      gameStatus === 'playing' &&
+      scoreEntries.length > 0 &&
+      builtMapLines.length > 0
+    ) {
       hasInitializedOnMount.current = true
       initializePage(0)
     }
-  }, [gameStatus, scoreEntries.length, initializePage])
+  }, [gameStatus, scoreEntries.length, builtMapLines.length, initializePage])
 
   // 動画の再生位置に応じてページを追従
   useEffect(() => {
-    if (gameStatus !== 'playing' || scoreEntries.length === 0 || !hasInitializedOnMount.current) {
+    if (
+      gameStatus !== 'playing' ||
+      scoreEntries.length === 0 ||
+      builtMapLines.length === 0 ||
+      !hasInitializedOnMount.current
+    ) {
       return
     }
 
@@ -222,8 +207,9 @@ export const useTypingGame = ({
     if (targetPageIndex !== pageState.pageIndex && targetPageIndex !== -1) {
       // ページを進めるときに、打ち切り状態ならコンボを切る
       if (targetPageIndex > pageState.pageIndex) {
-        const currentLineWord = pageState.lineWords[pageState.currentLineIndex]
-        if (isLineIncomplete(currentLineWord)) {
+        const currentTypingWord = pageState.typingWord
+        const isIncomplete = !!currentTypingWord.nextChunk.kana || currentTypingWord.wordChunks.length > 0
+        if (isIncomplete) {
           setCombo(0)
         }
       }
@@ -234,11 +220,31 @@ export const useTypingGame = ({
     currentVideoTime,
     gameStatus,
     scoreEntries,
+    builtMapLines.length,
     pageState.pageIndex,
-    pageState.lineWords,
-    pageState.currentLineIndex,
+    pageState.typingWord,
     initializePage,
   ])
+
+  const skipSpaces = (typingWord: TypingWord): TypingWord => {
+    let nextTypingWord = typingWord
+    const isSkippableSpace = (chunk: TypingWord['nextChunk']) =>
+      chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
+
+    while (isSkippableSpace(nextTypingWord.nextChunk)) {
+      const nextChunk = nextTypingWord.wordChunks[0]
+      nextTypingWord = {
+        correct: {
+          kana: nextTypingWord.correct.kana + nextTypingWord.nextChunk.kana,
+          roma: nextTypingWord.correct.roma + (nextTypingWord.nextChunk.romaPatterns[0] ?? ''),
+        },
+        nextChunk: nextChunk ?? { kana: '', romaPatterns: [], point: 0, type: undefined },
+        wordChunks: nextChunk ? nextTypingWord.wordChunks.slice(1) : [],
+      }
+      if (!nextChunk) break
+    }
+    return nextTypingWord
+  }
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -279,10 +285,9 @@ export const useTypingGame = ({
         const remainingTime = nextPageTime - currentVideoTime
 
         const isPageFullyTyped =
-          pageState.lineWords.length > 0 &&
-          pageState.lineWords.every(
-            (lineWord) => !lineWord.nextChar.k && lineWord.word.length === 0
-          )
+          !!pageState.typingWord &&
+          !pageState.typingWord.nextChunk.kana &&
+          pageState.typingWord.wordChunks.length === 0
 
         const canSkip =
           !!isPlaying && hasNextPage && remainingTime >= 3 && isPageFullyTyped
@@ -314,19 +319,20 @@ export const useTypingGame = ({
         return
       }
 
+      const currentTypingWord = pageState.typingWord
       const currentEntry = scoreEntries[pageState.pageIndex]
-      if (!currentEntry) return
+      if (!currentEntry || !currentTypingWord) return
 
-      if (pageState.currentLineIndex >= currentEntry.lyrics.length) return
+      if (!isTypingKey(event)) return
 
       event.preventDefault()
 
-      const currentLineWord = pageState.lineWords[pageState.currentLineIndex]
-      if (!currentLineWord) return
+      const typingResult =
+        inputMode === 'roma'
+          ? evaluateRomaInput({ event, typingWord: currentTypingWord })
+          : evaluateKanaInput({ event, typingWord: currentTypingWord })
 
-      const result = judgeInput(event, currentLineWord, inputMode)
-
-      if (result.successKey) {
+      if (typingResult.successKey) {
         setTotalTypes((prev) => prev + 1)
 
         if (correctSoundRef.current) {
@@ -336,14 +342,14 @@ export const useTypingGame = ({
             .catch((e) => console.error('Failed to play correct sound:', e))
         }
 
-        let updatedLineWord = result.newLineWord
+        let updatedTypingWord = typingResult.nextTypingWord
 
-        const isSpace = (char: string) => char === ' ' || char === '　'
+        const isSpaceChunk = (chunk: TypingWord['nextChunk']) =>
+          chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
 
-        const nextCharAfterInput = updatedLineWord.nextChar.k
         const isWordCompletedFlag =
-          isSpace(nextCharAfterInput) ||
-          (!nextCharAfterInput && updatedLineWord.word.length === 0)
+          isSpaceChunk(updatedTypingWord.nextChunk) ||
+          (!updatedTypingWord.nextChunk.kana && updatedTypingWord.wordChunks.length === 0)
 
         if (isWordCompletedFlag) {
           setCombo((prev) => {
@@ -353,38 +359,16 @@ export const useTypingGame = ({
           })
         }
 
-        while (isSpace(updatedLineWord.nextChar.k) && updatedLineWord.word.length > 0) {
-          updatedLineWord = {
-            correct: {
-              k: updatedLineWord.correct.k + updatedLineWord.nextChar.k,
-              r: updatedLineWord.correct.r + updatedLineWord.nextChar.r[0],
-            },
-            nextChar: updatedLineWord.word[0],
-            word: updatedLineWord.word.slice(1),
-          }
-        }
+        updatedTypingWord = skipSpaces(updatedTypingWord)
 
         setPageState((prev) => {
-          const newLineWords = [...prev.lineWords]
-          newLineWords[prev.currentLineIndex] = updatedLineWord
-
-          const isLineCompleted =
-            !updatedLineWord.nextChar.k && updatedLineWord.word.length === 0
-
-          let nextLineIndex = prev.currentLineIndex
-          if (isLineCompleted) {
-            const entry = scoreEntries[prev.pageIndex]
-            nextLineIndex = findNextNonEmptyLineIndex(entry.lyrics, prev.currentLineIndex + 1)
-          }
-
           return {
             ...prev,
-            lineWords: newLineWords,
+            typingWord: updatedTypingWord,
             pageLastInputTime: currentVideoTime,
-            currentLineIndex: nextLineIndex,
           }
         })
-      } else if (result.failKey) {
+      } else if (typingResult.failKey) {
         setTotalMiss((prev) => prev + 1)
 
         if (missSoundRef.current) {
@@ -400,15 +384,14 @@ export const useTypingGame = ({
       gameStatus,
       inputMode,
       isPlaying,
-      judgeInput,
-      pageState.currentLineIndex,
-      pageState.lineWords,
       pageState.pageIndex,
+      pageState.typingWord,
       restartGame,
       scoreEntries,
       onPageChange,
       onSkipToNextPage,
       onTogglePlayPause,
+      skipSpaces,
     ]
   )
 

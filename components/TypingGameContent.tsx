@@ -9,6 +9,8 @@ import { TypingStats } from "@/components/TypingStats"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { AppHeader } from "@/components/AppHeader"
 import { Button } from "@/components/ui/button"
+import { buildPageTypingData } from '@/lib/typingEngineAdapter'
+import type { BuiltMapLine } from 'lyrics-typing-engine'
 import {
   Play,
   Pause,
@@ -65,6 +67,8 @@ interface TypingGameContentProps {
 export function TypingGameContent({ onClose, showHeader = true }: TypingGameContentProps) {
   const [showPageList, setShowPageList] = useState(true)
   const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([])
+  const [builtMapLines, setBuiltMapLines] = useState<BuiltMapLine[]>([])
+  const [pageLyrics, setPageLyrics] = useState<string[][]>([])
   const [songTitle, setSongTitle] = useState('')
   const [youtubeUrl, setYoutubeUrlState] = useState('')
   const [isDataLoaded, setIsDataLoaded] = useState(false)
@@ -171,6 +175,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     changePageManually,
   } = useTypingGame({
     scoreEntries,
+    builtMapLines,
     currentVideoTime: currentTime,
     onRestartVideo: () => {
       seekToAndPlayRaw(0)
@@ -289,6 +294,21 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     }
   }
 
+  // 歌詞データと動画長が揃ったらタイピング用マップを構築
+  useEffect(() => {
+    if (!isDataLoaded || scoreEntries.length === 0) return
+
+    const lastTimestamp = scoreEntries[scoreEntries.length - 1]?.timestamp ?? 0
+    const totalDuration = duration > 0 ? duration : lastTimestamp + 1
+
+    const { builtMapLines: built, pageLyrics } = buildPageTypingData({
+      scoreEntries,
+      totalDuration,
+    })
+    setBuiltMapLines(built)
+    setPageLyrics(pageLyrics)
+  }, [duration, isDataLoaded, scoreEntries])
+
   const calculatePageTimeProgress = (): number => {
     if (scoreEntries.length === 0) return 0
 
@@ -319,12 +339,13 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
 
   // 全角スペースを半角スペースに統一
   const normalizeSpaces = (text: string): string => text.replace(/\u3000/g, ' ')
-  
-  const currentLineWord = pageState.lineWords[pageState.currentLineIndex]
-  const romajiCorrect = currentLineWord?.correct.r ?? ''
-  const romajiRemaining =
-    (currentLineWord?.nextChar.r[0] ?? '') +
-    (currentLineWord?.word.map((chunk) => chunk.r[0] ?? '').join('') ?? '')
+  const currentPageLines = pageLyrics[pageState.pageIndex]?.slice(0, 4) ?? ['', '', '', '']
+  const currentTypingWord = pageState.typingWord
+  const romajiCorrect = currentTypingWord?.correct.roma ?? ''
+  const romajiRemaining = currentTypingWord
+    ? (currentTypingWord.nextChunk.romaPatterns[0] ?? '') +
+      currentTypingWord.wordChunks.map((chunk) => chunk.romaPatterns[0] ?? '').join('')
+    : ''
   const hasRomaji = (romajiCorrect + romajiRemaining).trim().length > 0
 
   // read-only 用ダミー関数群
@@ -519,8 +540,8 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
               {/* 歌詞表示エリア */}
               <div className="mb-3">
                 <TypingDisplay
-                  lineWords={pageState.lineWords}
-                  currentLineIndex={pageState.currentLineIndex}
+                  lines={currentPageLines}
+                  typingWord={currentTypingWord}
                 />
               </div>
               <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
