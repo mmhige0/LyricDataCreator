@@ -23,7 +23,8 @@
     "kuroshiro": "^1.2.0",
     "kuroshiro-analyzer-kuromoji": "^1.1.0",
     "lucide-react": "^0.543.0",
-    "next": "14.2.5",
+    "lyrics-typing-engine": "^1.0.26",
+    "next": "^14.2.33",
     "postcss": "^8",
     "react": "^18",
     "react-dom": "^18",
@@ -36,7 +37,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
-    "eslint-config-next": "14.2.5",
+    "eslint-config-next": "^16.0.3",
     "typescript": "^5"
   }
 }
