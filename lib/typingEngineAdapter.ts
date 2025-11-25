@@ -2,6 +2,19 @@ import { buildTypingMap, createTypingWord, type BuiltMapLine, type RawMapLine, t
 import type { ScoreEntry } from './types'
 import { preprocessAndConvertLyrics } from './textUtils'
 
+export const ensureIntroPage = (scoreEntries: ScoreEntry[]): ScoreEntry[] => {
+  if (scoreEntries.length === 0) return scoreEntries
+  if (scoreEntries[0].timestamp === 0) return scoreEntries
+
+  const introEntry: ScoreEntry = {
+    id: 'intro-0',
+    timestamp: 0,
+    lyrics: ['', '', '', ''],
+  }
+
+  return [introEntry, ...scoreEntries]
+}
+
 interface BuildPageTypingDataParams {
   scoreEntries: ScoreEntry[]
   totalDuration: number
@@ -14,31 +27,33 @@ export interface PageTypingData {
 
 /**
  * ScoreEntryの配列をlyrics-typing-engine用のビルド済みデータに変換する
+ * - 最初のページが0秒より後ろなら、0秒に空ページを自動で付与する
  * - 1ページ(4行)を1 lineとして扱う
- * - 行境界はスペースで連結し、スペースも単語境界として扱う
+ * - 行境界は全角スペースで連結し、スペースも単語境界として扱う
  * - 最終行にYouTubeの総時間をtimeとしたend行を追加する
  */
 const normalizeVuToHiragana = (line: string): string => line.replace(/ヴ/g, 'ゔ')
-const normalizeSpacesToHalfWidth = (line: string): string => line.replace(/\u3000/g, ' ')
 
 export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTypingDataParams): PageTypingData => {
+  const normalizedEntries = ensureIntroPage(scoreEntries)
   const pageLyrics: string[][] = []
   const rawMapLines: RawMapLine[] = []
 
-  for (const entry of scoreEntries) {
-    const processedLines = entry.lyrics.map((line) => normalizeSpacesToHalfWidth(normalizeVuToHiragana(preprocessAndConvertLyrics(line))))
-    const word = processedLines.join(' ')
+  for (const entry of normalizedEntries) {
+    const processedLines = entry.lyrics.map((line) => normalizeVuToHiragana(preprocessAndConvertLyrics(line)))
+    const hasLyrics = processedLines.some((line) => line.length > 0)
+    const word = hasLyrics ? processedLines.join('　') : ''
 
     rawMapLines.push({
       time: entry.timestamp,
-      lyrics: word,
+      lyrics: hasLyrics ? word : '',
       word,
     })
 
     pageLyrics.push(processedLines)
   }
 
-  const lastTimestamp = scoreEntries[scoreEntries.length - 1]?.timestamp ?? 0
+  const lastTimestamp = normalizedEntries[normalizedEntries.length - 1]?.timestamp ?? 0
   const endTime = Math.max(totalDuration, lastTimestamp)
 
   rawMapLines.push({
@@ -47,7 +62,7 @@ export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTy
     word: '',
   })
 
-  const builtMapLines = applyNEndingPatch(buildTypingMap({ rawMapLines, charPoint: 100 }))
+  const builtMapLines = applyNEndingPatch(buildTypingMap({ rawMapLines, charPoint: 0 }))
 
   return {
     builtMapLines,
@@ -61,6 +76,26 @@ export const createTypingWordForPage = (builtMapLines: BuiltMapLine[], pageIndex
   return createTypingWord(targetLine)
 }
 
+export const skipSpaces = (typingWord: TypingWord): TypingWord => {
+  let nextTypingWord = typingWord
+  const isSkippableSpace = (chunk: TypingWord['nextChunk']) =>
+    chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
+
+  while (isSkippableSpace(nextTypingWord.nextChunk)) {
+    const nextChunk = nextTypingWord.wordChunks[0]
+    nextTypingWord = {
+      correct: {
+        kana: nextTypingWord.correct.kana + nextTypingWord.nextChunk.kana,
+        roma: nextTypingWord.correct.roma + (nextTypingWord.nextChunk.romaPatterns[0] ?? ''),
+      },
+      nextChunk: nextChunk ?? { kana: '', romaPatterns: [], point: 0, type: undefined },
+      wordChunks: nextChunk ? nextTypingWord.wordChunks.slice(1) : [],
+    }
+    if (!nextChunk) break
+  }
+  return nextTypingWord
+}
+
 // 「ん」の直後がスペース/行末の場合は nn または n' を許容するように強制上書き
 const applyNEndingPatch = (builtMapLines: BuiltMapLine[]): BuiltMapLine[] => {
   return builtMapLines.map((line) => {
@@ -72,7 +107,7 @@ const applyNEndingPatch = (builtMapLines: BuiltMapLine[]): BuiltMapLine[] => {
         return {
           ...chunk,
           romaPatterns: ['nn', "n'", 'xn'],
-          point: 100 * 2,
+          point: chunk.point,
         }
       }
       return chunk

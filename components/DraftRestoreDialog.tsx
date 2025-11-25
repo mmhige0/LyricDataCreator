@@ -84,7 +84,15 @@ export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreD
               {drafts.map(draft => (
                 <div
                   key={draft.sessionId}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => handleRestore(draft.sessionId)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      handleRestore(draft.sessionId)
+                    }
+                  }}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">

@@ -29,7 +29,7 @@ interface YouTubeVideoSectionProps {
   seekToBeginning: () => void
   changePlaybackRate: (rate: number) => void
   setPlayerVolume: (volume: number) => void
-  adjustVolume: (delta: number) => void
+  adjustVolume?: (delta: number) => void
   toggleMute: () => void
   seekTo: (time: number) => void
 }
@@ -56,7 +56,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
   seekToBeginning,
   changePlaybackRate,
   setPlayerVolume,
-  adjustVolume,
+  adjustVolume: _adjustVolume,
   toggleMute,
   seekTo
 }) => {

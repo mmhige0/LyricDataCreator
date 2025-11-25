@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { extractVideoId } from '@/lib/youtubeUtils'
 import { youtubeErrors, handleError } from '@/lib/errorUtils'
 import type { YouTubePlayer } from '@/lib/types'
@@ -24,6 +24,14 @@ interface UseYouTubeProps {
    * デフォルトは "youtube-player"
    */
   elementId?: string
+  /**
+   * 初期読み込み時に設定する YouTube URL
+   */
+  initialYoutubeUrl?: string
+  /**
+   * 初期URLを自動でロードするか
+   */
+  autoLoadInitialVideo?: boolean
 }
 
 const VOLUME_STORAGE_KEY = 'youtube-player-volume'
@@ -43,9 +51,11 @@ export const useYouTube = ({
   onPlayerStateChange,
   onDurationChange,
   elementId = 'youtube-player',
+  initialYoutubeUrl = '',
+  autoLoadInitialVideo = false,
 }: UseYouTubeProps = {}) => {
   const [isYouTubeAPIReady, setIsYouTubeAPIReady] = useState<boolean>(false)
-  const [youtubeUrl, setYoutubeUrl] = useState<string>("")
+  const [youtubeUrl, setYoutubeUrl] = useState<string>(initialYoutubeUrl)
   const [videoId, setVideoId] = useState<string>("")
   const [isLoadingVideo, setIsLoadingVideo] = useState<boolean>(false)
   const [player, setPlayer] = useState<YouTubePlayer | null>(null)
@@ -55,6 +65,7 @@ export const useYouTube = ({
   const [playbackRate, setPlaybackRate] = useState<number>(1)
   const [volume, setVolume] = useState<number>(getStoredVolume)
   const [isMuted, setIsMuted] = useState<boolean>(false)
+  const hasAutoLoadedInitialVideo = useRef(false)
 
   useEffect(() => {
     const setupYouTubeAPI = () => {
@@ -97,6 +108,16 @@ export const useYouTube = ({
     }
     return () => clearInterval(interval)
   }, [player, isPlaying])
+
+  useEffect(() => {
+    if (!autoLoadInitialVideo) return
+    if (hasAutoLoadedInitialVideo.current) return
+    if (!isYouTubeAPIReady) return
+    if (!youtubeUrl) return
+
+    hasAutoLoadedInitialVideo.current = true
+    loadYouTubeVideo()
+  }, [autoLoadInitialVideo, isYouTubeAPIReady, youtubeUrl])
 
   const resetPlayer = () => {
     if (player) {

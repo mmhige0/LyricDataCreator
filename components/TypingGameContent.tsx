@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import type { ScoreEntry } from "@/lib/types"
 import { useTypingGame } from "@/hooks/useTypingGame"
 import { useYouTube } from "@/hooks/useYouTube"
@@ -9,8 +9,7 @@ import { TypingStats } from "@/components/TypingStats"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { AppHeader } from "@/components/AppHeader"
 import { Button } from "@/components/ui/button"
-import { buildPageTypingData } from '@/lib/typingEngineAdapter'
-import type { BuiltMapLine } from 'lyrics-typing-engine'
+import { buildPageTypingData, ensureIntroPage } from '@/lib/typingEngineAdapter'
 import {
   Play,
   Pause,
@@ -62,49 +61,23 @@ interface TypingGameContentProps {
    * - トップページのタブ表示: false（外側のヘッダーのみ表示したい）
    */
   showHeader?: boolean
+  scoreEntries: ScoreEntry[]
+  songTitle: string
+  youtubeUrl: string
+  totalDuration?: number
 }
 
-export function TypingGameContent({ onClose, showHeader = true }: TypingGameContentProps) {
+export function TypingGameContent({
+  onClose,
+  showHeader = true,
+  scoreEntries,
+  songTitle,
+  youtubeUrl,
+  totalDuration,
+}: TypingGameContentProps) {
   const [showPageList, setShowPageList] = useState(true)
-  const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([])
-  const [builtMapLines, setBuiltMapLines] = useState<BuiltMapLine[]>([])
-  const [pageLyrics, setPageLyrics] = useState<string[][]>([])
-  const [songTitle, setSongTitle] = useState('')
-  const [youtubeUrl, setYoutubeUrlState] = useState('')
-  const [isDataLoaded, setIsDataLoaded] = useState(false)
   const [isTabEnabled, setIsTabEnabled] = useState(true)
-  const hasLoadedData = useRef(false)
-  const hasLoadedVideo = useRef(false)
   const hasLoadedTabPreference = useRef(false)
-
-  // セッションストレージからプレイ用データを取得
-  useEffect(() => {
-    if (hasLoadedData.current) return
-    hasLoadedData.current = true
-
-    const dataString =
-      typeof window !== "undefined" ? sessionStorage.getItem("typingGameData") : null
-
-    if (dataString) {
-      try {
-        const data = JSON.parse(dataString) as {
-          scoreEntries?: ScoreEntry[]
-          songTitle?: string
-          youtubeUrl?: string
-        }
-        setScoreEntries(data.scoreEntries || [])
-        setSongTitle(data.songTitle || '無題')
-        setYoutubeUrlState(data.youtubeUrl || '')
-        setIsDataLoaded(true)
-        sessionStorage.removeItem('typingGameData')
-      } catch (e) {
-        console.error("Failed to parse typingGameData:", e)
-        onClose()
-      }
-    } else {
-      onClose()
-    }
-  }, [onClose])
 
   const {
     player,
@@ -122,21 +95,43 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     seekToBeginning,
     changePlaybackRate,
     setPlayerVolume,
-    adjustVolume,
     toggleMute,
-    loadYouTubeVideo,
-    setYoutubeUrl,
-    youtubeUrl: youtubeUrlFromHook,
-    isYouTubeAPIReady,
     seekTo,
     seekToAndPlay: seekToAndPlayRaw,
-  } = useYouTube({ elementId: "typing-youtube-player" })
+  } = useYouTube({
+    elementId: "typing-youtube-player",
+    initialYoutubeUrl: youtubeUrl,
+    autoLoadInitialVideo: true,
+  })
+
+  const normalizedScoreEntries = useMemo(() => ensureIntroPage(scoreEntries), [scoreEntries])
+
+  const initialTotalDuration = totalDuration ?? 0
+  const effectiveDuration = duration > 0 ? duration : initialTotalDuration
+  const totalDurationForBuild = useMemo(() => {
+    if (effectiveDuration > 0) return effectiveDuration
+    const lastTimestamp = normalizedScoreEntries[normalizedScoreEntries.length - 1]?.timestamp ?? 0
+    return lastTimestamp + 1
+  }, [effectiveDuration, normalizedScoreEntries])
+
+  const pageTypingData = useMemo(() => {
+    if (normalizedScoreEntries.length === 0) {
+      return { builtMapLines: [], pageLyrics: [] }
+    }
+
+    return buildPageTypingData({
+      scoreEntries: normalizedScoreEntries,
+      totalDuration: totalDurationForBuild,
+    })
+  }, [normalizedScoreEntries, totalDurationForBuild])
+
+  const { builtMapLines, pageLyrics } = pageTypingData
 
   const handlePageChange = (direction: 'prev' | 'next') => {
     if (!player) return
 
     if (direction === 'prev') {
-      const currentPageTimestamp = scoreEntries[pageState.pageIndex]?.timestamp || 0
+      const currentPageTimestamp = normalizedScoreEntries[pageState.pageIndex]?.timestamp || 0
       const seekTime = Math.max(0, currentPageTimestamp - 1)
       seekTo(seekTime)
 
@@ -145,8 +140,8 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
       }
     } else {
       const targetPageIndex = pageState.pageIndex + 1
-      if (targetPageIndex < scoreEntries.length) {
-        const targetTimestamp = scoreEntries[targetPageIndex].timestamp
+      if (targetPageIndex < normalizedScoreEntries.length) {
+        const targetTimestamp = normalizedScoreEntries[targetPageIndex].timestamp
         const adjustedTimestamp = Math.max(0, targetTimestamp - 1)
         const finalTimestamp = Math.max(currentTime, adjustedTimestamp)
 
@@ -162,19 +157,13 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
   }
 
   const {
-    gameStatus,
     inputMode,
     pageState,
-    totalTypes,
     totalMiss,
     combo,
-    maxCombo,
-    gameStats,
-    restartGame,
     toggleInputMode,
-    changePageManually,
   } = useTypingGame({
-    scoreEntries,
+    scoreEntries: normalizedScoreEntries,
     builtMapLines,
     currentVideoTime: currentTime,
     onRestartVideo: () => {
@@ -186,31 +175,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     isPlaying: isPlaying,
   })
 
-  // YouTube URL を設定（データ読み込み完了後、一度だけ）
-  useEffect(() => {
-    if (hasLoadedVideo.current) return
-
-    if (isDataLoaded && youtubeUrl) {
-      setYoutubeUrl(youtubeUrl)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDataLoaded, youtubeUrl])
-
   // YouTube 動画をロード（URL 設定完了後、一度だけ）
-  useEffect(() => {
-    if (hasLoadedVideo.current) return
-
-    if (isDataLoaded && isYouTubeAPIReady && youtubeUrlFromHook) {
-      hasLoadedVideo.current = true
-      const timer = setTimeout(() => {
-        loadYouTubeVideo()
-      }, 1000)
-
-      return () => clearTimeout(timer)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDataLoaded, isYouTubeAPIReady, youtubeUrlFromHook])
-
   // F9 / F10 で再生速度を変更
   useEffect(() => {
     const handleSpeedKeyDown = (event: KeyboardEvent) => {
@@ -230,7 +195,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     return () => window.removeEventListener("keydown", handleSpeedKeyDown)
   }, [playbackRate, changePlaybackRate])
 
-  // Tab 縺ｧ蜈･蜉帙Δ繝ｼ繝峨・繧ｳ繝ｳ繝医Ο繝ｼ繝ｫ繧貞､画峩
+  // Toggle whether Tab switches the input mode
   useEffect(() => {
     const handleTabKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return
@@ -268,10 +233,6 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     setIsTabEnabled((prev) => !prev)
   }
 
-  const handleRestart = () => {
-    restartGame()
-  }
-
   const handleClose = () => {
     if (player) {
       player.pauseVideo()
@@ -294,32 +255,17 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     }
   }
 
-  // 歌詞データと動画長が揃ったらタイピング用マップを構築
-  useEffect(() => {
-    if (!isDataLoaded || scoreEntries.length === 0) return
-
-    const lastTimestamp = scoreEntries[scoreEntries.length - 1]?.timestamp ?? 0
-    const totalDuration = duration > 0 ? duration : lastTimestamp + 1
-
-    const { builtMapLines: built, pageLyrics } = buildPageTypingData({
-      scoreEntries,
-      totalDuration,
-    })
-    setBuiltMapLines(built)
-    setPageLyrics(pageLyrics)
-  }, [duration, isDataLoaded, scoreEntries])
-
   const calculatePageTimeProgress = (): number => {
-    if (scoreEntries.length === 0) return 0
+    if (normalizedScoreEntries.length === 0) return 0
 
-    if (pageState.pageIndex >= scoreEntries.length - 1) {
-      const pageStartTime = scoreEntries[pageState.pageIndex]?.timestamp || 0
-      const pageDuration = duration - pageStartTime
+    if (pageState.pageIndex >= normalizedScoreEntries.length - 1) {
+      const pageStartTime = normalizedScoreEntries[pageState.pageIndex]?.timestamp || 0
+      const pageDuration = effectiveDuration - pageStartTime
       const elapsed = currentTime - pageStartTime
       return pageDuration > 0 ? Math.min((elapsed / pageDuration) * 100, 100) : 0
     } else {
-      const pageStartTime = scoreEntries[pageState.pageIndex]?.timestamp || 0
-      const nextPageTime = scoreEntries[pageState.pageIndex + 1]?.timestamp || duration
+      const pageStartTime = normalizedScoreEntries[pageState.pageIndex]?.timestamp || 0
+      const nextPageTime = normalizedScoreEntries[pageState.pageIndex + 1]?.timestamp || effectiveDuration
       const pageDuration = nextPageTime - pageStartTime
       const elapsed = currentTime - pageStartTime
       return pageDuration > 0 ? Math.min((elapsed / pageDuration) * 100, 100) : 0
@@ -328,17 +274,15 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
 
   const nextPagePreviewLines: string[] = (() => {
     const nextPageIndex = pageState.pageIndex + 1
-    if (nextPageIndex >= scoreEntries.length) return []
+    if (nextPageIndex >= normalizedScoreEntries.length) return []
 
-    const nextEntry = scoreEntries[nextPageIndex]
+    const nextEntry = normalizedScoreEntries[nextPageIndex]
     if (!nextEntry || !Array.isArray(nextEntry.lyrics)) return []
 
     // 空行も含めて先頭4行をそのまま使う
     return nextEntry.lyrics.slice(0, 4)
   })()
 
-  // 全角スペースを半角スペースに統一
-  const normalizeSpaces = (text: string): string => text.replace(/\u3000/g, ' ')
   const currentPageLines = pageLyrics[pageState.pageIndex]?.slice(0, 4) ?? ['', '', '', '']
   const currentTypingWord = pageState.typingWord
   const romajiCorrect = currentTypingWord?.correct.roma ?? ''
@@ -346,7 +290,13 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
     ? (currentTypingWord.nextChunk.romaPatterns[0] ?? '') +
       currentTypingWord.wordChunks.map((chunk) => chunk.romaPatterns[0] ?? '').join('')
     : ''
-  const hasRomaji = (romajiCorrect + romajiRemaining).trim().length > 0
+  const kanaCorrect = currentTypingWord?.correct.kana ?? ''
+  const kanaRemaining = currentTypingWord
+    ? currentTypingWord.nextChunk.kana + currentTypingWord.wordChunks.map((chunk) => chunk.kana).join('')
+    : ''
+  const displayCorrect = inputMode === 'roma' ? romajiCorrect : kanaCorrect
+  const displayRemaining = inputMode === 'roma' ? romajiRemaining : kanaRemaining
+  const hasDisplayText = (displayCorrect + displayRemaining).trim().length > 0
 
   // read-only 用ダミー関数群
   const dummyFunction = () => {}
@@ -497,8 +447,8 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
                 <input
                   type="range"
                   min={0}
-                  max={duration}
-                  value={currentTime}
+                  max={effectiveDuration}
+                  value={effectiveDuration > 0 ? Math.min(currentTime, effectiveDuration) : currentTime}
                   onChange={(e) => seekTo(Number(e.target.value))}
                   className="w-full"
                 />
@@ -508,7 +458,7 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
               <div className="mb-4 flex items-center justify-between">
                 <TypingStats
                   currentTime={currentTime}
-                  duration={duration}
+                  duration={effectiveDuration}
                   combo={combo}
                   totalMiss={totalMiss}
                 />
@@ -545,13 +495,13 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
                 />
               </div>
               <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
-                {hasRomaji && (
+                {hasDisplayText && (
                   <p className="text-2xl font-mono leading-relaxed tracking-wide break-all">
                     <span className="text-gray-400 dark:text-gray-500">
-                      {normalizeSpaces(romajiCorrect)}
+                      {displayCorrect}
                     </span>
                     <span className="text-black dark:text-white">
-                      {normalizeSpaces(romajiRemaining)}
+                      {displayRemaining}
                     </span>
                   </p>
                 )}
@@ -608,11 +558,11 @@ export function TypingGameContent({ onClose, showHeader = true }: TypingGameCont
           </div>
 
           {/* 右側: ページ一覧 */}
-          {showPageList && (
-            <div className="w-full max-w-md lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
-              <ScoreManagementSection
-                scoreEntries={scoreEntries}
-                duration={duration}
+              {showPageList && (
+                <div className="w-full max-w-md lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+                  <ScoreManagementSection
+                scoreEntries={normalizedScoreEntries}
+                duration={effectiveDuration}
                 player={player}
                 editingId={null}
                 getCurrentLyricsIndex={getCurrentLyricsIndex}

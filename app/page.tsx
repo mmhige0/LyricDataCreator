@@ -10,7 +10,6 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
-import { savePlayData } from "@/hooks/usePlayNavigation"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
 import { LyricsEditCard } from "@/components/LyricsEditCard"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
@@ -128,12 +127,14 @@ export default function LyricsTypingApp() {
   )
 
   const handlePlay = useCallback(() => {
-    const ok = savePlayData({
-      scoreEntries,
-      songTitle,
-      youtubeUrl,
-    })
-    if (!ok) return
+    if (scoreEntries.length === 0) {
+      toast.error("ページが登録されていません")
+      return
+    }
+    if (!youtubeUrl) {
+      toast.error("YouTube URLが設定されていません")
+      return
+    }
 
     // 編集ビューからプレイビューに切り替える前に、
     // 一度既存の YouTube プレイヤーを破棄しておく。
@@ -141,7 +142,7 @@ export default function LyricsTypingApp() {
     resetPlayer()
 
     setActiveView("play")
-  }, [scoreEntries, songTitle, youtubeUrl, resetPlayer])
+  }, [scoreEntries, youtubeUrl, resetPlayer])
 
   const handleKeyDown = useKeyboardShortcuts({
     player,
@@ -272,7 +273,14 @@ export default function LyricsTypingApp() {
 
       <main className="max-w-[1600px] mx-auto p-4 lg:p-8">
         {activeView === "play" ? (
-          <TypingGameContent onClose={() => setActiveView("editor")} showHeader={false} />
+          <TypingGameContent
+            onClose={() => setActiveView("editor")}
+            showHeader={false}
+            scoreEntries={scoreEntries}
+            songTitle={songTitle || "無題"}
+            youtubeUrl={youtubeUrl}
+            totalDuration={duration}
+          />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
             <div className="space-y-6" id="left-column">

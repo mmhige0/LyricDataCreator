@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { memo, useState, type FC } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,7 +15,7 @@ interface EntryDisplayProps {
   kpmData: PageKpmInfo | null
 }
 
-const EntryDisplay: React.FC<EntryDisplayProps> = React.memo(({ entry, kpmData }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData }) => {
   if (kpmData) {
     // kpm表示モード
     return (
@@ -71,7 +71,7 @@ interface ScoreManagementSectionProps {
   readOnly?: boolean
 }
 
-export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
+export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   scoreEntries,
   duration,
   player,
@@ -187,6 +187,7 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
               const isCurrentlyPlaying = getCurrentLyricsIndex() === index
               const isEditing = editingId === entry.id
               const kpmData = kpmDataMap.get(entry.id) || null
+              const isClickable = readOnly && Boolean(player)
 
               return (
                 <div
@@ -195,13 +196,27 @@ export const ScoreManagementSection: React.FC<ScoreManagementSectionProps> = ({
                   className={`p-3 border rounded-lg hover:bg-muted/50 ${
                     isCurrentlyPlaying ? "bg-primary/10 border-primary" : ""
                   } ${isEditing ? "bg-blue-50 border-blue-200" : ""} ${
-                    readOnly && player ? "cursor-pointer" : ""
+                    isClickable ? "cursor-pointer" : ""
                   }`}
-                  onClick={() => {
-                    if (readOnly && player) {
-                      seekToAndPlay(entry.timestamp)
-                    }
-                  }}
+                  onClick={
+                    isClickable
+                      ? () => {
+                          seekToAndPlay(entry.timestamp)
+                        }
+                      : undefined
+                  }
+                  role={isClickable ? 'button' : undefined}
+                  tabIndex={isClickable ? 0 : undefined}
+                  onKeyDown={
+                    isClickable
+                      ? (event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            seekToAndPlay(entry.timestamp)
+                          }
+                        }
+                      : undefined
+                  }
                 >
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
