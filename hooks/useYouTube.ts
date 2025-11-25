@@ -333,6 +333,7 @@ export const useYouTube = ({
     currentTime,
     setCurrentTime,
     duration,
+    setDuration,
     playbackRate,
     volume,
     isMuted,
