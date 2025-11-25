@@ -152,3 +152,4 @@
 - [wrap-ansi@8.1.0](https://github.com/chalk/wrap-ansi) - MIT
 - [yaml@2.8.1](https://github.com/eemeli/yaml) - ISC
 - [zlibjs@0.3.1](https://github.com/imaya/zlib.js) - MIT
+- [YTyping](https://github.com/Toshi7878/YTyping) - MIT
