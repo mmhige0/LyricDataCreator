@@ -38,6 +38,7 @@ export default function LyricsTypingApp() {
     isPlaying,
     currentTime,
     duration,
+    setDuration,
     playbackRate,
     volume,
     isMuted,
@@ -204,7 +205,7 @@ export default function LyricsTypingApp() {
     scoreEntries,
     setScoreEntries,
     duration,
-    setDuration: () => {},
+    setDuration,
     songTitle,
     setSongTitle,
   })
