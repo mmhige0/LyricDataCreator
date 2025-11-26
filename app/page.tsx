@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Edit3, Gamepad2 } from "lucide-react"
@@ -18,7 +18,7 @@ import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
 import { TypingGameContent } from "@/components/TypingGameContent"
 import { cn } from "@/lib/utils"
-import { getOrCreateSessionId } from "@/lib/sessionStorage"
+import { createNewSessionId, getOrCreateSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
 
 export default function LyricsTypingApp() {
@@ -26,6 +26,7 @@ export default function LyricsTypingApp() {
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [activeView, setActiveView] = useState<"editor" | "play">("editor")
+  const hasRestoredDraftRef = useRef(false)
 
   const {
     isYouTubeAPIReady,
@@ -175,6 +176,7 @@ export default function LyricsTypingApp() {
 
     const draftList = getDraftList()
     if (draftList.length > 0) {
+      hasRestoredDraftRef.current = false
       setIsRestoreDialogOpen(true)
     }
 
@@ -183,6 +185,7 @@ export default function LyricsTypingApp() {
 
   const handleRestoreDraft = useCallback(
     (sessionId: string) => {
+      hasRestoredDraftRef.current = true
       const draft = loadDraft(sessionId)
       if (draft) {
         setYoutubeUrl(draft.youtubeUrl)
@@ -193,6 +196,13 @@ export default function LyricsTypingApp() {
     },
     [setYoutubeUrl, setScoreEntries],
   )
+
+  const handleCloseRestoreDialog = useCallback(() => {
+    setIsRestoreDialogOpen(false)
+    if (!hasRestoredDraftRef.current) {
+      createNewSessionId()
+    }
+  }, [])
 
   useDraftAutoSave({
     youtubeUrl,
@@ -421,7 +431,7 @@ export default function LyricsTypingApp() {
 
       <DraftRestoreDialog
         isOpen={isRestoreDialogOpen}
-        onClose={() => setIsRestoreDialogOpen(false)}
+        onClose={handleCloseRestoreDialog}
         onRestore={handleRestoreDraft}
       />
     </div>

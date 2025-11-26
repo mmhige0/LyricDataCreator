@@ -57,6 +57,15 @@ export function getOrCreateSessionId(): string {
 }
 
 /**
+ * Create and set a new session ID (even if one already exists)
+ */
+export function createNewSessionId(): string {
+  const sessionId = generateSessionId()
+  setSessionId(sessionId)
+  return sessionId
+}
+
+/**
  * Clear session ID
  */
 export function clearSessionId(): void {
