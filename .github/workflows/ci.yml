@@ -36,12 +36,12 @@ jobs:
 
       - name: Check build output
         run: |
-          if [ ! -d "./out" ]; then
-            echo "❌ Build output directory not found"
+          if [ ! -d ".next" ]; then
+            echo "❌ .next build directory not found"
             exit 1
           fi
-          if [ ! -f "./out/index.html" ]; then
-            echo "❌ Main HTML file not generated"
+          if [ ! -f ".next/BUILD_ID" ]; then
+            echo "❌ BUILD_ID not generated"
             exit 1
           fi
-          echo "✅ Build output verified"
+          echo "✅ Next.js build artifacts verified"

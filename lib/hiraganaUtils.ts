@@ -1,5 +1,6 @@
 import Kuroshiro from 'kuroshiro'
 import KuromojiAnalyzer from 'kuroshiro-analyzer-kuromoji'
+import { withBasePath } from './basePath'
 import { preprocessAndConvertLyrics } from './textUtils'
 
 // Kuroshiroのインスタンスを管理するクラス
@@ -46,10 +47,7 @@ class HiraganaConverter {
     try {
       this.kuroshiro = new Kuroshiro()
 
-      // ベースパスを動的に判定
-      const isGitHubPages = window.location.hostname.includes('github.io')
-      const basePath = isGitHubPages ? '/LyricDataCreator' : ''
-      const dictPath = `${basePath}/dict/`
+      const dictPath = withBasePath('/dict/')
 
       await this.kuroshiro.init(new KuromojiAnalyzer({
         dictPath: dictPath
@@ -168,6 +166,7 @@ export const convertLyricsArrayToHiragana = async (
   )
   return convertedLyrics as [string, string, string, string]
 }
+
 
 /**
  * 歌詞配列の各行を一括でローマ字に変換（日本式）

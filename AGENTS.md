@@ -4,14 +4,14 @@
 - Next.js 14 App Router lives in `app/` (`layout.tsx`, `page.tsx`) with global styles in `app/globals.css`.
 - Reusable view logic sits in `components/` (shared UI in `components/ui/`), custom hooks in `hooks/`, helpers in `lib/`, and shared types in `types/`.
 - Static assets belong in `public/`; `postinstall` populates `public/dict/` with Kuromoji dictionaries required for Japanese text parsing.
-- Build output for static export lands in `out/` after `npm run build`; treat it as generated.
+- Production build output lives in `.next/` after `npm run build`; treat it as generated (Vercel deployment target).
 
 ## Build, Test, and Development Commands
 - `npm run dev` — start the local dev server at `http://localhost:3000`.
 - `npm run lint` / `npm run type-check` — ESLint (Next config) and TypeScript strict checks.
-- `npm run test` — runs lint, type-check, then `next build` to ensure the app still exports.
-- `npm run build` — production build (static export); respects `basePath` `/LyricDataCreator` when `NODE_ENV=production`.
-- `npm run preview` — build then serve the contents of `out/` for a pre-deploy check.
+- `npm run test` — runs lint, type-check, then `next build` to ensure the app still builds.
+- `npm run build` — production build for Vercel deployment (no GitHub Pages basePath/assetPrefix).
+- `npm run preview` — build then run `next start` for a pre-deploy check.
 - Run `npm install` once to copy Kuromoji dictionaries into `public/dict/` (handled by `postinstall`).
 
 ## Coding Style & Naming Conventions
@@ -31,5 +31,5 @@
 - Ensure `npm run test` passes before requesting review; mention any skipped checks or follow-ups explicitly.
 
 ## Security & Configuration Tips
-- The app exports statically with `basePath`/`assetPrefix` set for GitHub Pages; verify asset URLs when touching routes or public paths.
-- Avoid committing generated `out/` or large datasets; keep secrets out of config and favor environment variables when adding new integrations.
+- The app targets Vercel (root path) now; asset URLs assume deployment at the domain root. Use `NEXT_PUBLIC_BASE_PATH` only if a non-root base is required.
+- Avoid committing generated build artifacts or large datasets; keep secrets out of config and favor environment variables when adding new integrations.
