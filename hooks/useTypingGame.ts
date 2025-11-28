@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { withBasePath } from '@/lib/basePath'
 import type { ScoreEntry } from '@/lib/types'
 import type { BuiltMapLine, TypingWord, InputMode } from 'lyrics-typing-engine'
 import { evaluateKanaInput, evaluateRomaInput, isTypingKey } from 'lyrics-typing-engine'
@@ -58,12 +59,11 @@ export const useTypingGame = ({
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io')
-    const basePath = isGitHubPages ? '/LyricDataCreator' : ''
-    const soundBasePath = `${basePath}/sounds`
+    const correctSoundPath = withBasePath('/sounds/daken.mp3')
+    const missSoundPath = withBasePath('/sounds/miss.mp3')
 
-    correctSoundRef.current = new Audio(`${soundBasePath}/daken.mp3`)
-    missSoundRef.current = new Audio(`${soundBasePath}/miss.mp3`)
+    correctSoundRef.current = new Audio(correctSoundPath)
+    missSoundRef.current = new Audio(missSoundPath)
 
     if (correctSoundRef.current) {
       correctSoundRef.current.volume = 1
