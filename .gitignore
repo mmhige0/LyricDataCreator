@@ -23,7 +23,12 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local env files
+.env
 .env*.local
+
+# Local data
+lyric-data/*
+!lyric-data/share-meta-template.csv
 
 # Vercel
 .vercel

@@ -4,7 +4,7 @@ interface AppHeaderProps {
   title: string
   subtitle?: string
   songTitle?: string
-  actions: ReactNode
+  actions?: ReactNode
 }
 
 export const AppHeader = ({ title, subtitle, songTitle, actions }: AppHeaderProps) => {

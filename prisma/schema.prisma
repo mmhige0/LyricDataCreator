@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client-js"
+  // Use the default (node_modules/.prisma/client). Do not point to @prisma/client directly.
+  // Prisma will forward imports from @prisma/client to this generated client.
+  // output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Song {
+  id           Int      @id @default(autoincrement())
+  title        String
+  artist       String?
+  youtubeUrl   String
+  level        String?
+  scoreEntries String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
