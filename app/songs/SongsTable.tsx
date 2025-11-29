@@ -1,8 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 export type SongSummary = {
   id: number
@@ -12,67 +13,73 @@ export type SongSummary = {
   level: string | null
 }
 
-interface SongsTableProps {
-  songs: SongSummary[]
+type SongsResponse = {
+  data: SongSummary[]
+  total: number
+  page: number
+  totalPages: number
+  pageSize: number
 }
 
-export function SongsTable({ songs }: SongsTableProps) {
+const PAGE_SIZE = 50
+
+export function SongsTable() {
   const router = useRouter()
   const [search, setSearch] = useState("")
+  const [page, setPage] = useState(1)
   const [sortKey, setSortKey] = useState<"id" | "title" | "artist" | "level">("id")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [songs, setSongs] = useState<SongSummary[]>([])
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const parseLevel = (value: string | null) => {
-    const match = value?.trim().match(/^([0-9]+(?:\.[0-9]+)?)([+-])?$/)
-    if (!match) return null
-    const base = parseFloat(match[1])
-    const modifier = match[2] === "+" ? 1 : match[2] === "-" ? -1 : 0
-    return { base, modifier }
-  }
+  useEffect(() => {
+    const controller = new AbortController()
+    const fetchSongs = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(PAGE_SIZE),
+          sortKey,
+          sortDir: sortDirection,
+        })
+        if (search.trim()) {
+          params.set("search", search.trim())
+        }
 
-  const compareLevels = (left: { base: number; modifier: number }, right: { base: number; modifier: number }) => {
-    if (left.base !== right.base) return left.base - right.base
-    const modifierOrder = [-1, 0, 1]
-    return modifierOrder.indexOf(left.modifier) - modifierOrder.indexOf(right.modifier)
-  }
-
-  const filteredSongs = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase()
-
-    return songs
-      .filter((song) => {
-        if (!normalizedSearch) return true
-        return (
-          song.title.toLowerCase().includes(normalizedSearch) ||
-          song.artist?.toLowerCase().includes(normalizedSearch)
-        )
-      })
-      .sort((a, b) => {
-      const multiplier = sortDirection === "asc" ? 1 : -1
-
-      if (sortKey === "id") {
-        return (a.id - b.id) * multiplier
+        const response = await fetch(`/api/songs?${params.toString()}`, { signal: controller.signal })
+        if (!response.ok) {
+          throw new Error(`Failed to load songs: ${response.status}`)
+        }
+        const payload = (await response.json()) as SongsResponse
+        setSongs(payload.data)
+        setTotal(payload.total)
+        setTotalPages(payload.totalPages)
+        if (page !== payload.page) {
+          setPage(payload.page)
+        }
+      } catch (err) {
+        if (controller.signal.aborted) return
+        setError(err instanceof Error ? err.message : "曲の読み込みに失敗しました")
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
+    }
 
-      if (sortKey === "level") {
-        const levelA = parseLevel(a.level)
-        const levelB = parseLevel(b.level)
+    fetchSongs()
 
-        if (!levelA && !levelB) return 0
-        if (levelA && !levelB) return -1
-        if (!levelA && levelB) return 1
-        if (!levelA || !levelB) return 0
+    return () => controller.abort()
+  }, [page, search, sortDirection, sortKey])
 
-        return compareLevels(levelA, levelB) * multiplier
-      }
-
-      const left = (a[sortKey] ?? "").toString().toLowerCase()
-      const right = (b[sortKey] ?? "").toString().toLowerCase()
-      if (left < right) return -1 * multiplier
-      if (left > right) return 1 * multiplier
-      return 0
-    })
-  }, [search, songs, sortDirection, sortKey])
+  useEffect(() => {
+    setPage(1)
+  }, [search, sortKey, sortDirection])
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
@@ -87,7 +94,7 @@ export function SongsTable({ songs }: SongsTableProps) {
     router.push(`/songs/${id}`)
   }
 
-  if (songs.length === 0) {
+  if (!loading && songs.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-8 text-center text-slate-500 dark:text-slate-300">
         登録された曲がありません。
@@ -142,7 +149,7 @@ export function SongsTable({ songs }: SongsTableProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {filteredSongs.map((song) => (
+              {songs.map((song) => (
                 <tr
                   key={song.id}
                   role="button"
@@ -169,9 +176,40 @@ export function SongsTable({ songs }: SongsTableProps) {
             </tbody>
           </table>
         </div>
-        {filteredSongs.length === 0 && (
+        {songs.length === 0 && !loading && (
           <div className="px-4 py-6 text-center text-sm text-slate-600 dark:text-slate-300">条件に一致する曲がありません。</div>
         )}
+        {loading && (
+          <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中...</div>
+        )}
+        {error && (
+          <div className="px-4 py-6 text-center text-sm text-red-600 dark:text-red-400">
+            エラーが発生しました: {error}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
+        <span>
+          {total} 曲中{" "}
+          {total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-{total === 0 ? 0 : Math.min(page * PAGE_SIZE, total)} 件を表示
+        </span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}>
+            前へ
+          </Button>
+          <span className="text-xs">
+            {page} / {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            次へ
+          </Button>
+        </div>
       </div>
     </div>
   )
