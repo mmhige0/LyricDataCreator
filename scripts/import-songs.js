@@ -22,12 +22,12 @@ const { PrismaClient } = require("@prisma/client")
 const prisma = new PrismaClient()
 
 const args = process.argv.slice(2)
+const hasFlag = (flag) => args.includes(flag)
 const getArg = (flag) => {
   const idx = args.indexOf(flag)
   if (idx === -1) return undefined
   return args[idx + 1]
 }
-const hasFlag = (flag) => args.includes(flag)
 
 const dir = getArg("--dir")
 const singleFile = getArg("--file")
@@ -37,6 +37,7 @@ const defaultArtist = getArg("--artist")
 const defaultLevel = getArg("--level")
 const singleTitle = getArg("--title")
 const allowUpdate = !hasFlag("--no-update")
+const truncateAll = hasFlag("--truncate")
 
 if (!dir && !singleFile) {
   console.error("Error: --dir または --file を指定してください。")
@@ -175,6 +176,11 @@ const upsertSong = async (data) => {
 
 const main = async () => {
   try {
+    if (truncateAll) {
+      console.warn("Truncating all songs...")
+      await prisma.$executeRawUnsafe('TRUNCATE TABLE "Song" RESTART IDENTITY CASCADE;')
+    }
+
     const csvMap = loadCsvMap()
     const files = gatherFiles()
     if (!files.length) {
