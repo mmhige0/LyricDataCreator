@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -34,20 +34,6 @@ export function SongsTable() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const parseLevel = (value: string | null) => {
-    const match = value?.trim().match(/^([0-9]+(?:\.[0-9]+)?)([+-])?$/)
-    if (!match) return null
-    const base = parseFloat(match[1])
-    const modifier = match[2] === "+" ? 1 : match[2] === "-" ? -1 : 0
-    return { base, modifier }
-  }
-
-  const compareLevels = (left: { base: number; modifier: number }, right: { base: number; modifier: number }) => {
-    if (left.base !== right.base) return left.base - right.base
-    const modifierOrder = [-1, 0, 1]
-    return modifierOrder.indexOf(left.modifier) - modifierOrder.indexOf(right.modifier)
-  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -94,34 +80,6 @@ export function SongsTable() {
   useEffect(() => {
     setPage(1)
   }, [search, sortKey, sortDirection])
-
-  const sortedSongs = useMemo(() => {
-    const multiplier = sortDirection === "asc" ? 1 : -1
-
-    return [...songs].sort((a, b) => {
-      if (sortKey === "id") {
-        return (a.id - b.id) * multiplier
-      }
-
-      if (sortKey === "level") {
-        const left = parseLevel(a.level)
-        const right = parseLevel(b.level)
-
-        if (!left && !right) return 0
-        if (left && !right) return -1
-        if (!left && right) return 1
-        if (!left || !right) return 0
-
-        return compareLevels(left, right) * multiplier
-      }
-
-      const left = (a[sortKey] ?? "").toString().toLowerCase()
-      const right = (b[sortKey] ?? "").toString().toLowerCase()
-      if (left < right) return -1 * multiplier
-      if (left > right) return 1 * multiplier
-      return 0
-    })
-  }, [songs, sortDirection, sortKey])
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
@@ -183,7 +141,7 @@ export function SongsTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {sortedSongs.map((song) => (
+              {songs.map((song) => (
                 <tr
                   key={song.id}
                   role="button"
