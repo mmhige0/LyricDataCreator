@@ -1,12 +1,19 @@
 import { prisma } from "@/lib/db"
 import { AppHeader } from "@/components/AppHeader"
-import { SongsTable } from "./SongsTable"
+import { SongsTable, type SongSummary } from "./SongsTable"
 
 export const revalidate = 0
 export const runtime = "nodejs"
 
 export default async function SongsPage() {
   const songs = await prisma.song.findMany({
+    select: {
+      id: true,
+      title: true,
+      artist: true,
+      youtubeUrl: true,
+      level: true,
+    },
     orderBy: { createdAt: "desc" },
   })
 

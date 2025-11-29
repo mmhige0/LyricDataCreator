@@ -1,11 +1,18 @@
 "use client"
 
 import Link from "next/link"
-import type { Song } from "@prisma/client"
 import { Button } from "@/components/ui/button"
 
+export type SongSummary = {
+  id: number
+  title: string
+  artist: string | null
+  youtubeUrl: string
+  level: string | null
+}
+
 interface SongsTableProps {
-  songs: Song[]
+  songs: SongSummary[]
 }
 
 export function SongsTable({ songs }: SongsTableProps) {
