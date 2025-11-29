@@ -148,6 +148,16 @@ const resolveMetadata = (filePath, csvMap) => {
 }
 
 const upsertSong = async (data) => {
+  const parseLevel = (value) => {
+    const match = value?.trim().match(/^([0-9]+(?:\.[0-9]+)?)([+-])?$/)
+    if (!match) return { levelValue: null, levelModifier: null }
+    const levelValue = Number.parseFloat(match[1])
+    const levelModifier = match[2] === "+" ? 1 : match[2] === "-" ? -1 : 0
+    return { levelValue, levelModifier }
+  }
+
+  const levelParsed = parseLevel(data.level)
+
   const existing = await prisma.song.findFirst({ where: { title: data.title } })
   if (existing && allowUpdate) {
     return prisma.song.update({
@@ -156,6 +166,8 @@ const upsertSong = async (data) => {
         artist: data.artist ?? null,
         youtubeUrl: data.youtubeUrl,
         level: data.level ?? null,
+        levelValue: levelParsed.levelValue,
+        levelModifier: levelParsed.levelModifier,
         scoreEntries: JSON.stringify(data.scoreEntries),
       },
     })
@@ -169,6 +181,8 @@ const upsertSong = async (data) => {
       artist: data.artist ?? null,
       youtubeUrl: data.youtubeUrl,
       level: data.level ?? null,
+      levelValue: levelParsed.levelValue,
+      levelModifier: levelParsed.levelModifier,
       scoreEntries: JSON.stringify(data.scoreEntries),
     },
   })

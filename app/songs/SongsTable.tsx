@@ -38,6 +38,7 @@ export function SongsTable({
   initialSortDirection = "asc",
 }: SongsTableProps) {
   const router = useRouter()
+  const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(initialData?.page ?? 1)
   const [sortKey, setSortKey] = useState<SortKey>(initialSortKey)
@@ -111,6 +112,13 @@ export function SongsTable({
     setPage(1)
   }, [search, sortKey, sortDirection])
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput)
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
@@ -130,8 +138,8 @@ export function SongsTable({
         <div className="w-full md:w-80">
           <Input
             placeholder="タイトルやアーティストで検索"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
             className="w-full"
           />
         </div>
