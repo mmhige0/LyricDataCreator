@@ -23,20 +23,50 @@ type SongsResponse = {
 
 const PAGE_SIZE = 50
 
-export function SongsTable() {
+type SortKey = "id" | "title" | "artist" | "level"
+type SortDirection = "asc" | "desc"
+
+interface SongsTableProps {
+  initialData?: SongsResponse
+  initialSortKey?: SortKey
+  initialSortDirection?: SortDirection
+}
+
+export function SongsTable({
+  initialData,
+  initialSortKey = "id",
+  initialSortDirection = "asc",
+}: SongsTableProps) {
   const router = useRouter()
   const [search, setSearch] = useState("")
-  const [page, setPage] = useState(1)
-  const [sortKey, setSortKey] = useState<"id" | "title" | "artist" | "level">("id")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [songs, setSongs] = useState<SongSummary[]>([])
-  const [total, setTotal] = useState(0)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(initialData?.page ?? 1)
+  const [sortKey, setSortKey] = useState<SortKey>(initialSortKey)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(initialSortDirection)
+  const [songs, setSongs] = useState<SongSummary[]>(initialData?.data ?? [])
+  const [total, setTotal] = useState(initialData?.total ?? 0)
+  const [totalPages, setTotalPages] = useState(initialData?.totalPages ?? 1)
+  const [loading, setLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
+
+    const shouldUseInitial =
+      Boolean(initialData) &&
+      search.trim() === "" &&
+      page === (initialData?.page ?? 1) &&
+      sortKey === initialSortKey &&
+      sortDirection === initialSortDirection
+
+    if (shouldUseInitial) {
+      setSongs(initialData!.data)
+      setTotal(initialData!.total)
+      setTotalPages(initialData!.totalPages)
+      setLoading(false)
+      setError(null)
+      return () => controller.abort()
+    }
+
     const fetchSongs = async () => {
       setLoading(true)
       setError(null)
@@ -75,7 +105,7 @@ export function SongsTable() {
     fetchSongs()
 
     return () => controller.abort()
-  }, [page, search, sortDirection, sortKey])
+  }, [initialData, initialSortDirection, initialSortKey, page, search, sortDirection, sortKey])
 
   useEffect(() => {
     setPage(1)
