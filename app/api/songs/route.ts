@@ -38,8 +38,8 @@ export async function GET(request: Request) {
       ? undefined
       : {
           OR: [
-            { title: { contains: search, mode: "insensitive" } },
-            { artist: { contains: search, mode: "insensitive" } },
+            { title: { contains: search, mode: "insensitive" as const } },
+            { artist: { contains: search, mode: "insensitive" as const } },
           ],
         }
 
