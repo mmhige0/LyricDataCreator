@@ -224,19 +224,7 @@ export default function LyricsTypingApp() {
 
   const handleExport = useCallback(() => {
     exportScoreData(() => {
-      toast.success("書き出しが完了しました", {
-        description: (
-          <div className="mt-2 space-y-1 text-sm">
-            <p className="text-slate-700 dark:text-slate-200">DB登録用ファイルを担当者に渡してください。</p>
-            <Link
-              href="/songs"
-              className="inline-flex items-center gap-1 font-medium text-blue-700 underline-offset-4 hover:underline dark:text-blue-300"
-            >
-              登録済みの曲で遊ぶ (/songs)
-            </Link>
-          </div>
-        ),
-      })
+      toast.success("書き出しが完了しました")
     })
   }, [exportScoreData])
 
