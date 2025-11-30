@@ -1,3 +1,5 @@
+"use client"
+
 export function CreditsSection() {
   return (
     <section className="max-w-[1600px] mx-auto px-8 mt-16 border-t pt-8">

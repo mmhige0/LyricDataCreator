@@ -53,7 +53,7 @@ const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) =>
         {
           levelValue: {
             sort: sortDirection,
-            nulls: sortDirection === "asc" ? "last" : "first",
+            nulls: (sortDirection === "asc" ? "last" : "first") as Prisma.NullsOrder,
           },
         },
         { id: sortDirection },
