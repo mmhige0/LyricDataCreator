@@ -9,12 +9,13 @@ const { PrismaClient } = require("@prisma/client")
 
 const prisma = new PrismaClient()
 
-const parseLevel = (value) => {
-  const match = value?.trim().match(/^([0-9]+(?:\.[0-9]+)?)([+-])?$/)
-  if (!match) return { levelValue: null, levelModifier: null }
-  const levelValue = Number.parseFloat(match[1])
-  const levelModifier = match[2] === "+" ? 1 : match[2] === "-" ? -1 : 0
-  return { levelValue, levelModifier }
+const parseLevelValue = (value) => {
+  const match = value?.trim().match(/^([0-9]+)([+-])?$/)
+  if (!match) return null
+  const base = Number.parseInt(match[1], 10)
+  const modifier = match[2] === "+" ? 1 : match[2] === "-" ? -1 : 0
+  // Normalize: base level (e.g. 10) is multiplied by 3, with +/- adjusting by 1.
+  return base * 3 + modifier
 }
 
 async function main() {
@@ -24,12 +25,11 @@ async function main() {
 
   let updated = 0
   for (const song of songs) {
-    const parsed = parseLevel(song.level)
+    const levelValue = parseLevelValue(song.level)
     await prisma.song.update({
       where: { id: song.id },
       data: {
-        levelValue: parsed.levelValue,
-        levelModifier: parsed.levelModifier,
+        levelValue,
       },
     })
     updated += 1
