@@ -182,9 +182,9 @@ export function SongsTable({
             <thead className="bg-slate-50/80 dark:bg-slate-900/70">
               <tr>
                 {[
-                  { key: "id", label: "ID", className: "w-[96px]" },
-                  { key: "title", label: "曲", className: "w-[320px]" },
-                  { key: "artist", label: "アーティスト", className: "w-[320px]" },
+                  { key: "id", label: "No.", className: "w-[96px]" },
+                  { key: "title", label: "曲名", className: "w-[320px]" },
+                  { key: "artist", label: "アーティスト名", className: "w-[320px]" },
                   { key: "level", label: "Lv.", className: "w-[80px]" },
                 ].map(({ key, label, className }) => {
                   const isActive = sortKey === key
