@@ -66,6 +66,8 @@ const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) =>
 
 const clampPageSize = (pageSize: number) => Math.min(Math.max(pageSize, 1), SONGS_PAGE_SIZE_MAX)
 
+const isDatabaseConfigured = Boolean(process.env.DATABASE_URL)
+
 export const getSongsPage = async ({
   search,
   page,
@@ -76,6 +78,18 @@ export const getSongsPage = async ({
   const normalizedSearch = search.trim()
   const safePage = Number.isNaN(page) || page < 1 ? 1 : page
   const normalizedPageSize = clampPageSize(pageSize)
+
+  // GitHub ActionsなどでDATABASE_URLが未設定の場合は空データで返してビルドを継続する
+  if (!isDatabaseConfigured) {
+    return {
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+      pageSize: normalizedPageSize,
+    }
+  }
+
   const where = buildSearchFilter(normalizedSearch)
   const orderBy = buildSort(sortKey, sortDirection)
 
