@@ -25,7 +25,7 @@ export default async function SongsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      <AppHeader title="Song Typing Theater" />
+      <AppHeader title="Song Typing Theater" titleHref="/songs" />
       <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
         <SongsTable
           initialData={{

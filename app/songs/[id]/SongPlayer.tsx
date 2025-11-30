@@ -37,7 +37,7 @@ export function SongPlayer({ song }: SongPlayerProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      <AppHeader title="Song Typing Theater" songTitle={song.title} />
+      <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref="/songs" />
 
       <div className={cn("pb-10")}>
         <TypingGameContent
