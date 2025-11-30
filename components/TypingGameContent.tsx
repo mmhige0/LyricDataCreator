@@ -311,6 +311,7 @@ export function TypingGameContent({
           title="Lyric Data Creator"
           subtitle="プレイ"
           songTitle={songTitle}
+          titleHref="/"
           actions={
             <div className="flex items-center gap-2">
               <Button

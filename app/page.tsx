@@ -239,6 +239,7 @@ export default function LyricsTypingApp() {
 
       <AppHeader
         title="Lyric Data Creator"
+        titleHref="/"
         songTitle={songTitle || undefined}
         actions={
           <div
