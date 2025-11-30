@@ -43,12 +43,6 @@ export async function GET(request: Request) {
               nulls: sortDirection === "asc" ? "last" : "first",
             },
           },
-          {
-            levelModifier: {
-              sort: sortDirection,
-              nulls: sortDirection === "asc" ? "last" : "first",
-            },
-          },
           { id: sortDirection },
         ]
       : [{ [SORT_KEYS.includes(sortKey) ? sortKey : "id"]: sortDirection === "desc" ? "desc" : "asc" }]
@@ -62,7 +56,7 @@ export async function GET(request: Request) {
       level: true,
     },
     where,
-    orderBy: { [SORT_KEYS.includes(sortKey) ? sortKey : "id"]: sortDirection === "desc" ? "desc" : "asc" },
+    orderBy,
     skip: (safePage - 1) * pageSize,
     take: pageSize,
   })

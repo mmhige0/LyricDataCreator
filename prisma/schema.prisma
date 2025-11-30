@@ -16,11 +16,10 @@ model Song {
   artist       String?
   youtubeUrl   String
   level        String?
-  levelValue   Float?
-  levelModifier Int?
+  levelValue   Int?     @db.SmallInt
   scoreEntries String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  @@index([levelValue, levelModifier])
+  @@index([levelValue])
 }
