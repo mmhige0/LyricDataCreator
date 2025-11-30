@@ -168,7 +168,7 @@ export function SongsTable({
       <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm md:flex-row md:items-center md:justify-start">
         <div className="w-full md:w-80">
           <Input
-            placeholder="タイトルやアーティストで検索"
+            placeholder="曲名やアーティスト名で検索"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
             className="w-full"
