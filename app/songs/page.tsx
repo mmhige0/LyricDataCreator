@@ -1,45 +1,42 @@
-import { prisma } from "@/lib/db"
 import { AppHeader } from "@/components/AppHeader"
-import { SongsTable, type SongSummary } from "./SongsTable"
+import { getSongsPage } from "@/lib/songQueries"
+import {
+  SONGS_PAGE_SIZE,
+  type SongSortDirection,
+  type SongSortKey,
+  type SongsResponse,
+} from "@/types/songs"
+import { SongsTable } from "./SongsTable"
 
-export const revalidate = 0
+export const revalidate = 180
 export const runtime = "nodejs"
 
-const PAGE_SIZE = 50
+const INITIAL_SORT_KEY: SongSortKey = "id"
+const INITIAL_SORT_DIRECTION: SongSortDirection = "desc"
 
 export default async function SongsPage() {
-  const [data, total] = await Promise.all([
-    prisma.song.findMany({
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        youtubeUrl: true,
-        level: true,
-      },
-      orderBy: { id: "asc" },
-      skip: 0,
-      take: PAGE_SIZE,
-    }) as Promise<SongSummary[]>,
-    prisma.song.count(),
-  ])
-
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const initialData: SongsResponse = await getSongsPage({
+    search: "",
+    page: 1,
+    pageSize: SONGS_PAGE_SIZE,
+    sortKey: INITIAL_SORT_KEY,
+    sortDirection: INITIAL_SORT_DIRECTION,
+  })
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      <AppHeader title="Lyric Data Creator" subtitle="曲一覧" />
+      <AppHeader title="Song Typing Theater" />
       <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
         <SongsTable
           initialData={{
-            data,
-            total,
-            page: 1,
-            totalPages,
-            pageSize: PAGE_SIZE,
+            data: initialData.data,
+            total: initialData.total,
+            page: initialData.page,
+            totalPages: initialData.totalPages,
+            pageSize: initialData.pageSize,
           }}
-          initialSortKey="id"
-          initialSortDirection="asc"
+          initialSortKey={INITIAL_SORT_KEY}
+          initialSortDirection={INITIAL_SORT_DIRECTION}
         />
       </div>
     </div>

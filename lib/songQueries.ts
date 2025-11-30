@@ -1,0 +1,139 @@
+import { Prisma } from "@prisma/client"
+import { revalidateTag, unstable_cache } from "next/cache"
+import { prisma } from "@/lib/db"
+import {
+  SONG_SORT_KEYS,
+  SONGS_PAGE_SIZE,
+  SONGS_PAGE_SIZE_MAX,
+  type SongSortDirection,
+  type SongSortKey,
+  type SongsResponse,
+} from "@/types/songs"
+
+export const SONGS_TAG = "songs"
+export const SONGS_COUNT_TAG = "songs-count"
+
+type SongsQuery = {
+  search: string
+  page: number
+  pageSize?: number
+  sortKey: SongSortKey
+  sortDirection: SongSortDirection
+}
+
+const buildCountKey = (search: string) => ["song-count", search || "all"]
+
+const buildListKey = (params: {
+  search: string
+  sortKey: SongSortKey
+  sortDirection: SongSortDirection
+  page: number
+  pageSize: number
+}) => [
+  "song-list",
+  `q:${params.search || "all"}`,
+  `sort:${params.sortKey}:${params.sortDirection}`,
+  `page:${params.page}`,
+  `size:${params.pageSize}`,
+]
+
+const buildSearchFilter = (search: string) =>
+  search.length === 0
+    ? undefined
+    : ({
+        OR: [
+          { title: { contains: search, mode: "insensitive" as const } },
+          { artist: { contains: search, mode: "insensitive" as const } },
+        ],
+      }) satisfies Prisma.SongWhereInput
+
+const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) =>
+  sortKey === "level"
+    ? [
+        {
+          levelValue: {
+            sort: sortDirection,
+            nulls: sortDirection === "asc" ? "last" : "first",
+          },
+        },
+        { id: sortDirection },
+      ]
+    : [
+        {
+          [sortKey]: sortDirection === "desc" ? "desc" : "asc",
+        } satisfies Prisma.SongOrderByWithRelationInput,
+      ]
+
+const clampPageSize = (pageSize: number) => Math.min(Math.max(pageSize, 1), SONGS_PAGE_SIZE_MAX)
+
+export const getSongsPage = async ({
+  search,
+  page,
+  pageSize = SONGS_PAGE_SIZE,
+  sortKey,
+  sortDirection,
+}: SongsQuery): Promise<SongsResponse> => {
+  const normalizedSearch = search.trim()
+  const safePage = Number.isNaN(page) || page < 1 ? 1 : page
+  const normalizedPageSize = clampPageSize(pageSize)
+  const where = buildSearchFilter(normalizedSearch)
+  const orderBy = buildSort(sortKey, sortDirection)
+
+  const countKey = buildCountKey(normalizedSearch)
+  const total = await unstable_cache(
+    async () => prisma.song.count({ where }),
+    countKey,
+    {
+      tags: [SONGS_COUNT_TAG],
+      revalidate: 300,
+    }
+  )()
+  const totalPages = Math.max(1, Math.ceil(total / normalizedPageSize))
+  const pageToUse = Math.min(safePage, totalPages)
+
+  const listKey = buildListKey({
+    search: normalizedSearch,
+    sortKey,
+    sortDirection,
+    page: pageToUse,
+    pageSize: normalizedPageSize,
+  })
+
+  const data = await unstable_cache(
+    async () =>
+      prisma.song.findMany({
+        select: {
+          id: true,
+          title: true,
+          artist: true,
+          youtubeUrl: true,
+          level: true,
+        },
+        where,
+        orderBy,
+        skip: (pageToUse - 1) * normalizedPageSize,
+        take: normalizedPageSize,
+      }),
+    listKey,
+    {
+      tags: [SONGS_TAG],
+      revalidate: 180,
+    }
+  )()
+
+  return {
+    data,
+    total,
+    page: pageToUse,
+    totalPages,
+    pageSize: normalizedPageSize,
+  }
+}
+
+export const isSupportedSortKey = (value: string | null): value is SongSortKey =>
+  SONG_SORT_KEYS.includes(value as SongSortKey)
+
+export const revalidateSongsCache = () => {
+  revalidateTag(SONGS_TAG)
+  revalidateTag(SONGS_COUNT_TAG)
+}

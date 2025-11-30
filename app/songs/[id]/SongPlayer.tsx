@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import type { ScoreEntry } from "@/lib/types"
 import { AppHeader } from "@/components/AppHeader"
 import { TypingGameContent } from "@/components/TypingGameContent"
+import { CreditsSection } from "@/components/CreditsSection"
 import { cn } from "@/lib/utils"
 
 interface SongPlayerProps {
@@ -36,7 +37,7 @@ export function SongPlayer({ song }: SongPlayerProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      <AppHeader title="Lyric Data Creator" subtitle="プレイ" songTitle={song.title} />
+      <AppHeader title="Song Typing Theater" songTitle={song.title} />
 
       <div className={cn("pb-10")}>
         <TypingGameContent
@@ -47,6 +48,8 @@ export function SongPlayer({ song }: SongPlayerProps) {
           youtubeUrl={song.youtubeUrl}
         />
       </div>
+
+      <CreditsSection />
     </div>
   )
 }

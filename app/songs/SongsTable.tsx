@@ -1,116 +1,83 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import useSWR from "swr"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  SONGS_PAGE_SIZE,
+  type SongSortDirection,
+  type SongSortKey,
+  type SongsResponse,
+} from "@/types/songs"
 
-export type SongSummary = {
-  id: number
-  title: string
-  artist: string | null
-  youtubeUrl: string
-  level: string | null
-}
+type SongsKey = [
+  "songs",
+  {
+    search: string
+    page: number
+    sortKey: SongSortKey
+    sortDirection: SongSortDirection
+  },
+]
 
-type SongsResponse = {
-  data: SongSummary[]
-  total: number
-  page: number
-  totalPages: number
-  pageSize: number
-}
-
-const PAGE_SIZE = 50
-
-type SortKey = "id" | "title" | "artist" | "level"
-type SortDirection = "asc" | "desc"
+const isSameKey = (a: SongsKey, b: SongsKey) =>
+  a[0] === b[0] &&
+  a[1].search === b[1].search &&
+  a[1].page === b[1].page &&
+  a[1].sortKey === b[1].sortKey &&
+  a[1].sortDirection === b[1].sortDirection
 
 interface SongsTableProps {
   initialData?: SongsResponse
-  initialSortKey?: SortKey
-  initialSortDirection?: SortDirection
+  initialSortKey?: SongSortKey
+  initialSortDirection?: SongSortDirection
+}
+
+const buildSongsKey = (params: SongsKey[1]): SongsKey => [
+  "songs",
+  {
+    search: params.search.trim(),
+    page: params.page,
+    sortKey: params.sortKey,
+    sortDirection: params.sortDirection,
+  },
+]
+
+const fetchSongs = async ([, params]: SongsKey): Promise<SongsResponse> => {
+  const searchParams = new URLSearchParams({
+    page: String(params.page),
+    limit: String(SONGS_PAGE_SIZE),
+    sortKey: params.sortKey,
+    sortDir: params.sortDirection,
+  })
+
+  if (params.search) {
+    searchParams.set("search", params.search)
+  }
+
+  const response = await fetch(`/api/songs?${searchParams.toString()}`)
+
+  if (!response.ok) {
+    const error = new Error(`Failed to load songs: ${response.status}`)
+    throw error
+  }
+
+  return (await response.json()) as SongsResponse
 }
 
 export function SongsTable({
   initialData,
   initialSortKey = "id",
-  initialSortDirection = "asc",
+  initialSortDirection = "desc",
 }: SongsTableProps) {
   const router = useRouter()
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(initialData?.page ?? 1)
-  const [sortKey, setSortKey] = useState<SortKey>(initialSortKey)
-  const [sortDirection, setSortDirection] = useState<SortDirection>(initialSortDirection)
-  const [songs, setSongs] = useState<SongSummary[]>(initialData?.data ?? [])
-  const [total, setTotal] = useState(initialData?.total ?? 0)
-  const [totalPages, setTotalPages] = useState(initialData?.totalPages ?? 1)
-  const [loading, setLoading] = useState(!initialData)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-
-    const shouldUseInitial =
-      Boolean(initialData) &&
-      search.trim() === "" &&
-      page === (initialData?.page ?? 1) &&
-      sortKey === initialSortKey &&
-      sortDirection === initialSortDirection
-
-    if (shouldUseInitial) {
-      setSongs(initialData!.data)
-      setTotal(initialData!.total)
-      setTotalPages(initialData!.totalPages)
-      setLoading(false)
-      setError(null)
-      return () => controller.abort()
-    }
-
-    const fetchSongs = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          limit: String(PAGE_SIZE),
-          sortKey,
-          sortDir: sortDirection,
-        })
-        if (search.trim()) {
-          params.set("search", search.trim())
-        }
-
-        const response = await fetch(`/api/songs?${params.toString()}`, { signal: controller.signal })
-        if (!response.ok) {
-          throw new Error(`Failed to load songs: ${response.status}`)
-        }
-        const payload = (await response.json()) as SongsResponse
-        setSongs(payload.data)
-        setTotal(payload.total)
-        setTotalPages(payload.totalPages)
-        if (page !== payload.page) {
-          setPage(payload.page)
-        }
-      } catch (err) {
-        if (controller.signal.aborted) return
-        setError(err instanceof Error ? err.message : "曲の読み込みに失敗しました")
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchSongs()
-
-    return () => controller.abort()
-  }, [initialData, initialSortDirection, initialSortKey, page, search, sortDirection, sortKey])
-
-  useEffect(() => {
-    setPage(1)
-  }, [search, sortKey, sortDirection])
+  const [sortKey, setSortKey] = useState<SongSortKey>(initialSortKey)
+  const [sortDirection, setSortDirection] = useState<SongSortDirection>(initialSortDirection)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -118,6 +85,70 @@ export function SongsTable({
     }, 250)
     return () => clearTimeout(timer)
   }, [searchInput])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, sortKey, sortDirection])
+
+  const songsKey = useMemo(
+    () =>
+      buildSongsKey({
+        search,
+        page,
+        sortKey,
+        sortDirection,
+      }),
+    [page, search, sortDirection, sortKey]
+  )
+
+  const previousKeyRef = useRef<SongsKey>(songsKey)
+  const [hideStaleRows, setHideStaleRows] = useState(false)
+
+  useEffect(() => {
+    if (!isSameKey(previousKeyRef.current, songsKey)) {
+      setHideStaleRows(true)
+      previousKeyRef.current = songsKey
+    }
+  }, [songsKey])
+
+  const shouldUseFallback =
+    Boolean(initialData) &&
+    search.trim() === "" &&
+    page === (initialData?.page ?? 1) &&
+    sortKey === initialSortKey &&
+    sortDirection === initialSortDirection
+
+  const {
+    data,
+    error,
+    isLoading,
+    isValidating,
+  } = useSWR<SongsResponse, Error>(songsKey, fetchSongs, {
+    fallbackData: shouldUseFallback ? initialData : undefined,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    errorRetryCount: 2,
+    errorRetryInterval: 1500,
+  })
+
+  useEffect(() => {
+    if (data || error) {
+      setHideStaleRows(false)
+    }
+  }, [data, error])
+
+  useEffect(() => {
+    if (data && page > data.totalPages) {
+      setPage(data.totalPages)
+    }
+  }, [data, page])
+
+  const songs = hideStaleRows ? [] : data?.data ?? []
+  const total = hideStaleRows ? 0 : data?.total ?? 0
+  const totalPages = hideStaleRows ? 1 : data?.totalPages ?? 1
+  const currentPage = data?.page ?? page
+  const loading = isLoading || (!data && isValidating)
+  const showRetryableError = Boolean(error)
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
@@ -151,11 +182,11 @@ export function SongsTable({
             <thead className="bg-slate-50/80 dark:bg-slate-900/70">
               <tr>
                 {[
-                  { key: "id", label: "ID" },
-                  { key: "title", label: "曲" },
-                  { key: "artist", label: "アーティスト" },
-                  { key: "level", label: "Lv." },
-                ].map(({ key, label }) => {
+                  { key: "id", label: "ID", className: "w-[96px]" },
+                  { key: "title", label: "曲", className: "w-[320px]" },
+                  { key: "artist", label: "アーティスト", className: "w-[320px]" },
+                  { key: "level", label: "Lv.", className: "w-[80px]" },
+                ].map(({ key, label, className }) => {
                   const isActive = sortKey === key
                   const direction = isActive ? (sortDirection === "asc" ? "↑" : "↓") : ""
 
@@ -163,7 +194,7 @@ export function SongsTable({
                     <th
                       key={key}
                       scope="col"
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300"
+                      className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 ${className ?? ""}`}
                     >
                       <button
                         type="button"
@@ -194,8 +225,8 @@ export function SongsTable({
                   className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                 >
                   <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{song.id}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white">{song.title}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
+                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white truncate">{song.title}</td>
+                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200 truncate">
                     {song.artist ?? "—"}
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
@@ -212,9 +243,9 @@ export function SongsTable({
         {loading && (
           <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中...</div>
         )}
-        {error && (
+        {showRetryableError && (
           <div className="px-4 py-6 text-center text-sm text-red-600 dark:text-red-400">
-            エラーが発生しました: {error}
+            エラーが発生しました: {error?.message ?? "曲の読み込みに失敗しました"}
           </div>
         )}
       </div>
@@ -222,20 +253,27 @@ export function SongsTable({
       <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
         <span>
           {total} 曲中{" "}
-          {total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}-{total === 0 ? 0 : Math.min(page * PAGE_SIZE, total)} 件を表示
+          {total === 0
+            ? 0
+            : (currentPage - 1) * SONGS_PAGE_SIZE + 1}-{total === 0 ? 0 : Math.min(currentPage * SONGS_PAGE_SIZE, total)} 件を表示
         </span>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={currentPage <= 1 || loading}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
             前へ
           </Button>
           <span className="text-xs">
-            {page} / {totalPages}
+            {currentPage} / {totalPages}
           </span>
           <Button
             variant="outline"
             size="sm"
-            disabled={page >= totalPages || loading}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={currentPage >= totalPages || loading}
+            onClick={() => setPage((value) => value + 1)}
           >
             次へ
           </Button>
