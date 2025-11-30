@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
 
 const PAGE_SIZE_DEFAULT = 50
@@ -12,9 +13,10 @@ export async function GET(request: Request) {
 
   const search = searchParams.get("search")?.trim() ?? ""
   const pageRaw = Number.parseInt(searchParams.get("page") ?? "1", 10)
-  const sortKey = (searchParams.get("sortKey") as SortKey) ?? "id"
+  const sortKeyParam = (searchParams.get("sortKey") as SortKey) ?? "id"
   const sortDirection = (searchParams.get("sortDir") as SortDirection) ?? "asc"
   const pageSizeRaw = Number.parseInt(searchParams.get("limit") ?? `${PAGE_SIZE_DEFAULT}`, 10)
+  const sortKey: SortKey = SORT_KEYS.includes(sortKeyParam) ? sortKeyParam : "id"
 
   const page = Number.isNaN(pageRaw) || pageRaw < 1 ? 1 : pageRaw
   const pageSize = Math.min(Math.max(pageSizeRaw, 1), PAGE_SIZE_MAX)
@@ -34,7 +36,7 @@ export async function GET(request: Request) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const safePage = Math.min(page, totalPages)
 
-  const orderBy =
+  const orderBy: Prisma.SongOrderByWithRelationInput[] =
     sortKey === "level"
       ? [
           {
@@ -45,7 +47,11 @@ export async function GET(request: Request) {
           },
           { id: sortDirection },
         ]
-      : [{ [SORT_KEYS.includes(sortKey) ? sortKey : "id"]: sortDirection === "desc" ? "desc" : "asc" }]
+      : [
+          {
+            [sortKey]: sortDirection === "desc" ? "desc" : "asc",
+          } satisfies Prisma.SongOrderByWithRelationInput,
+        ]
 
   const data = await prisma.song.findMany({
     select: {
