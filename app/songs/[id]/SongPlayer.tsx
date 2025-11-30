@@ -6,6 +6,7 @@ import type { ScoreEntry } from "@/lib/types"
 import { AppHeader } from "@/components/AppHeader"
 import { TypingGameContent } from "@/components/TypingGameContent"
 import { CreditsSection } from "@/components/CreditsSection"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface SongPlayerProps {
@@ -37,7 +38,13 @@ export function SongPlayer({ song }: SongPlayerProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
-      <AppHeader title="Song Typing Theater" songTitle={song.title} />
+      <AppHeader title="Song Typing Theater" subtitle="プレイ" songTitle={song.title} />
+
+      <div className="max-w-[1400px] mx-auto px-4 lg:px-8 mt-4">
+        <Button variant="outline" size="sm" onClick={() => router.push("/songs")}>
+          曲一覧に戻る
+        </Button>
+      </div>
 
       <div className={cn("pb-10")}>
         <TypingGameContent
