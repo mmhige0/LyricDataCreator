@@ -3,8 +3,8 @@
  * Import songs directly into the database from txt exports (+ optional CSV metadata).
  *
  * Usage examples:
- *   node scripts/import-songs.js --dir ./lyric-data --csv ./lyric-data/data.csv
- *   node scripts/import-songs.js --file ./lyric-data/song.txt --youtube https://youtu.be/... --title "My Song"
+ *   node scripts/import-songs.js --dir ./lyric-data/lyric-file --csv ./lyric-data/data.csv
+ *   node scripts/import-songs.js --file ./lyric-data/lyric-file/song.txt --youtube https://youtu.be/... --title "My Song"
  *
  * CSV format:
  * file,youtube,title,artist,level
