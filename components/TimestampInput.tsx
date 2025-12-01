@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Clock, Play, ChevronLeft, ChevronRight } from "lucide-react"
@@ -25,12 +25,6 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
   setTimestampOffset,
   getCurrentTimestamp
 }) => {
-  const [isClient, setIsClient] = useState(false)
-
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
   const handleGetCurrentTimestamp = () => {
     if (getCurrentTimestamp) {
       setTimestamp(getCurrentTimestamp(timestampOffset))
@@ -79,7 +73,7 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
           タイムスタンプ入力
         </Button>
 
-        {setTimestampOffset && isClient && (
+        {setTimestampOffset && (
           <>
             <div className="h-6 border-l border-gray-300 mx-2" />
             <div className="flex items-center gap-2 text-sm">
