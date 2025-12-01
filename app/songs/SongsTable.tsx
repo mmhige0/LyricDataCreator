@@ -82,13 +82,10 @@ export function SongsTable({
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput)
+      setPage(1)
     }, 250)
     return () => clearTimeout(timer)
   }, [searchInput])
-
-  useEffect(() => {
-    setPage(1)
-  }, [search, sortKey, sortDirection])
 
   const songsKey = useMemo(
     () =>
@@ -153,10 +150,12 @@ export function SongsTable({
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+      setPage(1)
       return
     }
     setSortKey(key)
     setSortDirection(key === "id" ? "desc" : "asc")
+    setPage(1)
   }
 
   const handleRowNavigate = (id: number) => {

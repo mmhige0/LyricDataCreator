@@ -1,28 +1,20 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { X, Trash2, FileText } from 'lucide-react'
-import { getDraftList, deleteDraft } from '@/lib/draftStorage'
+import { deleteDraft } from '@/lib/draftStorage'
 import { setSessionId } from '@/lib/sessionStorage'
 import type { DraftListEntry } from '@/lib/types'
 
 interface DraftRestoreDialogProps {
   isOpen: boolean
+  drafts: DraftListEntry[]
+  setDrafts: Dispatch<SetStateAction<DraftListEntry[]>>
   onClose: () => void
   onRestore: (sessionId: string) => void
 }
 
-export function DraftRestoreDialog({ isOpen, onClose, onRestore }: DraftRestoreDialogProps) {
-  const [drafts, setDrafts] = useState<DraftListEntry[]>([])
-
-  useEffect(() => {
-    if (isOpen) {
-      const draftList = getDraftList()
-      const sorted = [...draftList].sort((a, b) => b.lastModified - a.lastModified)
-      setDrafts(sorted)
-    }
-  }, [isOpen])
-
+export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onRestore }: DraftRestoreDialogProps) {
   const handleRestore = (sessionId: string) => {
     setSessionId(sessionId)
     onRestore(sessionId)

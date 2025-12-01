@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, useRef } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { ScoreEntry } from "@/lib/types"
 import { useTypingGame } from "@/hooks/useTypingGame"
 import { useYouTube } from "@/hooks/useYouTube"
@@ -76,8 +76,21 @@ export function TypingGameContent({
   totalDuration,
 }: TypingGameContentProps) {
   const [showPageList, setShowPageList] = useState(true)
-  const [isTabEnabled, setIsTabEnabled] = useState(true)
-  const hasLoadedTabPreference = useRef(false)
+  const [isTabEnabled, setIsTabEnabledState] = useState(() => {
+    if (typeof window === 'undefined') return true
+    const storedValue = localStorage.getItem('typingTabEnabled')
+    return storedValue === 'false' ? false : true
+  })
+
+  const setIsTabEnabled = (value: boolean | ((prev: boolean) => boolean)) => {
+    setIsTabEnabledState((prev) => {
+      const resolved = typeof value === 'function' ? (value as (prev: boolean) => boolean)(prev) : value
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('typingTabEnabled', String(resolved))
+      }
+      return resolved
+    })
+  }
 
   const {
     player,
@@ -210,24 +223,6 @@ export function TypingGameContent({
     window.addEventListener('keydown', handleTabKeyDown)
     return () => window.removeEventListener('keydown', handleTabKeyDown)
   }, [isTabEnabled, toggleInputMode])
-
-  // Tab 切り替え許可状態の保存・復元
-  useEffect(() => {
-    if (hasLoadedTabPreference.current) return
-    hasLoadedTabPreference.current = true
-
-    if (typeof window === 'undefined') return
-
-    const storedValue = localStorage.getItem('typingTabEnabled')
-    if (storedValue === 'true' || storedValue === 'false') {
-      setIsTabEnabled(storedValue === 'true')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    localStorage.setItem('typingTabEnabled', String(isTabEnabled))
-  }, [isTabEnabled])
 
   const toggleTabEnabled = () => {
     setIsTabEnabled((prev) => !prev)

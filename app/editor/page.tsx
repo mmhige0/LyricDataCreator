@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Edit3, Gamepad2 } from "lucide-react"
-import Link from "next/link"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
@@ -22,12 +21,14 @@ import { CreditsSection } from "@/components/CreditsSection"
 import { cn } from "@/lib/utils"
 import { createNewSessionId, getOrCreateSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
+import type { DraftListEntry } from "@/lib/types"
 
 export default function LyricsTypingApp() {
   const [songTitle, setSongTitle] = useState<string>("")
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [activeView, setActiveView] = useState<"editor" | "play">("editor")
+  const [drafts, setDrafts] = useState<DraftListEntry[]>([])
   const hasRestoredDraftRef = useRef(false)
 
   const {
@@ -178,6 +179,8 @@ export default function LyricsTypingApp() {
 
     const draftList = getDraftList()
     if (draftList.length > 0) {
+      const sortedDrafts = [...draftList].sort((a, b) => b.lastModified - a.lastModified)
+      setDrafts(sortedDrafts)
       hasRestoredDraftRef.current = false
       setIsRestoreDialogOpen(true)
     }
@@ -383,6 +386,8 @@ export default function LyricsTypingApp() {
 
       <DraftRestoreDialog
         isOpen={isRestoreDialogOpen}
+        drafts={drafts}
+        setDrafts={setDrafts}
         onClose={handleCloseRestoreDialog}
         onRestore={handleRestoreDraft}
       />

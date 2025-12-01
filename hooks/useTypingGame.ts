@@ -43,7 +43,11 @@ export const useTypingGame = ({
   isPlaying,
 }: UseTypingGameProps) => {
   const [gameStatus, setGameStatus] = useState<GameStatus>('playing')
-  const [inputMode, setInputMode] = useState<InputMode>('roma')
+  const [inputMode, setInputMode] = useState<InputMode>(() => {
+    if (typeof window === 'undefined') return 'roma'
+    const storedInputMode = localStorage.getItem('typingInputMode')
+    return storedInputMode === 'roma' || storedInputMode === 'kana' ? storedInputMode : 'roma'
+  })
   const [pageState, setPageState] = useState<PageState>({
     ...createBeforeFirstPageState(),
   })
@@ -52,8 +56,6 @@ export const useTypingGame = ({
   const [totalMiss, setTotalMiss] = useState(0)
   const [combo, setCombo] = useState(0)
   const [maxCombo, setMaxCombo] = useState(0)
-
-  const hasLoadedInputMode = useRef(false)
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null)
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
@@ -115,28 +117,20 @@ export const useTypingGame = ({
     onRestartVideo?.()
   }, [onRestartVideo])
 
+  const setInputModeWithStorage = (next: InputMode | ((prev: InputMode) => InputMode)) => {
+    setInputMode((prev) => {
+      const resolved = typeof next === 'function' ? (next as (value: InputMode) => InputMode)(prev) : next
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('typingInputMode', resolved)
+      }
+      return resolved
+    })
+  }
+
   // 入力モード切り替え（入力状態は保持）
   const toggleInputMode = useCallback(() => {
-    setInputMode((prev) => (prev === 'roma' ? 'kana' : 'roma'))
-  }, [])
-
-  // 入力モードの保存・復元
-  useEffect(() => {
-    if (hasLoadedInputMode.current) return
-    hasLoadedInputMode.current = true
-
-    if (typeof window === 'undefined') return
-
-    const storedInputMode = localStorage.getItem('typingInputMode')
-    if (storedInputMode === 'roma' || storedInputMode === 'kana') {
-      setInputMode(storedInputMode)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    localStorage.setItem('typingInputMode', inputMode)
-  }, [inputMode])
+    setInputModeWithStorage((prev) => (prev === 'roma' ? 'kana' : 'roma'))
+  }, [setInputModeWithStorage])
 
   // 動画の再生位置に応じてページを追従
   useEffect(() => {
