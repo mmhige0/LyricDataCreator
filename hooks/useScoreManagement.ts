@@ -26,25 +26,30 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingLyrics, setEditingLyrics] = useState<LyricsArray>(["", "", "", ""])
   const [editingTimestamp, setEditingTimestamp] = useState<string>("0.00")
-  const [timestampOffset, setTimestampOffset] = useState<number>(0)
+  const [timestampOffset, setTimestampOffsetState] = useState<number>(0)
   const [undoHistory, setUndoHistory] = useState<AppState[]>([])
   const [redoHistory, setRedoHistory] = useState<AppState[]>([])
 
   const lyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const timestampInputRef = useRef<HTMLInputElement>(null)
 
-  // Load offset from localStorage on mount
+  const setTimestampOffset = (value: number) => {
+    setTimestampOffsetState(value)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('timestampOffset', value.toString())
+    }
+  }
+
   useEffect(() => {
+    if (typeof window === 'undefined') return
     const savedOffset = localStorage.getItem('timestampOffset')
     if (savedOffset !== null) {
-      setTimestampOffset(Number.parseFloat(savedOffset))
+      const parsed = Number.parseFloat(savedOffset)
+      if (!Number.isNaN(parsed)) {
+        setTimestampOffsetState(parsed)
+      }
     }
   }, [])
-
-  // Save offset to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('timestampOffset', timestampOffset.toString())
-  }, [timestampOffset])
 
   // Save current state before modification
   const saveCurrentState = () => {
