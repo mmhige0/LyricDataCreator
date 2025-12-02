@@ -44,7 +44,7 @@ export const TypingDisplay = ({ lines, typingWord, overlayText }: TypingDisplayP
         )
       })}
       {overlayText && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-900/70 text-blue-900 dark:text-blue-100 text-lg font-semibold rounded-lg">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-900/70 text-blue-900 dark:text-blue-100 text-2xl font-semibold rounded-lg">
           {overlayText}
         </div>
       )}
