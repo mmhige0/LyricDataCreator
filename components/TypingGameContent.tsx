@@ -115,6 +115,16 @@ export function TypingGameContent({
     elementId: "typing-youtube-player",
     initialYoutubeUrl: youtubeUrl,
     autoLoadInitialVideo: true,
+    onPlayerStateChange: () => {
+      if (typeof window === "undefined") return
+
+      // YouTube iframe がフォーカスを奪っても、すぐ親ドキュメントに戻す
+      window.focus()
+      const activeElement = document.activeElement as HTMLElement | null
+      if (activeElement?.blur) {
+        activeElement.blur()
+      }
+    },
   })
 
   const normalizedScoreEntries = useMemo(() => ensureIntroPage(scoreEntries), [scoreEntries])
