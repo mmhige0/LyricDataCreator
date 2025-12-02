@@ -303,7 +303,7 @@ export function TypingGameContent({
     <>
       {showHeader && (
         <AppHeader
-          title="Lyric Data Creator"
+          title="Song Typing Theater"
           subtitle="プレイ"
           songTitle={songTitle}
           titleHref="/"

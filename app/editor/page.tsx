@@ -242,7 +242,7 @@ export default function LyricsTypingApp() {
       />
 
       <AppHeader
-        title="Lyric Data Creator"
+        title="Song Typing Theater"
         titleHref="/"
         songTitle={songTitle || undefined}
         actions={

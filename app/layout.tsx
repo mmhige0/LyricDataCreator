@@ -4,7 +4,7 @@ import { Toaster } from 'sonner'
 import { withBasePath } from '@/lib/basePath'
 
 export const metadata: Metadata = {
-  title: 'Lyric Data Creator',
+  title: 'Song Typing Theater',
   description: 'YouTube video lyrics timing tool',
   icons: {
     icon: withBasePath('/favicon.ico'),
