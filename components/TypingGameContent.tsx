@@ -301,9 +301,12 @@ export function TypingGameContent({
   const kanaRemaining = currentTypingWord
     ? currentTypingWord.nextChunk.kana + currentTypingWord.wordChunks.map((chunk) => chunk.kana).join('')
     : ''
-  const displayCorrect = inputMode === 'roma' ? romajiCorrect : kanaCorrect
-  const displayRemaining = inputMode === 'roma' ? romajiRemaining : kanaRemaining
-  const hasDisplayText = (displayCorrect + displayRemaining).trim().length > 0
+  const displayCorrectRaw = inputMode === 'roma' ? romajiCorrect : kanaCorrect
+  const displayRemainingRaw = inputMode === 'roma' ? romajiRemaining : kanaRemaining
+  const sanitizeDisplay = (text: string) => text.replace(/[\s\u3000]+/g, '')
+  const displayCorrect = sanitizeDisplay(displayCorrectRaw)
+  const displayRemaining = sanitizeDisplay(displayRemainingRaw)
+  const hasDisplayText = (displayCorrect + displayRemaining).length > 0
 
   // read-only 用ダミー関数群
   const dummyFunction = () => {}
