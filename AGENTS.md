@@ -26,10 +26,16 @@
 - Keep fixtures small and commit only deterministic test assets.
 
 ## Commit & Pull Request Guidelines
-- Write concise, imperative commit messages (e.g., `Add timing export controls`); group related changes.
+- Write concise, imperative commit messages in `type: Title` format (e.g., `feat: Add timing export controls`); group related changes.
 - For PRs, include: summary of behavior change, linked issue/feature, and manual test notes. Add screenshots or clips for UI-facing updates.
 - Ensure `npm run test` passes before requesting review; mention any skipped checks or follow-ups explicitly.
 
 ## Security & Configuration Tips
 - The app targets Vercel (root path) now; asset URLs assume deployment at the domain root. Use `NEXT_PUBLIC_BASE_PATH` only if a non-root base is required.
 - Avoid committing generated build artifacts or large datasets; keep secrets out of config and favor environment variables when adding new integrations.
+
+## useEffect Usage Guidelines
+- Use `useEffect` only when truly necessary; consider better alternatives first.
+- Appropriate uses: direct DOM manipulation, integrating external libraries (charts, animations), timers/intervals, browser APIs (localStorage, WebSocket, etc.).
+- Avoid `useEffect` for: data transformation (prefer `useMemo` or inline calculations), event handlers (update state directly), derived state from props/state (calculate during render), API fetching (prefer TanStack Query, SWR, etc.).
+- When using `useEffect`: ensure dependency arrays are complete and correct; implement cleanup for subscriptions/timers/event listeners; watch for infinite loops (especially with object/array deps); ensure effects run only as often as necessary.
