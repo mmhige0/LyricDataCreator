@@ -505,7 +505,7 @@ export function TypingGameContent({
               </div>
               <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
                 {hasDisplayText && (
-                  <p className="text-2xl font-mono leading-relaxed tracking-wide break-all">
+                  <p className="text-2xl leading-relaxed tracking-wide break-all">
                     <span className="text-gray-400 dark:text-gray-500">
                       {displayCorrect}
                     </span>
