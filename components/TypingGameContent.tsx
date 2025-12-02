@@ -365,14 +365,7 @@ export function TypingGameContent({
             <main className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 flex flex-col">
               {/* YouTube 動画プレイヤー */}
               <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <div id="typing-youtube-player" className="rounded-lg overflow-hidden" />
-                  {showStartHint && (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-slate-950/30 text-white text-sm font-semibold">
-                      Escキー/動画をクリックして開始
-                    </div>
-                  )}
-                </div>
+                <div id="typing-youtube-player" className="rounded-lg overflow-hidden" />
               </div>
 
               {/* 動画コントロール */}
@@ -504,6 +497,11 @@ export function TypingGameContent({
               </div>
               {/* 歌詞表示エリア */}
               <div className="mb-3">
+                {showStartHint && (
+                  <div className="mb-2 rounded-md bg-blue-50 dark:bg-slate-800 text-blue-800 dark:text-blue-200 text-sm font-semibold text-center py-2">
+                    Escキー/動画をクリックして開始
+                  </div>
+                )}
                 <TypingDisplay
                   lines={currentPageLines}
                   typingWord={currentTypingWord}
