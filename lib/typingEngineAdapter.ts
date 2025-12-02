@@ -42,7 +42,7 @@ export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTy
   for (const entry of normalizedEntries) {
     const processedLines = entry.lyrics.map((line) => normalizeVuToHiragana(preprocessAndConvertLyrics(line)))
     const hasLyrics = processedLines.some((line) => line.length > 0)
-    const word = hasLyrics ? processedLines.join('　') : ''
+    const word = hasLyrics ? processedLines.join('　').trim() : ''
 
     rawMapLines.push({
       time: entry.timestamp,
