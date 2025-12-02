@@ -3,9 +3,10 @@ import type { TypingWord } from 'lyrics-typing-engine'
 interface TypingDisplayProps {
   lines: string[]
   typingWord: TypingWord | null
+  overlayText?: string
 }
 
-export const TypingDisplay = ({ lines, typingWord }: TypingDisplayProps) => {
+export const TypingDisplay = ({ lines, typingWord, overlayText }: TypingDisplayProps) => {
   const typedKanaLength = typingWord?.correct.kana.length ?? 0
   const joinedLines = lines.join(' ')
   const clampedTypedLength = Math.min(typedKanaLength, joinedLines.length)
@@ -13,7 +14,7 @@ export const TypingDisplay = ({ lines, typingWord }: TypingDisplayProps) => {
   let cursor = 0
 
   return (
-    <div className="text-left py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-64 flex flex-col justify-start select-none">
+    <div className="relative text-left py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-64 flex flex-col justify-start select-none overflow-hidden">
       {lines.map((line, lineIndex) => {
         const lineStart = cursor
         const lineEnd = cursor + line.length
@@ -42,6 +43,11 @@ export const TypingDisplay = ({ lines, typingWord }: TypingDisplayProps) => {
           </p>
         )
       })}
+      {overlayText && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-900/70 text-blue-900 dark:text-blue-100 text-sm font-semibold rounded-lg">
+          {overlayText}
+        </div>
+      )}
     </div>
   )
 }

@@ -497,14 +497,10 @@ export function TypingGameContent({
               </div>
               {/* 歌詞表示エリア */}
               <div className="mb-3">
-                {showStartHint && (
-                  <div className="mb-2 rounded-md bg-blue-50 dark:bg-slate-800 text-blue-800 dark:text-blue-200 text-sm font-semibold text-center py-2">
-                    Escキー/動画をクリックして開始
-                  </div>
-                )}
                 <TypingDisplay
                   lines={currentPageLines}
                   typingWord={currentTypingWord}
+                  overlayText={showStartHint ? "Escキー/動画をクリックして開始" : undefined}
                 />
               </div>
               <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
