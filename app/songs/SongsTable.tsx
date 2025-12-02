@@ -78,6 +78,7 @@ export function SongsTable({
   const [page, setPage] = useState(initialData?.page ?? 1)
   const [sortKey, setSortKey] = useState<SongSortKey>(initialSortKey)
   const [sortDirection, setSortDirection] = useState<SongSortDirection>(initialSortDirection)
+  const prefetchedSongIdsRef = useRef<Set<number>>(new Set())
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -162,6 +163,18 @@ export function SongsTable({
     router.push(`/songs/${id}`)
   }
 
+  const prefetchSongPage = (id: number) => {
+    if (prefetchedSongIdsRef.current.has(id)) return
+    prefetchedSongIdsRef.current.add(id)
+    router.prefetch(`/songs/${id}`)
+  }
+
+  useEffect(() => {
+    if (!data?.data?.length) return
+    // Prefetch song pages for currently visible rows to make navigation feel instant.
+    data.data.forEach((song) => prefetchSongPage(song.id))
+  }, [data?.data])
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm md:flex-row md:items-center md:justify-start">
@@ -215,6 +228,8 @@ export function SongsTable({
                   role="button"
                   tabIndex={0}
                   onClick={() => handleRowNavigate(song.id)}
+                  onMouseEnter={() => prefetchSongPage(song.id)}
+                  onFocus={() => prefetchSongPage(song.id)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault()
