@@ -42,6 +42,33 @@ const calculateKpm = (charCount: number, durationSeconds: number): number => {
 const isSpaceChunk = (chunk: WordChunk): boolean =>
   chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
 
+const dakutenChars = new Set([
+  'が', 'ぎ', 'ぐ', 'げ', 'ご',
+  'ざ', 'じ', 'ず', 'ぜ', 'ぞ',
+  'だ', 'ぢ', 'づ', 'で', 'ど',
+  'ば', 'び', 'ぶ', 'べ', 'ぼ',
+  'ゔ',
+  'ガ', 'ギ', 'グ', 'ゲ', 'ゴ',
+  'ザ', 'ジ', 'ズ', 'ゼ', 'ゾ',
+  'ダ', 'ヂ', 'ヅ', 'デ', 'ド',
+  'バ', 'ビ', 'ブ', 'ベ', 'ボ',
+  'ヴ',
+])
+
+const handakutenChars = new Set(['ぱ', 'ぴ', 'ぷ', 'ぺ', 'ぽ', 'パ', 'ピ', 'プ', 'ペ', 'ポ'])
+
+const countKanaKeystrokes = (kana: string): number => {
+  const text = kana.replace(/\s/g, '')
+  let count = 0
+  for (const ch of text) {
+    count += 1
+    if (dakutenChars.has(ch) || handakutenChars.has(ch)) {
+      count += 1
+    }
+  }
+  return count
+}
+
 const buildRomajiAndCount = async (
   line: string
 ): Promise<{ romaji: string; kana: string; charCount: { roma: number; kana: number } }> => {
@@ -59,7 +86,11 @@ const buildRomajiAndCount = async (
     console.error('Failed to parse word for KPM calculation', error)
     const fallbackRomaji = target.replace(/\s/g, '')
     const fallbackKana = target.replace(/\s/g, '')
-    return { romaji: fallbackRomaji, kana: fallbackKana, charCount: { roma: fallbackRomaji.length, kana: fallbackKana.length } }
+    return {
+      romaji: fallbackRomaji,
+      kana: fallbackKana,
+      charCount: { roma: fallbackRomaji.length, kana: countKanaKeystrokes(fallbackKana) },
+    }
   }
 
   let romaji = ''
@@ -77,7 +108,7 @@ const buildRomajiAndCount = async (
     kana += chunk.kana
     charCount = {
       roma: charCount.roma + roma.length,
-      kana: charCount.kana + chunk.kana.replace(/\s/g, '').length,
+      kana: charCount.kana + countKanaKeystrokes(chunk.kana),
     }
   }
 
