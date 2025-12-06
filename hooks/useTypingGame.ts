@@ -285,6 +285,14 @@ export const useTypingGame = ({
 
         updatedTypingWord = skipSpaces(updatedTypingWord)
 
+        const isPageFullyTyped =
+          !updatedTypingWord.nextChunk.kana && updatedTypingWord.wordChunks.length === 0
+
+        if (isPageFullyTyped && isPlaying === false && pageState.pageIndex >= 0) {
+          initializePage(pageState.pageIndex)
+          return
+        }
+
         setPageState((prev) => {
           return {
             ...prev,
