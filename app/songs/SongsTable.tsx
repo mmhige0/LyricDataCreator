@@ -159,21 +159,21 @@ export function SongsTable({
     setPage(1)
   }
 
-  const handleRowNavigate = (id: number) => {
+  const handleRowNavigate = useCallback((id: number) => {
     router.push(`/songs/${id}`)
-  }
+  }, [router])
 
-  const prefetchSongPage = (id: number) => {
+  const prefetchSongPage = useCallback((id: number) => {
     if (prefetchedSongIdsRef.current.has(id)) return
     prefetchedSongIdsRef.current.add(id)
     router.prefetch(`/songs/${id}`)
-  }
+  }, [router])
 
   useEffect(() => {
     if (!data?.data?.length) return
     // Prefetch song pages for currently visible rows to make navigation feel instant.
     data.data.forEach((song) => prefetchSongPage(song.id))
-  }, [data?.data])
+  }, [data?.data, prefetchSongPage])
 
   return (
     <div className="space-y-4">
