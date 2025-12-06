@@ -306,6 +306,30 @@ export function TypingGameContent({
   const sanitizeDisplay = (text: string) => text.replace(/[\s\u3000]+/g, '')
   const displayCorrect = sanitizeDisplay(displayCorrectRaw)
   const displayRemaining = sanitizeDisplay(displayRemainingRaw)
+  const getVisibleTypingText = (correct: string, remaining: string) => {
+    const maxVisible = inputMode === 'roma' ? 60 : 30
+    const scrollThreshold = inputMode === 'roma' ? 16 : 10
+    const combined = correct + remaining
+
+    const baseStart = correct.length >= scrollThreshold ? correct.length - scrollThreshold + 1 : 0
+    const maxStart = Math.max(0, combined.length - 1) // allow shifting even if total length < window
+    const startIndex = Math.min(baseStart, maxStart)
+    const endIndex = Math.min(combined.length, startIndex + maxVisible)
+    const slice = combined.slice(startIndex, endIndex)
+    const visibleCorrectLength = Math.max(0, Math.min(correct.length, endIndex) - startIndex)
+
+    return {
+      visibleCorrect: slice.slice(0, visibleCorrectLength),
+      visibleRemaining: slice.slice(visibleCorrectLength),
+      prefixEllipsis: false,
+      suffixEllipsis: endIndex < combined.length,
+    }
+  }
+
+  const { visibleCorrect, visibleRemaining, prefixEllipsis, suffixEllipsis } = getVisibleTypingText(
+    displayCorrect,
+    displayRemaining,
+  )
   const hasDisplayText = (displayCorrect + displayRemaining).length > 0
 
   // read-only 用ダミー関数群
@@ -508,13 +532,19 @@ export function TypingGameContent({
               </div>
               <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
                 {hasDisplayText && (
-                  <p className="text-2xl leading-relaxed tracking-wide break-all">
+                  <p className="text-2xl leading-relaxed tracking-wide break-all flex items-center">
+                    {prefixEllipsis && (
+                      <span className="text-gray-400 dark:text-gray-500 mr-1">…</span>
+                    )}
                     <span className="text-gray-400 dark:text-gray-500">
-                      {displayCorrect}
+                      {visibleCorrect}
                     </span>
                     <span className="text-black dark:text-white">
-                      {displayRemaining}
+                      {visibleRemaining}
                     </span>
+                    {suffixEllipsis && (
+                      <span className="text-gray-400 dark:text-gray-500 ml-1">…</span>
+                    )}
                   </p>
                 )}
               </div>
