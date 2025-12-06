@@ -59,7 +59,6 @@ export const useTypingGame = ({
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null)
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
-  const prevIsPlayingRef = useRef<boolean | null>(null)
 
   useEffect(() => {
     const correctSoundPath = withBasePath('/sounds/daken.mp3')
@@ -339,16 +338,6 @@ export const useTypingGame = ({
       }
     }
   }, [gameStatus, handleKeyDown])
-
-  useEffect(() => {
-    if (typeof isPlaying !== 'boolean') return
-
-    if (prevIsPlayingRef.current !== null && prevIsPlayingRef.current !== isPlaying) {
-      setCombo(0)
-    }
-
-    prevIsPlayingRef.current = isPlaying
-  }, [isPlaying])
 
   const gameStats: GameStats = useMemo(() => {
     const accuracy =
