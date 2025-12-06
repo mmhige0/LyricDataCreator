@@ -59,6 +59,7 @@ export const useTypingGame = ({
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null)
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
+  const prevIsPlayingRef = useRef<boolean | null>(null)
 
   useEffect(() => {
     const correctSoundPath = withBasePath('/sounds/daken.mp3')
@@ -183,6 +184,7 @@ export const useTypingGame = ({
       // Esc: 再生/一時停止
       if (event.key === 'Escape') {
         event.preventDefault()
+        setCombo(0)
         onTogglePlayPause?.()
         return
       }
@@ -221,6 +223,7 @@ export const useTypingGame = ({
       if (event.key === 'ArrowLeft') {
         event.preventDefault()
         if (isPlaying && pageState.pageIndex > 0) {
+          setCombo(0)
           onPageChange?.('prev')
         }
         return
@@ -229,6 +232,7 @@ export const useTypingGame = ({
       if (event.key === 'ArrowRight') {
         event.preventDefault()
         if (isPlaying && pageState.pageIndex < scoreEntries.length - 1) {
+          setCombo(0)
           onPageChange?.('next')
         }
         return
@@ -335,6 +339,16 @@ export const useTypingGame = ({
       }
     }
   }, [gameStatus, handleKeyDown])
+
+  useEffect(() => {
+    if (typeof isPlaying !== 'boolean') return
+
+    if (prevIsPlayingRef.current !== null && prevIsPlayingRef.current !== isPlaying) {
+      setCombo(0)
+    }
+
+    prevIsPlayingRef.current = isPlaying
+  }, [isPlaying])
 
   const gameStats: GameStats = useMemo(() => {
     const accuracy =
