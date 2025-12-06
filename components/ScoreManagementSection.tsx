@@ -16,36 +16,31 @@ interface EntryDisplayProps {
 }
 
 const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData }) => {
-  if (kpmData) {
-    // kpm表示モード
-    return (
-      <div className="space-y-1">
-        {kpmData.lines.map((lineKpm, lineIndex) => (
+  return (
+    <div className="space-y-1">
+      {entry.lyrics.map((line, lineIndex) => {
+        const lineKpm = kpmData?.lines[lineIndex]
+        return (
           <div key={lineIndex} className="flex justify-between items-center">
-            <div className={lineKpm.charCount > 0 ? "" : "text-muted-foreground"}>
-              {entry.lyrics[lineIndex] || "!"}
+            <div className="flex-1 min-w-0">
+              <div className={line ? "" : "text-muted-foreground"}>
+                {line || "!"}
+              </div>
             </div>
-            <div className="text-xs font-mono text-muted-foreground ml-2">
-              {lineKpm.kpm > 0 && `${lineKpm.kpm.toFixed(1)} kpm`}
-            </div>
+            {lineKpm && lineKpm.charCount > 0 && (
+              <div className="text-xs font-mono text-muted-foreground ml-2">
+                {lineKpm.kpm.toFixed(1)} kpm
+              </div>
+            )}
           </div>
-        ))}
-        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right">
+        )
+      })}
+      {kpmData && (
+        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right leading-tight">
           {kpmData.totalKpm.toFixed(1)} kpm
         </div>
-      </div>
-    )
-  }
-
-  // 歌詞のみ表示（kpm計算前）
-  return (
-    <>
-      {entry.lyrics.map((line, lineIndex) => (
-        <div key={lineIndex} className={line ? "" : "text-muted-foreground"}>
-          {line || "!"}
-        </div>
-      ))}
-    </>
+      )}
+    </div>
   )
 })
 
@@ -91,7 +86,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   readOnly = false
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
-  const { kpmDataMap } = useKpmCalculation(scoreEntries)
+  const { kpmDataMap } = useKpmCalculation(scoreEntries, duration)
   const [adjustValue, setAdjustValue] = useState<string>('0')
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
 

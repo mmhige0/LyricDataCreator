@@ -176,7 +176,6 @@ export const HelpSection: React.FC = () => {
           <div className="text-lg font-medium text-foreground mb-2">kpm計算</div>
           <div className="text-lg text-gray-700 dark:text-gray-300">
             <div>打ち切りに必要なkpmをローマ字入力換算で計算します。</div>
-            <div className="text-base mt-1 text-gray-700 dark:text-gray-300">※ 実際の打鍵数と誤差が生じる場合があります</div>
           </div>
         </div>
       </div>
