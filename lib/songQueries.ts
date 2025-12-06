@@ -23,6 +23,18 @@ type SongsQuery = {
 
 const buildCountKey = (search: string) => ["song-count", search || "all"]
 
+const convertKatakanaToHiragana = (text: string): string =>
+  text.replace(/[\u30A1-\u30F6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
+
+const convertHiraganaToKatakana = (text: string): string =>
+  text.replace(/[\u3041-\u3096]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 0x60))
+
+const buildSearchVariants = (search: string) => {
+  const hiragana = convertKatakanaToHiragana(search)
+  const katakana = convertHiraganaToKatakana(search)
+  return Array.from(new Set([search, hiragana, katakana])).filter((text) => text.length > 0)
+}
+
 const buildListKey = (params: {
   search: string
   sortKey: SongSortKey
@@ -37,15 +49,18 @@ const buildListKey = (params: {
   `size:${params.pageSize}`,
 ]
 
-const buildSearchFilter = (search: string) =>
-  search.length === 0
-    ? undefined
-    : ({
-        OR: [
-          { title: { contains: search, mode: "insensitive" as const } },
-          { artist: { contains: search, mode: "insensitive" as const } },
-        ],
-      }) satisfies Prisma.SongWhereInput
+const buildSearchFilter = (search: string) => {
+  const variants = buildSearchVariants(search)
+
+  if (variants.length === 0) return undefined
+
+  return {
+    OR: variants.flatMap((variant) => [
+      { title: { contains: variant, mode: "insensitive" as const } },
+      { artist: { contains: variant, mode: "insensitive" as const } },
+    ]),
+  } satisfies Prisma.SongWhereInput
+}
 
 const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) =>
   sortKey === "level"
