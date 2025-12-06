@@ -7,8 +7,15 @@ import type { ScoreEntry } from './types'
 export interface LineKpmInfo {
   line: number
   romaji: string
-  charCount: number
-  kpm: number
+  kana: string
+  charCount: {
+    roma: number
+    kana: number
+  }
+  kpm: {
+    roma: number
+    kana: number
+  }
 }
 
 export interface PageKpmInfo {
@@ -16,7 +23,10 @@ export interface PageKpmInfo {
   timestamp: number
   duration: number
   lines: LineKpmInfo[]
-  totalKpm: number
+  totalKpm: {
+    roma: number
+    kana: number
+  }
 }
 
 interface BuildKpmParams {
@@ -32,9 +42,11 @@ const calculateKpm = (charCount: number, durationSeconds: number): number => {
 const isSpaceChunk = (chunk: WordChunk): boolean =>
   chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
 
-const buildRomajiAndCount = async (line: string): Promise<{ romaji: string; charCount: number }> => {
+const buildRomajiAndCount = async (
+  line: string
+): Promise<{ romaji: string; kana: string; charCount: { roma: number; kana: number } }> => {
   const processed = preprocessAndConvertLyrics(line)
-  if (!processed) return { romaji: '', charCount: 0 }
+  if (!processed) return { romaji: '', kana: '', charCount: { roma: 0, kana: 0 } }
 
   const hiragana = await convertKanjiToHiragana(processed)
   const target = hiragana || processed
@@ -46,23 +58,30 @@ const buildRomajiAndCount = async (line: string): Promise<{ romaji: string; char
   } catch (error) {
     console.error('Failed to parse word for KPM calculation', error)
     const fallbackRomaji = target.replace(/\s/g, '')
-    return { romaji: fallbackRomaji, charCount: fallbackRomaji.length }
+    const fallbackKana = target.replace(/\s/g, '')
+    return { romaji: fallbackRomaji, kana: fallbackKana, charCount: { roma: fallbackRomaji.length, kana: fallbackKana.length } }
   }
 
   let romaji = ''
-  let charCount = 0
+  let kana = ''
+  let charCount = { roma: 0, kana: 0 }
 
   for (const chunk of wordChunks) {
     const roma = chunk.romaPatterns[0] ?? ''
     if (isSpaceChunk(chunk)) {
       romaji += ' '
+      kana += ' '
       continue
     }
     romaji += roma
-    charCount += roma.length
+    kana += chunk.kana
+    charCount = {
+      roma: charCount.roma + roma.length,
+      kana: charCount.kana + chunk.kana.replace(/\s/g, '').length,
+    }
   }
 
-  return { romaji, charCount }
+  return { romaji, kana, charCount }
 }
 
 /**
@@ -91,25 +110,38 @@ export const buildPageKpmMap = async ({ scoreEntries, totalDuration }: BuildKpmP
     // 行ごとにlyrics-typing-engineのチャンク分解からローマ字/文字数を生成
     const lines: LineKpmInfo[] = await Promise.all(
       entry.lyrics.map(async (line, lineIndex) => {
-        const { romaji, charCount } = await buildRomajiAndCount(line)
-        const kpm = calculateKpm(charCount, builtLine.duration)
+        const { romaji, kana, charCount } = await buildRomajiAndCount(line)
+        const kpm = {
+          roma: calculateKpm(charCount.roma, builtLine.duration),
+          kana: calculateKpm(charCount.kana, builtLine.duration),
+        }
         return {
           line: lineIndex + 1,
           romaji,
+          kana,
           charCount,
           kpm,
         }
       })
     )
 
-    const totalCharCount = lines.reduce((sum, line) => sum + line.charCount, 0)
+    const totalCharCount = lines.reduce(
+      (sum, line) => ({
+        roma: sum.roma + line.charCount.roma,
+        kana: sum.kana + line.charCount.kana,
+      }),
+      { roma: 0, kana: 0 }
+    )
 
     map.set(entry.id, {
       id: entry.id,
       timestamp: entry.timestamp,
       duration: builtLine.duration,
       lines,
-      totalKpm: calculateKpm(totalCharCount, builtLine.duration),
+      totalKpm: {
+        roma: calculateKpm(totalCharCount.roma, builtLine.duration),
+        kana: calculateKpm(totalCharCount.kana, builtLine.duration),
+      },
     })
   }
 

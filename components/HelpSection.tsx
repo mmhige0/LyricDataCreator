@@ -175,7 +175,7 @@ export const HelpSection: React.FC = () => {
         <div className="mb-6">
           <div className="text-lg font-medium text-foreground mb-2">kpm計算</div>
           <div className="text-lg text-gray-700 dark:text-gray-300">
-            <div>打ち切りに必要なkpmをローマ字入力換算で計算します。</div>
+            <div>lyrics-typing-engineのチャンク分解＋譜面durationを使い、ローマ字/かな換算のkpm（行別/ページ合計）を切り替えて表示できます。</div>
           </div>
         </div>
       </div>

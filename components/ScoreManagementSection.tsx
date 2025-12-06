@@ -13,9 +13,10 @@ import type { PageKpmInfo } from '@/lib/kpmUtils'
 interface EntryDisplayProps {
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
+  kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) => {
   return (
     <div className="space-y-1">
       {entry.lyrics.map((line, lineIndex) => {
@@ -27,9 +28,9 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData }) => {
                 {line || "!"}
               </div>
             </div>
-            {lineKpm && lineKpm.charCount > 0 && (
+            {lineKpm && lineKpm.charCount[kpmMode] > 0 && (
               <div className="text-xs font-mono text-muted-foreground ml-2">
-                {lineKpm.kpm.toFixed(1)} kpm
+                {lineKpm.kpm[kpmMode].toFixed(1)} kpm
               </div>
             )}
           </div>
@@ -37,7 +38,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData }) => {
       })}
       {kpmData && (
         <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right leading-tight">
-          {kpmData.totalKpm.toFixed(1)} kpm
+          {kpmData.totalKpm[kpmMode].toFixed(1)} kpm
         </div>
       )}
     </div>
@@ -89,6 +90,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const { kpmDataMap } = useKpmCalculation(scoreEntries, duration)
   const [adjustValue, setAdjustValue] = useState<string>('0')
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
+  const [kpmMode, setKpmMode] = useState<'roma' | 'kana'>('roma')
 
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
@@ -148,7 +150,27 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 動画の総時間: {duration.toFixed(1)}秒
               </div>
             )}
-            <div className="flex gap-2 ml-auto">
+            <div className="flex gap-2 ml-auto items-center">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setKpmMode('roma')}
+                  className={`px-2 py-1 rounded border text-xs font-mono ${
+                    kpmMode === 'roma' ? 'border-primary text-primary bg-primary/10' : 'border-muted-foreground/30'
+                  }`}
+                >
+                  roma
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setKpmMode('kana')}
+                  className={`px-2 py-1 rounded border text-xs font-mono ${
+                    kpmMode === 'kana' ? 'border-primary text-primary bg-primary/10' : 'border-muted-foreground/30'
+                  }`}
+                >
+                  kana
+                </button>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -239,7 +261,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       )}
                     </div>
                     <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                      <EntryDisplay entry={entry} kpmData={kpmData} />
+                      <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={kpmMode} />
                     </div>
                     {!readOnly && (
                       <div className="flex flex-col gap-1 min-w-fit self-center">
