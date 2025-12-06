@@ -4,9 +4,10 @@ interface TypingDisplayProps {
   lines: string[]
   typingWord: TypingWord | null
   overlayText?: string
+  overlayLines?: string[]
 }
 
-export const TypingDisplay = ({ lines, typingWord, overlayText }: TypingDisplayProps) => {
+export const TypingDisplay = ({ lines, typingWord, overlayText, overlayLines }: TypingDisplayProps) => {
   const typedKanaLength = typingWord?.correct.kana.length ?? 0
   const joinedLines = lines.join(' ')
   const clampedTypedLength = Math.min(typedKanaLength, joinedLines.length)
@@ -46,6 +47,17 @@ export const TypingDisplay = ({ lines, typingWord, overlayText }: TypingDisplayP
       {overlayText && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-900/70 text-blue-900 dark:text-blue-100 text-2xl font-semibold rounded-lg">
           {overlayText}
+        </div>
+      )}
+      {!overlayText && overlayLines && overlayLines.length > 0 && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/70 dark:bg-slate-900/70 text-gray-600 dark:text-gray-300 text-2xl font-semibold rounded-lg">
+          <div className="space-y-2 text-center opacity-90">
+            {overlayLines.map((line, index) => (
+              <p key={index} className="leading-snug">
+                {line || '\u00A0'}
+              </p>
+            ))}
+          </div>
         </div>
       )}
     </div>

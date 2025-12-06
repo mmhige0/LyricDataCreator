@@ -331,6 +331,12 @@ export function TypingGameContent({
     displayRemaining,
   )
   const hasDisplayText = (displayCorrect + displayRemaining).length > 0
+  const isPageFullyTyped =
+    !!currentTypingWord &&
+    !currentTypingWord.nextChunk.kana &&
+    currentTypingWord.wordChunks.length === 0
+  const shouldShowNextPageOverlay = !showStartHint && isPageFullyTyped && nextPagePreviewLines.length > 0
+  const overlayLines = shouldShowNextPageOverlay ? nextPagePreviewLines : undefined
 
   // read-only 用ダミー関数群
   const dummyFunction = () => {}
@@ -528,6 +534,7 @@ export function TypingGameContent({
                   lines={currentPageLines}
                   typingWord={currentTypingWord}
                   overlayText={showStartHint ? "Escキー/動画をクリックして開始" : undefined}
+                  overlayLines={overlayLines}
                 />
               </div>
               <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
