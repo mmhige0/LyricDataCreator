@@ -173,7 +173,7 @@ export function SongsTable({
     if (!data?.data?.length) return
     // Prefetch song pages for currently visible rows to make navigation feel instant.
     data.data.forEach((song) => prefetchSongPage(song.id))
-  }, [data?.data, prefetchSongPage])
+  }, [data, prefetchSongPage])
 
   return (
     <div className="space-y-4">
