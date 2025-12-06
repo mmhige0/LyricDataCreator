@@ -56,6 +56,7 @@ export const useTypingGame = ({
   const [totalMiss, setTotalMiss] = useState(0)
   const [combo, setCombo] = useState(0)
   const [maxCombo, setMaxCombo] = useState(0)
+  const prevIsPlayingRef = useRef<boolean | undefined>(undefined)
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null)
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
@@ -282,18 +283,26 @@ export const useTypingGame = ({
             return newCombo
   })
 
-  const resetCurrentPageTyping = useCallback(() => {
-    setPageState((prev) => {
-      const resetTypingWord =
-        skipSpaces(createTypingWordForPage(builtMapLines, prev.pageIndex) ?? createEmptyTypingWord())
-      return {
-        ...prev,
-        typingWord: resetTypingWord,
-        pageLastInputTime: null,
-      }
-    })
-    setCombo(0)
-  }, [builtMapLines, skipSpaces])
+  // 一時停止したときに、現在のページを最初から打ち直せるようリセット
+  useEffect(() => {
+    const wasPlaying = prevIsPlayingRef.current
+    const isPausing = wasPlaying === true && isPlaying === false
+
+    if (isPausing) {
+      setPageState((prev) => {
+        const resetTypingWord =
+          skipSpaces(createTypingWordForPage(builtMapLines, prev.pageIndex) ?? createEmptyTypingWord())
+        return {
+          ...prev,
+          typingWord: resetTypingWord,
+          pageLastInputTime: null,
+        }
+      })
+      setCombo(0)
+    }
+
+    prevIsPlayingRef.current = isPlaying
+  }, [builtMapLines, isPlaying, skipSpaces])
         }
 
         updatedTypingWord = skipSpaces(updatedTypingWord)
@@ -378,6 +387,5 @@ export const useTypingGame = ({
     restartGame,
     toggleInputMode,
     changePageManually,
-    resetCurrentPageTyping,
   }
 }
