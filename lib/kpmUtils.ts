@@ -72,7 +72,7 @@ const countKanaKeystrokes = (kana: string): number => {
 const buildRomajiAndCount = async (
   line: string
 ): Promise<{ romaji: string; kana: string; charCount: { roma: number; kana: number } }> => {
-  const processed = preprocessAndConvertLyrics(line)
+  const processed = preprocessAndConvertLyrics(line).replace(/ヴ/g, 'ゔ')
   if (!processed) return { romaji: '', kana: '', charCount: { roma: 0, kana: 0 } }
 
   const hiragana = await convertKanjiToHiragana(processed)
