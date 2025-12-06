@@ -187,6 +187,7 @@ export function TypingGameContent({
     totalMiss,
     combo,
     toggleInputMode,
+    resetCurrentPageTyping,
   } = useTypingGame({
     scoreEntries: normalizedScoreEntries,
     builtMapLines,
@@ -219,6 +220,19 @@ export function TypingGameContent({
     window.addEventListener("keydown", handleSpeedKeyDown)
     return () => window.removeEventListener("keydown", handleSpeedKeyDown)
   }, [playbackRate, changePlaybackRate])
+
+  // 再生 → 一時停止に遷移したとき、ページが未完了ならリセット
+  useEffect(() => {
+    if (isPlaying) return
+    if (!currentTypingWord) return
+
+    const hasRemainingChars =
+      !!currentTypingWord.nextChunk.kana || currentTypingWord.wordChunks.length > 0
+
+    if (hasRemainingChars) {
+      resetCurrentPageTyping()
+    }
+  }, [currentTypingWord, isPlaying, resetCurrentPageTyping])
 
   // Toggle whether Tab switches the input mode
   useEffect(() => {
