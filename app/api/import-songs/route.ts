@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   let body: { songs?: ImportSongInput[]; noUpdate?: boolean; truncate?: boolean }
   try {
     body = await request.json()
-  } catch (_error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
