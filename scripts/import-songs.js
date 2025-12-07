@@ -28,9 +28,13 @@ const getArg = (flag) => {
   if (idx === -1) return undefined
   return args[idx + 1]
 }
+const ensureTxtExtension = (filePath) => {
+  if (!filePath) return filePath
+  return path.extname(filePath) ? filePath : `${filePath}.txt`
+}
 
 const dir = getArg("--dir")
-const singleFile = getArg("--file")
+const singleFile = ensureTxtExtension(getArg("--file"))
 const csvPath = getArg("--csv")
 const defaultYoutube = getArg("--youtube")
 const defaultArtist = getArg("--artist")
@@ -85,7 +89,10 @@ const parseCsv = (text) => {
       const value = parts[i] ?? ""
       row[col] = value
     })
-    if (row.file) map[row.file] = row
+    if (row.file) {
+      const key = ensureTxtExtension(row.file)
+      map[key] = row
+    }
   }
   return map
 }
@@ -137,7 +144,7 @@ const gatherFiles = () => {
 }
 
 const resolveMetadata = (filePath, csvMap) => {
-  const base = path.basename(filePath)
+  const base = ensureTxtExtension(path.basename(filePath))
   const meta = csvMap[base] || {}
   return {
     title: meta.title || singleTitle || titleFromFilename(filePath),
