@@ -13,6 +13,7 @@ import {
 export const SONGS_TAG = "songs"
 export const SONGS_COUNT_TAG = "songs-count"
 const SONG_DETAIL_TAG_PREFIX = "song-detail"
+const ONE_WEEK_SECONDS = 60 * 60 * 24 * 7
 
 type SongsQuery = {
   search: string
@@ -95,7 +96,7 @@ export const getSongById = async (id: number) => {
     buildSongDetailKey(id),
     {
       tags: [buildSongDetailTag(id)],
-      revalidate: 60 * 60 * 24 * 7, // 7 days
+      revalidate: ONE_WEEK_SECONDS, // 7 days
     }
   )()
 }
@@ -131,7 +132,7 @@ export const getSongsPage = async ({
     countKey,
     {
       tags: [SONGS_COUNT_TAG],
-      revalidate: 300,
+      revalidate: ONE_WEEK_SECONDS,
     }
   )()
   const totalPages = Math.max(1, Math.ceil(total / normalizedPageSize))
@@ -163,7 +164,7 @@ export const getSongsPage = async ({
     listKey,
     {
       tags: [SONGS_TAG],
-      revalidate: 180,
+      revalidate: ONE_WEEK_SECONDS,
     }
   )()
 
