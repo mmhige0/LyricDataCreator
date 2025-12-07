@@ -2,8 +2,6 @@
 // 1. スクリプト プロパティに IMPORT_SECRET を設定（「プロジェクトの設定」→「スクリプトのプロパティ」）。
 // 2. 歌詞データ(.txt) を置く Drive フォルダ ID を設定。
 // 3. 曲一覧情報の記載されたスプレッドシート ID とシート名を設定（シート名が空なら先頭シートを使用）。
-// 4. スプレッドシートの1行目にヘッダーを用意：曲番, 曲URL, 曲名, アーティスト名, 難易度（曲番は TXT ファイル名、拡張子なし可）。
-// 5. 実行する関数は main。Apps Script のエディタで実行またはトリガー設定。
 const CONFIG = {
   endpoint: 'https://lyric-data-creator.vercel.app/import-songs',
   folderId: 'replace-with-folder-id', // TXT を置く Drive フォルダ ID
