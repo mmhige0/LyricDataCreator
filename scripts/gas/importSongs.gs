@@ -1,7 +1,7 @@
 // 実行前に下記を設定してください。
-// 1. スクリプト プロパティに IMPORT_SECRET を保存（エディタ:「プロジェクトのプロパティ」→「スクリプトのプロパティ」）。
-// 2. TXT を置く Drive フォルダ ID を設定。
-// 3. メタ情報を載せたスプレッドシート ID とシート名を設定（シート名が空なら先頭シートを使用）。
+// 1. スクリプト プロパティに IMPORT_SECRET を設定（「プロジェクトの設定」→「スクリプトのプロパティ」）。
+// 2. 歌詞データ(.txt) を置く Drive フォルダ ID を設定。
+// 3. 曲一覧情報の記載されたスプレッドシート ID とシート名を設定（シート名が空なら先頭シートを使用）。
 const CONFIG = {
   endpoint: 'https://lyric-data-creator.vercel.app/import-songs',
   folderId: 'replace-with-folder-id', // TXT を置く Drive フォルダ ID
@@ -63,8 +63,14 @@ function collectTxtSongs(folder, metaMap) {
       continue
     }
 
+    const title = (meta.title || '').trim()
+    if (!title) {
+      Logger.log('Skip (no title): %s', name)
+      continue
+    }
+
     const song = {
-      title: (meta.title || titleFromFilename(name)).trim(),
+      title,
       youtubeUrl,
       artist: (meta.artist || '').trim() || undefined,
       level: (meta.level || '').trim() || undefined,
@@ -85,7 +91,7 @@ function loadSheetMap(spreadsheetId, sheetName) {
   }
   const values = sheet.getDataRange().getValues()
   if (!values || values.length < 2) return {}
-  const cols = values[0].map((col) => String(col || '').trim())
+  const cols = values[0].map((col) => normalizeColumnName(col))
   const map = {}
   for (let i = 1; i < values.length; i += 1) {
     const rowValues = values[i]
@@ -114,4 +120,18 @@ function titleFromFilename(name) {
 function getImportSecret() {
   const props = PropertiesService.getScriptProperties()
   return props.getProperty('IMPORT_SECRET')
+}
+
+function normalizeColumnName(col) {
+  const name = String(col || '').trim()
+  if (!name) return ''
+  const map = {
+    曲番: 'file',
+    曲URL: 'youtube',
+    曲url: 'youtube',
+    曲名: 'title',
+    アーティスト名: 'artist',
+    難易度: 'level',
+  }
+  return map[name] || ''
 }
