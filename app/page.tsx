@@ -35,7 +35,7 @@ export default function LandingPage() {
                 <Gamepad2 className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="text-2xl font-semibold">もどき練習</h3>
+                <h3 className="text-2xl font-semibold">練習</h3>
               </div>
             </div>
           </Link>
