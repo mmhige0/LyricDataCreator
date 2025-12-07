@@ -49,10 +49,10 @@ export const TypingDisplay = ({
             return (
               <p key={lineIndex} className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2">
                 {isCompletedLine ? (
-                  <span className="text-gray-400 dark:text-gray-500">{line || '\u00A0'}</span>
+                  <span className="text-gray-300 dark:text-gray-500">{line || '\u00A0'}</span>
                 ) : isCurrentLine ? (
                   <>
-                    {typedPart && <span className="text-gray-400 dark:text-gray-500">{typedPart}</span>}
+                    {typedPart && <span className="text-gray-300 dark:text-gray-500">{typedPart}</span>}
                     <span className="text-blue-600 dark:text-blue-400">{remainingPart || '\u00A0'}</span>
                   </>
                 ) : (
