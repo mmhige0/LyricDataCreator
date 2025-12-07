@@ -65,6 +65,13 @@ interface ScoreManagementSectionProps {
   canUndo: boolean
   canRedo: boolean
   readOnly?: boolean
+  timeOffsetControl?: {
+    value: string
+    displayValue: number
+    onChange: (value: string) => void
+    onApply: () => void
+    onReset: () => void
+  }
 }
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
@@ -84,7 +91,8 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   redoLastOperation,
   canUndo,
   canRedo,
-  readOnly = false
+  readOnly = false,
+  timeOffsetControl,
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries, duration)
@@ -346,15 +354,42 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
 
             {/* タイピングモード: 自動スクロールボタンのみ */}
             {readOnly && scoreEntries.length > 0 && (
-              <div className="mt-3 pt-3 border-t flex justify-end">
+              <div className="mt-3 pt-3 border-t flex flex-wrap items-center gap-3 justify-between">
+                {timeOffsetControl && (
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <span className="font-medium text-gray-700 dark:text-gray-200">タイム調整</span>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="-100"
+                        max="100"
+                        value={timeOffsetControl.value}
+                        onChange={(e) => timeOffsetControl.onChange(e.target.value)}
+                        onBlur={timeOffsetControl.onApply}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') timeOffsetControl.onApply()
+                        }}
+                        className="w-24 h-9 text-sm"
+                      />
+                      <Button variant="outline" size="sm" onClick={timeOffsetControl.onApply} className="text-xs">
+                        適用
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={timeOffsetControl.onReset} className="text-xs">
+                        リセット
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setAutoScroll(!autoScroll)}
-                  className={`text-xs ${autoScroll ? 'bg-blue-50 border-blue-200' : ''}`}
+                  className={`text-xs px-2 ${autoScroll ? 'bg-blue-50 border-blue-200' : ''}`}
+                  aria-label="自動スクロール"
                 >
-                  {autoScroll ? <ScrollText className="h-3 w-3 mr-1" /> : <Scroll className="h-3 w-3 mr-1" />}
-                  自動スクロール
+                  {autoScroll ? <ScrollText className="h-4 w-4" /> : <Scroll className="h-4 w-4" />}
                 </Button>
               </div>
             )}

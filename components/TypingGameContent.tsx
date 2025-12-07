@@ -81,6 +81,8 @@ export function TypingGameContent({
     const storedValue = localStorage.getItem('typingTabEnabled')
     return storedValue === 'false' ? false : true
   })
+  const [timeOffset, setTimeOffset] = useState(0)
+  const [timeOffsetInput, setTimeOffsetInput] = useState('0')
 
   const setIsTabEnabled = (value: boolean | ((prev: boolean) => boolean)) => {
     setIsTabEnabledState((prev) => {
@@ -90,6 +92,25 @@ export function TypingGameContent({
       }
       return resolved
     })
+  }
+
+  const clampOffset = (value: number) => Math.min(100, Math.max(-100, value))
+
+  const applyTimeOffsetInput = () => {
+    const parsed = parseFloat(timeOffsetInput)
+    if (Number.isNaN(parsed)) {
+      setTimeOffsetInput(timeOffset.toFixed(2))
+      return
+    }
+
+    const clamped = clampOffset(parsed)
+    setTimeOffset(clamped)
+    setTimeOffsetInput(clamped.toFixed(2))
+  }
+
+  const resetTimeOffset = () => {
+    setTimeOffset(0)
+    setTimeOffsetInput('0')
   }
 
   const {
@@ -131,6 +152,15 @@ export function TypingGameContent({
 
   const normalizedScoreEntries = useMemo(() => ensureIntroPage(scoreEntries), [scoreEntries])
 
+  const adjustedScoreEntries = useMemo(
+    () =>
+      normalizedScoreEntries.map((entry) => ({
+        ...entry,
+        timestamp: parseFloat((entry.timestamp + timeOffset).toFixed(2)),
+      })),
+    [normalizedScoreEntries, timeOffset]
+  )
+
   const initialTotalDuration = totalDuration ?? 0
   const effectiveDuration = duration > 0 ? duration : initialTotalDuration
   const totalDurationForBuild = useMemo(() => {
@@ -156,7 +186,7 @@ export function TypingGameContent({
     if (!player) return
 
     if (direction === 'prev') {
-      const currentPageTimestamp = normalizedScoreEntries[pageState.pageIndex]?.timestamp || 0
+      const currentPageTimestamp = adjustedScoreEntries[pageState.pageIndex]?.timestamp || 0
       const seekTime = Math.max(0, currentPageTimestamp - 1)
       seekTo(seekTime)
 
@@ -165,8 +195,8 @@ export function TypingGameContent({
       }
     } else {
       const targetPageIndex = pageState.pageIndex + 1
-      if (targetPageIndex < normalizedScoreEntries.length) {
-        const targetTimestamp = normalizedScoreEntries[targetPageIndex].timestamp
+      if (targetPageIndex < adjustedScoreEntries.length) {
+        const targetTimestamp = adjustedScoreEntries[targetPageIndex].timestamp
         const adjustedTimestamp = Math.max(0, targetTimestamp - 1)
         const finalTimestamp = Math.max(currentTime, adjustedTimestamp)
 
@@ -188,7 +218,7 @@ export function TypingGameContent({
     combo,
     toggleInputMode,
   } = useTypingGame({
-    scoreEntries: normalizedScoreEntries,
+    scoreEntries: adjustedScoreEntries,
     builtMapLines,
     currentVideoTime: currentTime,
     onRestartVideo: () => {
@@ -254,7 +284,8 @@ export function TypingGameContent({
   const seekToAndPlay = (time: number) => {
     if (!player) return
 
-    const seekTime = Math.max(0, time - 1)
+    const targetTime = Math.max(0, time + timeOffset)
+    const seekTime = Math.max(0, targetTime - 1)
     seekTo(seekTime)
 
     if (!isPlaying) {
@@ -263,16 +294,17 @@ export function TypingGameContent({
   }
 
   const calculatePageTimeProgress = (): number => {
-    if (normalizedScoreEntries.length === 0) return 0
+    if (adjustedScoreEntries.length === 0) return 0
+    if (pageState.pageIndex < 0) return 0
 
-    if (pageState.pageIndex >= normalizedScoreEntries.length - 1) {
-      const pageStartTime = normalizedScoreEntries[pageState.pageIndex]?.timestamp || 0
+    if (pageState.pageIndex >= adjustedScoreEntries.length - 1) {
+      const pageStartTime = adjustedScoreEntries[pageState.pageIndex]?.timestamp || 0
       const pageDuration = effectiveDuration - pageStartTime
       const elapsed = currentTime - pageStartTime
       return pageDuration > 0 ? Math.min((elapsed / pageDuration) * 100, 100) : 0
     } else {
-      const pageStartTime = normalizedScoreEntries[pageState.pageIndex]?.timestamp || 0
-      const nextPageTime = normalizedScoreEntries[pageState.pageIndex + 1]?.timestamp || effectiveDuration
+      const pageStartTime = adjustedScoreEntries[pageState.pageIndex]?.timestamp || 0
+      const nextPageTime = adjustedScoreEntries[pageState.pageIndex + 1]?.timestamp || effectiveDuration
       const pageDuration = nextPageTime - pageStartTime
       const elapsed = currentTime - pageStartTime
       return pageDuration > 0 ? Math.min((elapsed / pageDuration) * 100, 100) : 0
@@ -453,11 +485,11 @@ export function TypingGameContent({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={toggleMute}
-                      variant="outline"
-                      size="sm"
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={toggleMute}
+                    variant="outline"
+                    size="sm"
                       className="h-8 w-8 p-0"
                       disabled={!player}
                     >
@@ -629,6 +661,13 @@ export function TypingGameContent({
                 canUndo={false}
                 canRedo={false}
                 readOnly
+                timeOffsetControl={{
+                  value: timeOffsetInput,
+                  displayValue: timeOffset,
+                  onChange: (value) => setTimeOffsetInput(value),
+                  onApply: applyTimeOffsetInput,
+                  onReset: resetTimeOffset,
+                }}
               />
             </div>
           )}

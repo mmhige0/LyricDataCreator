@@ -170,6 +170,17 @@ export const useTypingGame = ({
     (event: KeyboardEvent) => {
       if (gameStatus !== 'playing') return
 
+      const target = event.target as HTMLElement | null
+      const tagName = target?.tagName?.toLowerCase()
+      if (
+        target?.isContentEditable ||
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select'
+      ) {
+        return
+      }
+
       // 修飾キーは無視
       if (
         event.key === 'Shift' ||
