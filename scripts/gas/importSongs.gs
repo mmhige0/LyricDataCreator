@@ -1,11 +1,11 @@
-// Fill these before running.
+// 実行前に下記を設定してください。
 const CONFIG = {
   endpoint: 'https://your-domain.com/api/import-songs',
   importSecret: 'replace-with-secret',
-  folderId: 'replace-with-folder-id', // Drive folder containing TXT and CSV
+  folderId: 'replace-with-folder-id', // TXT と CSV を置く Drive フォルダ ID
   csvFileName: 'data.csv',
-  noUpdate: true, // true => skip updates for existing titles
-  truncate: false, // true => truncate songs before importing
+  noUpdate: true, // true なら既存タイトルはスキップ（更新しない）
+  truncate: false, // true ならインポート前に全削除
 }
 
 function main() {
