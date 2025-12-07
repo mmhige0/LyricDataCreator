@@ -1,14 +1,18 @@
-// 実行前に下記を設定してください。
-// 1. スクリプト プロパティに IMPORT_SECRET を設定（「プロジェクトの設定」→「スクリプトのプロパティ」）。
-// 2. CONFIG.folderId に歌詞データ(.txt) を置く Drive フォルダ ID を設定。
-// 3. CONFIG.spreadsheetId と CONFIG.sheetName に曲一覧スプレッドシートの ID／シート名を設定（シート名が空なら先頭シートを使用）。
-// 4. 更新対象の曲の updateFlag 列に 1 を設定。
-// 5. main を実行。初回のみ Drive／スプレッドシート／外部送信の許可ダイアログが出るので承認。
+// ========================================
+// 歌詞データ一括インポートスクリプト
+// ========================================
+// 【セットアップ手順】
+// 1. プロジェクト設定 > スクリプトプロパティに IMPORT_SECRET を設定
+// 2. CONFIG の folderId に歌詞データ(.txt) を置く Drive フォルダ ID を設定。
+// 3. CONFIG の spreadsheetId と sheetName に曲一覧スプレッドシートの ID／シート名を設定。
+// 4. スプレッドシートに列を作成: 曲番, 曲URL, 曲名, アーティスト名, 難易度, updateFlag
+// 5. 更新したい行の updateFlag 列に「1」を入力して main() を実行。初回のみ Drive／スプレッドシート／外部送信の許可ダイアログが出るので承認。
+// ========================================
 
 const CONFIG = {
   endpoint: 'https://lyric-data-creator.vercel.app/api/import-songs',
-  folderId: 'replace-with-folder-id', // TXT を置く Drive フォルダ ID
-  spreadsheetId: 'replace-with-spreadsheet-id', // 曲メタ情報を載せたスプレッドシート ID
+  folderId: 'replace-with-folder-id', // 歌詞データ(.txt)  を置く Drive フォルダ ID
+  spreadsheetId: 'replace-with-spreadsheet-id', // 曲情報を載せたスプレッドシート ID
   sheetName: '', // 使うシート名（空なら先頭シート）
   noUpdate: true, // true: 既存曲はスキップ / false: 既存曲も更新
 }
