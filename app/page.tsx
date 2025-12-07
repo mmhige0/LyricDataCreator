@@ -282,6 +282,22 @@ export default function LyricsTypingApp() {
         }
       />
 
+      <section className="max-w-[1600px] mx-auto px-4 lg:px-8">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 shadow-sm dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-100">
+          <p className="font-semibold">
+            URLが変更になりました。そのうちこちらのページ消します。
+          </p>
+          <a
+            href="https://lyric-data-creator.vercel.app/"
+            className="mt-1 inline-flex items-center gap-2 text-blue-700 underline underline-offset-4 transition-colors hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            https://lyric-data-creator.vercel.app/
+          </a>
+        </div>
+      </section>
+
       <main className="max-w-[1600px] mx-auto p-4 lg:p-8">
         {activeView === "play" ? (
           <TypingGameContent
