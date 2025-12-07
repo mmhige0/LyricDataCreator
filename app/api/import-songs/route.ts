@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 
 type ImportSongInput = {
   title: string
@@ -121,8 +122,13 @@ export async function POST(request: Request) {
         ? await prisma.song.update({ where: { id: existing.id }, data })
         : await prisma.song.create({ data })
 
+      // 個別ページのキャッシュを即時無効化
+      revalidateSongCache(saved.id)
       results.push({ title, status: existing ? 'updated' : 'created', id: saved.id })
     }
+
+    // 一覧と件数キャッシュをまとめて無効化
+    revalidateSongsCache()
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 })
   }
