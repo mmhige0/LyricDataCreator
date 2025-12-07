@@ -12,6 +12,7 @@ import {
 
 export const SONGS_TAG = "songs"
 export const SONGS_COUNT_TAG = "songs-count"
+const SONG_DETAIL_TAG_PREFIX = "song-detail"
 
 type SongsQuery = {
   search: string
@@ -82,6 +83,22 @@ const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) =>
 const clampPageSize = (pageSize: number) => Math.min(Math.max(pageSize, 1), SONGS_PAGE_SIZE_MAX)
 
 const isDatabaseConfigured = Boolean(process.env.DATABASE_URL)
+
+const buildSongDetailKey = (id: number) => [SONG_DETAIL_TAG_PREFIX, `id:${id}`]
+const buildSongDetailTag = (id: number) => `${SONG_DETAIL_TAG_PREFIX}:${id}`
+
+export const getSongById = async (id: number) => {
+  if (!isDatabaseConfigured) return null
+
+  return unstable_cache(
+    async () => prisma.song.findUnique({ where: { id } }),
+    buildSongDetailKey(id),
+    {
+      tags: [buildSongDetailTag(id)],
+      revalidate: 60 * 60 * 24 * 7, // 7 days
+    }
+  )()
+}
 
 export const getSongsPage = async ({
   search,
@@ -165,4 +182,8 @@ export const isSupportedSortKey = (value: string | null): value is SongSortKey =
 export const revalidateSongsCache = () => {
   revalidateTag(SONGS_TAG)
   revalidateTag(SONGS_COUNT_TAG)
+}
+
+export const revalidateSongCache = (id: number) => {
+  revalidateTag(buildSongDetailTag(id))
 }

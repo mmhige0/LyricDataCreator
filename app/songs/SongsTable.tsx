@@ -169,12 +169,6 @@ export function SongsTable({
     router.prefetch(`/songs/${id}`)
   }, [router])
 
-  useEffect(() => {
-    if (!data?.data?.length) return
-    // Prefetch song pages for currently visible rows to make navigation feel instant.
-    data.data.forEach((song) => prefetchSongPage(song.id))
-  }, [data, prefetchSongPage])
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm md:flex-row md:items-center md:justify-start">

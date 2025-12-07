@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
   // Use the default (node_modules/.prisma/client). Do not point to @prisma/client directly.
   // Prisma will forward imports from @prisma/client to this generated client.
   // output   = "../node_modules/.prisma/client"

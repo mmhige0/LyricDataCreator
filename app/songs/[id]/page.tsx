@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
-import { prisma } from "@/lib/db"
+import { getSongById } from "@/lib/songQueries"
 import { parseScoreEntries } from "@/lib/scoreSerialization"
 
 const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPlayer), {
@@ -12,7 +12,7 @@ const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPl
   ),
 })
 
-export const revalidate = 0
+export const revalidate = 60 * 60 * 24 * 7
 export const runtime = "nodejs"
 
 interface SongPageProps {
@@ -25,9 +25,7 @@ export default async function SongPage({ params }: SongPageProps) {
     notFound()
   }
 
-  const song = await prisma.song.findUnique({
-    where: { id: songId },
-  })
+  const song = await getSongById(songId)
 
   if (!song) {
     notFound()
