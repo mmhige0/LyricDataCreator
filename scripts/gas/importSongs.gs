@@ -1,17 +1,20 @@
 // 実行前に下記を設定してください。
+// 1. スクリプト プロパティに IMPORT_SECRET を保存（エディタ:「プロジェクトのプロパティ」→「スクリプトのプロパティ」）。
+// 2. TXT を置く Drive フォルダ ID を設定。
+// 3. メタ情報を載せたスプレッドシート ID とシート名を設定（シート名が空なら先頭シートを使用）。
 const CONFIG = {
-  endpoint: 'https://your-domain.com/api/import-songs',
-  importSecret: 'replace-with-secret',
-  folderId: 'replace-with-folder-id', // TXT と CSV を置く Drive フォルダ ID
-  csvFileName: 'data.csv',
+  endpoint: 'https://lyric-data-creator.vercel.app/import-songs',
+  folderId: 'replace-with-folder-id', // TXT を置く Drive フォルダ ID
+  spreadsheetId: 'replace-with-spreadsheet-id', // 曲メタ情報を載せたスプレッドシート ID
+  sheetName: '', // 使うシート名（空なら先頭シート）
   noUpdate: true, // true なら既存タイトルはスキップ（更新しない）
   truncate: false, // true ならインポート前に全削除
 }
 
 function main() {
   const folder = DriveApp.getFolderById(CONFIG.folderId)
-  const csvMap = loadCsvMap(folder, CONFIG.csvFileName)
-  const songs = collectTxtSongs(folder, csvMap)
+  const sheetMap = loadSheetMap(CONFIG.spreadsheetId, CONFIG.sheetName)
+  const songs = collectTxtSongs(folder, sheetMap)
 
   if (!songs.length) {
     Logger.log('No songs to send')
@@ -24,12 +27,18 @@ function main() {
     songs,
   }
 
+  const importSecret = getImportSecret()
+  if (!importSecret) {
+    Logger.log('Import secret is not configured. Set IMPORT_SECRET in script properties.')
+    return
+  }
+
   const res = UrlFetchApp.fetch(CONFIG.endpoint, {
     method: 'post',
     contentType: 'application/json',
     muteHttpExceptions: true,
     headers: {
-      'x-import-secret': CONFIG.importSecret,
+      'x-import-secret': importSecret,
     },
     payload: JSON.stringify(payload),
   })
@@ -38,7 +47,7 @@ function main() {
   Logger.log(res.getContentText())
 }
 
-function collectTxtSongs(folder, csvMap) {
+function collectTxtSongs(folder, metaMap) {
   const songs = []
   const files = folder.getFiles()
   while (files.hasNext()) {
@@ -47,7 +56,7 @@ function collectTxtSongs(folder, csvMap) {
     if (!name.toLowerCase().endsWith('.txt')) continue
 
     const baseName = ensureTxtExtension(name)
-    const meta = csvMap[baseName] || {}
+    const meta = metaMap[baseName] || {}
     const youtubeUrl = (meta.youtube || '').trim()
     if (!youtubeUrl) {
       Logger.log('Skip (no youtube): %s', name)
@@ -66,59 +75,30 @@ function collectTxtSongs(folder, csvMap) {
   return songs
 }
 
-function loadCsvMap(folder, csvName) {
-  const iterator = folder.getFilesByName(csvName)
-  if (!iterator.hasNext()) return {}
-
-  const file = iterator.next()
-  const text = file.getBlob().getDataAsString('UTF-8')
-  return parseCsv(text)
-}
-
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/).filter(Boolean)
-  if (lines.length < 2) return {}
-  const [header, ...rows] = lines
-  const cols = parseCsvLine(header)
-  const map = {}
-  rows.forEach((line) => {
-    const parts = parseCsvLine(line)
-    const row = {}
-    cols.forEach((col, i) => {
-      row[col] = parts[i] || ''
-    })
-    if (row.file) {
-      const key = ensureTxtExtension(row.file)
-      map[key] = row
-    }
-  })
-  return map
-}
-
-function parseCsvLine(line) {
-  const fields = []
-  let current = ''
-  let inQuotes = false
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i]
-    if (char === '"' && line[i + 1] === '"') {
-      current += '"'
-      i += 1
-      continue
-    }
-    if (char === '"') {
-      inQuotes = !inQuotes
-      continue
-    }
-    if (char === ',' && !inQuotes) {
-      fields.push(current)
-      current = ''
-    } else {
-      current += char
-    }
+function loadSheetMap(spreadsheetId, sheetName) {
+  if (!spreadsheetId) return {}
+  const ss = SpreadsheetApp.openById(spreadsheetId)
+  const sheet = sheetName ? ss.getSheetByName(sheetName) : ss.getSheets()[0]
+  if (!sheet) {
+    Logger.log('Sheet not found: %s', sheetName || 'first sheet')
+    return {}
   }
-  fields.push(current)
-  return fields.map((f) => f.trim())
+  const values = sheet.getDataRange().getValues()
+  if (!values || values.length < 2) return {}
+  const cols = values[0].map((col) => String(col || '').trim())
+  const map = {}
+  for (let i = 1; i < values.length; i += 1) {
+    const rowValues = values[i]
+    const row = {}
+    cols.forEach((col, idx) => {
+      if (!col) return
+      row[col] = String(rowValues[idx] || '').trim()
+    })
+    if (!row.file || !Object.values(row).some((v) => v)) continue
+    const key = ensureTxtExtension(row.file)
+    map[key] = row
+  }
+  return map
 }
 
 function ensureTxtExtension(filePath) {
@@ -129,4 +109,9 @@ function ensureTxtExtension(filePath) {
 function titleFromFilename(name) {
   const base = name.replace(/\.txt$/i, '')
   return base.replace(/_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/, '') || base
+}
+
+function getImportSecret() {
+  const props = PropertiesService.getScriptProperties()
+  return props.getProperty('IMPORT_SECRET')
 }
