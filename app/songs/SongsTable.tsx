@@ -184,7 +184,13 @@ export function SongsTable({
 
       <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+          <table className="w-full min-w-[900px] table-fixed divide-y divide-slate-200 dark:divide-slate-800">
+            <colgroup>
+              <col className="w-[96px]" />
+              <col className="w-[320px]" />
+              <col className="w-[320px]" />
+              <col className="w-[80px]" />
+            </colgroup>
             <thead className="bg-slate-50/80 dark:bg-slate-900/70">
               <tr>
                 {[
@@ -232,12 +238,16 @@ export function SongsTable({
                   }}
                   className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
                 >
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">{song.id}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-slate-900 dark:text-white truncate">{song.title}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200 truncate">
+                  <td className="w-[96px] px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
+                    {song.id}
+                  </td>
+                  <td className="w-[320px] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white truncate">
+                    {song.title}
+                  </td>
+                  <td className="w-[320px] px-4 py-3 text-sm text-slate-700 dark:text-slate-200 truncate">
                     {song.artist ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
+                  <td className="w-[80px] px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
                     {song.level ?? "—"}
                   </td>
                 </tr>
