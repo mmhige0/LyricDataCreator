@@ -1,25 +1,24 @@
 #!/usr/bin/env node
 /**
- * Import songs directly into the database from txt exports (+ optional CSV metadata).
+ * Import songs via the /api/import-songs endpoint from txt exports (+ optional CSV metadata).
  *
  * Usage examples:
  *   node scripts/import-songs.js --dir ./lyric-data/lyric-file --csv ./lyric-data/data.csv
  *   node scripts/import-songs.js --file ./lyric-data/lyric-file/song.txt --youtube https://youtu.be/... --title "My Song"
+ *   node scripts/import-songs.js --dir ./lyric-data/lyric-file --endpoint http://localhost:3000/api/import-songs
  *
  * CSV format:
  * file,youtube,title,artist,level
  * sample.txt,https://youtu.be/abc,"Title","Artist","Hard"
  *
  * Notes:
- * - Requires .env with DATABASE_URL set (Postgres想定、Prismaのdatasourceがpostgresqlに統一済み)。
- * - Upserts by title (exact match). Use --no-update to skip existing titles.
+ * - Requires IMPORT_SECRET (env or --secret) that matches the API route config.
+ * - Endpoint defaults to http://localhost:3000/api/import-songs (override with env IMPORT_SONGS_ENDPOINT or --endpoint)。
+ * - Upserts by title (exact match) on the API side. Use --no-update to skip existing titles.
  */
 
 const fs = require("fs")
 const path = require("path")
-const { PrismaClient } = require("@prisma/client")
-
-const prisma = new PrismaClient()
 
 const args = process.argv.slice(2)
 const hasFlag = (flag) => args.includes(flag)
@@ -42,6 +41,12 @@ const defaultLevel = getArg("--level")
 const singleTitle = getArg("--title")
 const allowUpdate = !hasFlag("--no-update")
 const truncateAll = hasFlag("--truncate")
+const endpoint =
+  getArg("--endpoint") ||
+  process.env.IMPORT_SONGS_ENDPOINT ||
+  process.env.IMPORT_ENDPOINT ||
+  "http://localhost:3000/api/import-songs"
+const importSecret = getArg("--secret") || process.env.IMPORT_SECRET
 
 if (!dir && !singleFile) {
   console.error("Error: --dir または --file を指定してください。")
@@ -112,24 +117,6 @@ const loadCsvMap = () => {
   }
 }
 
-const parseTxtToScoreEntries = (content) => {
-  const lines = content.trim().split(/\r?\n/)
-  if (lines.length < 2) throw new Error("行数が不足しています")
-  const entries = []
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (!line) continue
-    const parts = line.split("/")
-    if (parts.length !== 5) throw new Error(`${i + 1}行目: フォーマットが正しくありません`)
-    const ts = Number.parseFloat(parts[4])
-    if (Number.isNaN(ts)) throw new Error(`${i + 1}行目: タイムスタンプが正しくありません`)
-    if (ts === 999.9) continue
-    const lyrics = parts.slice(0, 4).map((p) => (p === "!" ? "" : p))
-    entries.push({ id: `import_${i}_${Date.now()}`, timestamp: ts, lyrics })
-  }
-  return entries.sort((a, b) => a.timestamp - b.timestamp)
-}
-
 const titleFromFilename = (filePath) => {
   const base = path.basename(filePath, path.extname(filePath))
   return base.replace(/_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}$/, "") || base
@@ -154,100 +141,118 @@ const resolveMetadata = (filePath, csvMap) => {
   }
 }
 
-const upsertSong = async (data) => {
-  const parseLevelValue = (value) => {
-    const match = value?.trim().match(/^([0-9]+)([+-])?$/)
-    if (!match) return null
-    const base = Number.parseInt(match[1], 10)
-    const modifier = match[2] === "+" ? 1 : match[2] === "-" ? -1 : 0
-    // Normalize: base level (e.g. 10) is multiplied by 3, with +/- adjusting by 1.
-    return base * 3 + modifier
+const buildSongPayload = (filePath, csvMap) => {
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).size === 0) {
+    console.warn(`Skip (empty or missing): ${filePath}`)
+    return null
   }
 
-  const levelValue = parseLevelValue(data.level)
+  const meta = resolveMetadata(filePath, csvMap)
+  if (!meta.youtubeUrl) {
+    console.warn(`Skip (no youtubeUrl): ${filePath}`)
+    return null
+  }
 
-  const existing = await prisma.song.findFirst({ where: { title: data.title } })
-  if (existing && allowUpdate) {
-    return prisma.song.update({
-      where: { id: existing.id },
-      data: {
-        artist: data.artist ?? null,
-        youtubeUrl: data.youtubeUrl,
-        level: data.level ?? null,
-        levelValue,
-        scoreEntries: JSON.stringify(data.scoreEntries),
-      },
-    })
+  const txtContent = fs.readFileSync(filePath, "utf-8")
+  if (!txtContent.trim()) {
+    console.warn(`Skip (no content): ${filePath}`)
+    return null
   }
-  if (existing && !allowUpdate) {
-    return existing
-  }
-  return prisma.song.create({
-    data: {
-      title: data.title,
-      artist: data.artist ?? null,
-      youtubeUrl: data.youtubeUrl,
-      level: data.level ?? null,
-      levelValue,
-      scoreEntries: JSON.stringify(data.scoreEntries),
+
+  return {
+    filePath,
+    payload: {
+      title: meta.title,
+      youtubeUrl: meta.youtubeUrl,
+      artist: meta.artist,
+      level: meta.level,
+      txtContent,
     },
+  }
+}
+
+const postToApi = async (body) => {
+  if (!importSecret) {
+    console.error("Error: IMPORT_SECRET is required. Pass via --secret or set env IMPORT_SECRET")
+    process.exit(1)
+  }
+
+  const headers = {
+    "Content-Type": "application/json",
+    "x-import-secret": importSecret,
+  }
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
   })
+
+  const text = await res.text()
+  if (!res.ok) {
+    throw new Error(`API error: status=${res.status} body=${text || "(empty)"}`)
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch (error) {
+    throw new Error(`Failed to parse API response JSON: ${error.message}`)
+  }
 }
 
 const main = async () => {
   try {
-    if (truncateAll) {
-      console.warn("Truncating all songs...")
-      await prisma.$executeRawUnsafe('TRUNCATE TABLE "Song" RESTART IDENTITY CASCADE;')
-    }
-
     const csvMap = loadCsvMap()
     const files = gatherFiles()
     if (!files.length) {
       console.error("対象となる .txt ファイルがありません。")
       process.exit(1)
     }
-    console.log(`Found ${files.length} file(s). Importing to DB`)
+
+    const songs = []
+    const sources = []
 
     for (const filePath of files) {
-      if (!fs.existsSync(filePath) || fs.statSync(filePath).size === 0) {
-        console.warn(`Skip (empty or missing): ${filePath}`)
-        continue
-      }
-
-      const meta = resolveMetadata(filePath, csvMap)
-      if (!meta.youtubeUrl) {
-        console.warn(`Skip (no youtubeUrl): ${filePath}`)
-        continue
-      }
-
-      const content = fs.readFileSync(filePath, "utf-8")
-      let scoreEntries
-      try {
-        scoreEntries = parseTxtToScoreEntries(content)
-      } catch (error) {
-        console.warn(`Skip (parse error): ${filePath} -> ${error.message}`)
-        continue
-      }
-      if (!scoreEntries.length) {
-        console.warn(`Skip (no entries): ${filePath}`)
-        continue
-      }
-
-      const song = await upsertSong({
-        title: meta.title,
-        artist: meta.artist,
-        youtubeUrl: meta.youtubeUrl,
-        level: meta.level,
-        scoreEntries,
-      })
-      console.log(`OK: ${filePath} -> id=${song.id} title=${song.title}`)
+      const song = buildSongPayload(filePath, csvMap)
+      if (!song) continue
+      songs.push(song.payload)
+      sources.push({ filePath, title: song.payload.title })
     }
+
+    if (!songs.length) {
+      console.warn("送信する曲がありませんでした")
+      return
+    }
+
+    console.log(
+      `Found ${songs.length} song(s). Sending to API ${endpoint} (noUpdate=${!allowUpdate}, truncate=${truncateAll})`,
+    )
+
+    const result = await postToApi({
+      songs,
+      noUpdate: !allowUpdate,
+      truncate: truncateAll,
+    })
+
+    const apiResults = Array.isArray(result?.results) ? result.results : []
+    let songIdx = 0
+    apiResults.forEach((res) => {
+      if (res.status === "truncated") {
+        console.log("Truncated all songs before import")
+        return
+      }
+      const source = sources[songIdx] || {}
+      songIdx += 1
+      const title = res.title || source.title || "(unknown title)"
+      const filePath = source.filePath || "(unknown file)"
+      const status = res.status || "unknown"
+      const message = res.message ? ` (${res.message})` : ""
+      const id = res.id ? ` id=${res.id}` : ""
+      console.log(`${status}: ${filePath} -> ${title}${id}${message}`)
+    })
   } catch (error) {
     console.error(error)
     process.exit(1)
-  } finally {
-    await prisma.$disconnect()
   }
 }
 

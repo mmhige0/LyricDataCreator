@@ -1,12 +1,21 @@
 // ========================================
-// 歌詞データ一括インポートスクリプト
+// 歌詞データインポートスクリプト
 // ========================================
 // 【セットアップ手順】
-// 1. プロジェクト設定 > スクリプトプロパティに IMPORT_SECRET を設定
-// 2. CONFIG の folderId に歌詞データ(.txt) を置く Drive フォルダ ID を設定。
-// 3. CONFIG の spreadsheetId と sheetName に曲一覧スプレッドシートの ID／シート名を設定。
-// 4. スプレッドシートに列を作成: 曲番, 曲URL, 曲名, アーティスト名, 難易度, updateFlag
-// 5. 更新したい行の updateFlag 列に「1」を入力して main() を実行。初回のみ Drive／スプレッドシート／外部送信の許可ダイアログが出るので承認。
+// 1. Google Apps Script プロジェクトを作成し、このスクリプトを貼り付ける
+// 2. CONFIG を編集
+//    - folderId: 歌詞データ(.txt) を置く Drive フォルダ ID
+//    - spreadsheetId: 曲一覧スプレッドシートの ID
+//    - sheetName: 使うシート名
+// 3. スクリプト プロパティに IMPORT_SECRET を設定
+//    - 「プロジェクト設定」>「スクリプト プロパティ」>「スクリプト プロパティを追加」から IMPORT_SECRET を登録
+// 4. スプレッドシートを準備
+//    - 列（順不同）: 曲番, 曲URL, 曲名, アーティスト名, 難易度, updateFlag
+//    - 送信したい行の updateFlag に「1」を入れる
+// 5. Drive の対象フォルダに歌詞 .txt を配置（ファイル名はスプレッドシートの曲番と対応）
+// 6. main() を実行
+//    - 初回実行時は Drive/Spreadsheet/外部送信の許可ダイアログを承認
+//    - ログに処理結果が出力され、追加・更新時は該当行の updateFlag がクリアされます
 // ========================================
 
 const CONFIG = {
@@ -15,6 +24,7 @@ const CONFIG = {
   spreadsheetId: 'replace-with-spreadsheet-id', // 曲情報を載せたスプレッドシート ID
   sheetName: '', // 使うシート名（空なら先頭シート）
   noUpdate: true, // true: 既存曲はスキップ / false: 既存曲も更新
+  maxSongsPerRequest: 100, // APIへ送る際の1リクエストあたり曲数上限
 }
 
 const COLUMN_MAP = {
@@ -42,21 +52,46 @@ function main() {
   }
 
   const fileMap = buildFileMap(folder)
-  
+
+  const songsToImport = []
+
   sheetInfo.entries.forEach(entry => {
     const song = buildSong(fileMap, entry)
     if (!song) return
+    songsToImport.push({ song, updateCell: entry.updateCell })
+  })
 
-    const result = importSong(song, importSecret)
-    const status = result && result.status ? result.status : 'unknown'
-    const title = result && result.title ? result.title : song.title
-    Logger.log('%s / %s / %s', song.fileName, title, status)
-    const updated = status === 'updated' || status === 'created'
+  if (!songsToImport.length) {
+    Logger.log('送信可能な曲がありません')
+    return
+  }
 
-    if (updated && entry.updateCell) {
-      sheetInfo.sheet.getRange(entry.updateCell.row, entry.updateCell.col).setValue('')
-      Logger.log('%s / %s / スプレッドシート内のupdateFlagをクリア', song.fileName, title)
+  const chunks = chunkArray(songsToImport, CONFIG.maxSongsPerRequest || 100)
+  Logger.log('送信対象: %s 曲 / リクエスト分割数: %s', songsToImport.length, chunks.length)
+
+  chunks.forEach((chunk, idx) => {
+    Logger.log('送信開始 (%s/%s) %s件', idx + 1, chunks.length, chunk.length)
+    const payload = {
+      noUpdate: CONFIG.noUpdate,
+      truncate: false,
+      songs: chunk.map(item => item.song),
     }
+    const result = importSongsBatch(payload, importSecret)
+    const results = result && result.results ? result.results : []
+
+    chunk.forEach((item, itemIdx) => {
+      const res = results[itemIdx] || {}
+      const status = res.status || 'unknown'
+      const title = res.title || item.song.title
+      Logger.log('%s / %s / %s', item.song.fileName, title, status)
+      const updated = status === 'updated' || status === 'created'
+
+      if (updated && item.updateCell) {
+        sheetInfo.sheet.getRange(item.updateCell.row, item.updateCell.col).setValue('')
+        Logger.log('%s / %s / スプレッドシート内のupdateFlagをクリア', item.song.fileName, title)
+      }
+    })
+    Logger.log('送信完了 (%s/%s)', idx + 1, chunks.length)
   })
 }
 
@@ -81,14 +116,27 @@ function buildSong(fileMap, entry) {
   
   if (!file || !meta.youtube || !meta.title) return null
 
+  const blob = file.getBlob()
+  const txtContent = blob.getDataAsString('UTF-8')
+  Logger.log('読み込み完了: %s (%s bytes)', fileName, txtContent.length)
+
   return {
     fileName,
     title: meta.title,
     youtubeUrl: meta.youtube,
     artist: meta.artist || undefined,
     level: meta.level || undefined,
-    txtContent: file.getBlob().getDataAsString('UTF-8'),
+    txtContent,
   }
+}
+
+function chunkArray(array, size) {
+  if (!size || size <= 0) return [array]
+  const result = []
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size))
+  }
+  return result
 }
 
 function loadSheetData(spreadsheetId, sheetName) {
@@ -132,13 +180,7 @@ function parseRow(row, colMap, rowIndex, updateFlagCol) {
   }
 }
 
-function importSong(song, importSecret) {
-  const payload = {
-    noUpdate: CONFIG.noUpdate,
-    truncate: false,
-    songs: [song],
-  }
-
+function importSongsBatch(payload, importSecret) {
   try {
     const res = postJsonWithRedirect(CONFIG.endpoint, payload, importSecret)
     const statusCode = res.getResponseCode()
@@ -148,22 +190,20 @@ function importSong(song, importSecret) {
     try {
       body = JSON.parse(content)
     } catch (error) {
-      Logger.log('エラー: %s / status=%s / JSON解析失敗: %s / body=%s', song.fileName, statusCode, error.message, content || '(empty)')
-      return { status: 'error', title: song.title }
+      Logger.log('エラー: status=%s / JSON解析失敗: %s / body=%s', statusCode, error.message, content || '(empty)')
+      return { results: [] }
     }
 
-    const result = body && body.results && body.results[0] ? body.results[0] : null
-    if (result) {
-      const status = result.status || 'unknown'
-      return { status, title: result.title || song.title }
+    if (body && body.results && Array.isArray(body.results)) {
+      return { results: body.results }
     }
 
-    Logger.log('エラー: %s / status=%s / レスポンス形式不正 / body=%s', song.fileName, statusCode, content || '(empty)')
+    Logger.log('エラー: status=%s / レスポンス形式不正 / body=%s', statusCode, content || '(empty)')
   } catch (error) {
-    Logger.log('エラー: %s / %s', song.fileName, error.message)
+    Logger.log('エラー: %s', error.message)
   }
 
-  return { status: 'error', title: song.title }
+  return { results: [] }
 }
 
 function postJsonWithRedirect(url, body, importSecret) {
