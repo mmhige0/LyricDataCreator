@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { parseLevelValue } from '@/lib/levels'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 
 type ImportSongInput = {
@@ -34,14 +35,6 @@ const parseTxtToScoreEntries = (content: string) => {
     entries.push(parsed)
   }
   return entries.sort((a, b) => a.timestamp - b.timestamp)
-}
-
-const parseLevelValue = (value?: string | null) => {
-  const match = value?.trim().match(/^([0-9]+)([+-])?$/)
-  if (!match) return null
-  const base = Number.parseInt(match[1], 10)
-  const modifier = match[2] === '+' ? 1 : match[2] === '-' ? -1 : 0
-  return base * 3 + modifier
 }
 
 const unauthorized = (message: string) => NextResponse.json({ error: message }, { status: 401 })

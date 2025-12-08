@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client"
 import { revalidateTag, unstable_cache } from "next/cache"
 import { prisma } from "@/lib/db"
+import { displayRangeToValueRange, normalizeDisplayLevelRange } from "@/lib/levels"
 import {
   SONG_SORT_KEYS,
   SONGS_PAGE_SIZE,
@@ -21,9 +22,20 @@ type SongsQuery = {
   pageSize?: number
   sortKey: SongSortKey
   sortDirection: SongSortDirection
+  levelMin?: number | null
+  levelMax?: number | null
 }
 
-const buildCountKey = (search: string) => ["song-count", search || "all"]
+const buildLevelKey = (levelMin?: number | null, levelMax?: number | null) => {
+  const normalized = normalizeDisplayLevelRange(levelMin, levelMax)
+  return normalized ? `lvl:${normalized.min}-${normalized.max}` : "lvl:any"
+}
+
+const buildCountKey = (search: string, levelMin?: number | null, levelMax?: number | null) => [
+  "song-count",
+  search || "all",
+  buildLevelKey(levelMin, levelMax),
+]
 
 const convertKatakanaToHiragana = (text: string): string =>
   text.replace(/[\u30A1-\u30F6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
@@ -43,12 +55,15 @@ const buildListKey = (params: {
   sortDirection: SongSortDirection
   page: number
   pageSize: number
+  levelMin?: number | null
+  levelMax?: number | null
 }) => [
   "song-list",
   `q:${params.search || "all"}`,
   `sort:${params.sortKey}:${params.sortDirection}`,
   `page:${params.page}`,
   `size:${params.pageSize}`,
+  buildLevelKey(params.levelMin, params.levelMax),
 ]
 
 const buildSearchFilter = (search: string) => {
@@ -107,10 +122,13 @@ export const getSongsPage = async ({
   pageSize = SONGS_PAGE_SIZE,
   sortKey,
   sortDirection,
+  levelMin,
+  levelMax,
 }: SongsQuery): Promise<SongsResponse> => {
   const normalizedSearch = search.trim()
   const safePage = Number.isNaN(page) || page < 1 ? 1 : page
   const normalizedPageSize = clampPageSize(pageSize)
+  const normalizedLevelRange = normalizeDisplayLevelRange(levelMin, levelMax)
 
   // GitHub ActionsなどでDATABASE_URLが未設定の場合は空データで返してビルドを継続する
   if (!isDatabaseConfigured) {
@@ -123,10 +141,21 @@ export const getSongsPage = async ({
     }
   }
 
-  const where = buildSearchFilter(normalizedSearch)
+  const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
+  const where = {
+    ...(buildSearchFilter(normalizedSearch) ?? {}),
+    ...(levelValueRange
+      ? {
+          levelValue: {
+            gte: levelValueRange.minValue,
+            lte: levelValueRange.maxValue,
+          },
+        }
+      : {}),
+  }
   const orderBy = buildSort(sortKey, sortDirection)
 
-  const countKey = buildCountKey(normalizedSearch)
+  const countKey = buildCountKey(normalizedSearch, normalizedLevelRange?.min, normalizedLevelRange?.max)
   const total = await unstable_cache(
     async () => prisma.song.count({ where }),
     countKey,
@@ -144,6 +173,8 @@ export const getSongsPage = async ({
     sortDirection,
     page: pageToUse,
     pageSize: normalizedPageSize,
+    levelMin: normalizedLevelRange?.min,
+    levelMax: normalizedLevelRange?.max,
   })
 
   const data = await unstable_cache(

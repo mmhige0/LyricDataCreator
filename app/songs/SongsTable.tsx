@@ -1,10 +1,12 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { PointerEvent as ReactPointerEvent } from "react"
 import useSWR from "swr"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { LEVEL_DISPLAY_MAX, LEVEL_DISPLAY_MIN, normalizeDisplayLevelRange } from "@/lib/levels"
 import {
   SONGS_PAGE_SIZE,
   type SongSortDirection,
@@ -19,6 +21,8 @@ type SongsKey = [
     page: number
     sortKey: SongSortKey
     sortDirection: SongSortDirection
+    levelMin: number | null
+    levelMax: number | null
   },
 ]
 
@@ -27,7 +31,9 @@ const isSameKey = (a: SongsKey, b: SongsKey) =>
   a[1].search === b[1].search &&
   a[1].page === b[1].page &&
   a[1].sortKey === b[1].sortKey &&
-  a[1].sortDirection === b[1].sortDirection
+  a[1].sortDirection === b[1].sortDirection &&
+  a[1].levelMin === b[1].levelMin &&
+  a[1].levelMax === b[1].levelMax
 
 interface SongsTableProps {
   initialData?: SongsResponse
@@ -42,6 +48,8 @@ const buildSongsKey = (params: SongsKey[1]): SongsKey => [
     page: params.page,
     sortKey: params.sortKey,
     sortDirection: params.sortDirection,
+    levelMin: params.levelMin,
+    levelMax: params.levelMax,
   },
 ]
 
@@ -55,6 +63,12 @@ const fetchSongs = async ([, params]: SongsKey): Promise<SongsResponse> => {
 
   if (params.search) {
     searchParams.set("search", params.search)
+  }
+  if (params.levelMin !== null) {
+    searchParams.set("levelMin", String(params.levelMin))
+  }
+  if (params.levelMax !== null) {
+    searchParams.set("levelMax", String(params.levelMax))
   }
 
   const response = await fetch(`/api/songs?${searchParams.toString()}`)
@@ -78,7 +92,14 @@ export function SongsTable({
   const [page, setPage] = useState(initialData?.page ?? 1)
   const [sortKey, setSortKey] = useState<SongSortKey>(initialSortKey)
   const [sortDirection, setSortDirection] = useState<SongSortDirection>(initialSortDirection)
+  const [sliderMin, setSliderMin] = useState<number>(LEVEL_DISPLAY_MIN)
+  const [sliderMax, setSliderMax] = useState<number>(LEVEL_DISPLAY_MAX)
+  const [appliedLevelRange, setAppliedLevelRange] = useState<{ min: number; max: number } | null>(null)
   const prefetchedSongIdsRef = useRef<Set<number>>(new Set())
+  const sliderMinRef = useRef(sliderMin)
+  const sliderMaxRef = useRef(sliderMax)
+  const trackRef = useRef<HTMLDivElement | null>(null)
+  const [dragging, setDragging] = useState<"min" | "max" | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -88,6 +109,21 @@ export function SongsTable({
     return () => clearTimeout(timer)
   }, [searchInput])
 
+  const sliderRange = LEVEL_DISPLAY_MAX - LEVEL_DISPLAY_MIN
+  const levelToPercent = useCallback(
+    (value: number) => ((value - LEVEL_DISPLAY_MIN) / sliderRange) * 100,
+    [sliderRange]
+  )
+
+  const normalizedSliderRange = useMemo(
+    () =>
+      normalizeDisplayLevelRange(sliderMin, sliderMax) ?? {
+        min: LEVEL_DISPLAY_MIN,
+        max: LEVEL_DISPLAY_MAX,
+      },
+    [sliderMax, sliderMin]
+  )
+
   const songsKey = useMemo(
     () =>
       buildSongsKey({
@@ -95,8 +131,10 @@ export function SongsTable({
         page,
         sortKey,
         sortDirection,
+        levelMin: appliedLevelRange?.min ?? null,
+        levelMax: appliedLevelRange?.max ?? null,
       }),
-    [page, search, sortDirection, sortKey]
+    [appliedLevelRange, page, search, sortDirection, sortKey]
   )
 
   const previousKeyRef = useRef<SongsKey>(songsKey)
@@ -114,7 +152,8 @@ export function SongsTable({
     search.trim() === "" &&
     page === (initialData?.page ?? 1) &&
     sortKey === initialSortKey &&
-    sortDirection === initialSortDirection
+    sortDirection === initialSortDirection &&
+    !appliedLevelRange
 
   const {
     data,
@@ -159,6 +198,93 @@ export function SongsTable({
     setPage(1)
   }
 
+  const setSliderRange = useCallback((nextMin: number, nextMax: number) => {
+    const normalized = normalizeDisplayLevelRange(nextMin, nextMax) ?? {
+      min: LEVEL_DISPLAY_MIN,
+      max: LEVEL_DISPLAY_MAX,
+    }
+    sliderMinRef.current = normalized.min
+    sliderMaxRef.current = normalized.max
+    setSliderMin(normalized.min)
+    setSliderMax(normalized.max)
+  }, [])
+
+  const applySliderRange = useCallback(() => {
+    const normalized = normalizeDisplayLevelRange(sliderMinRef.current, sliderMaxRef.current) ?? null
+    const nextRange =
+      normalized &&
+      (normalized.min !== LEVEL_DISPLAY_MIN || normalized.max !== LEVEL_DISPLAY_MAX)
+        ? normalized
+        : null
+    setAppliedLevelRange(nextRange)
+    setPage(1)
+  }, [])
+
+  const percentRange = useMemo(
+    () => ({
+      min: levelToPercent(normalizedSliderRange.min),
+      max: levelToPercent(normalizedSliderRange.max),
+    }),
+    [levelToPercent, normalizedSliderRange.max, normalizedSliderRange.min]
+  )
+
+  const clearLevelFilter = () => {
+    setAppliedLevelRange(null)
+    setSliderRange(LEVEL_DISPLAY_MIN, LEVEL_DISPLAY_MAX)
+    setPage(1)
+  }
+
+  const positionToValue = useCallback(
+    (clientX: number) => {
+      const rect = trackRef.current?.getBoundingClientRect()
+      if (!rect) return null
+      const ratio = (clientX - rect.left) / rect.width
+      const clampedRatio = Math.min(Math.max(ratio, 0), 1)
+      return Math.round(LEVEL_DISPLAY_MIN + clampedRatio * sliderRange)
+    },
+    [sliderRange]
+  )
+
+  const handleSliderPointerMove = (event: ReactPointerEvent) => {
+    if (!dragging) return
+    const value = positionToValue(event.clientX)
+    if (value === null) return
+    if (dragging === "min") {
+      setSliderRange(value, sliderMaxRef.current)
+    } else {
+      setSliderRange(sliderMinRef.current, value)
+    }
+  }
+
+  const handleSliderPointerUp = () => {
+    if (!dragging) return
+    setDragging(null)
+    applySliderRange()
+  }
+
+  const handleTrackPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const value = positionToValue(event.clientX)
+    if (value === null) return
+    const distanceToMin = Math.abs(value - normalizedSliderRange.min)
+    const distanceToMax = Math.abs(value - normalizedSliderRange.max)
+    if (distanceToMin <= distanceToMax) {
+      setSliderRange(value, sliderMax)
+      setDragging("min")
+    } else {
+      setSliderRange(sliderMin, value)
+      setDragging("max")
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleThumbPointerDown = (event: ReactPointerEvent, target: "min" | "max") => {
+    event.preventDefault()
+    event.stopPropagation()
+    setDragging(target)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
   const handleRowNavigate = useCallback((id: number) => {
     router.push(`/songs/${id}`)
   }, [router])
@@ -171,14 +297,59 @@ export function SongsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm md:flex-row md:items-center md:justify-start">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-6">
         <div className="w-full md:w-80">
           <Input
             placeholder="曲名やアーティスト名で検索"
             value={searchInput}
             onChange={(event) => setSearchInput(event.target.value)}
-            className="w-full"
+            className="w-full bg-white"
           />
+        </div>
+        <div className="w-full flex-1 md:max-w-[520px] md:ml-auto">
+          <div className="flex flex-col gap-2 p-1.5">
+            <div className="space-y-2 max-w-[420px] mx-auto w-full">
+              <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
+                <span>Lv.{normalizedSliderRange.min}</span>
+                <span>Lv.{normalizedSliderRange.max}</span>
+              </div>
+              <div className="relative pt-1.5">
+                <div
+                  ref={trackRef}
+                  className="relative h-2 cursor-pointer select-none rounded-full bg-slate-200 dark:bg-slate-700"
+                  onPointerDown={handleTrackPointerDown}
+                  onPointerMove={handleSliderPointerMove}
+                  onPointerUp={handleSliderPointerUp}
+                >
+                  <div
+                    className="absolute h-full rounded-full bg-blue-500/70 dark:bg-blue-400/70"
+                    style={{
+                      left: `${percentRange.min}%`,
+                      width: `${Math.max(0, percentRange.max - percentRange.min)}%`,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onPointerDown={(event) => handleThumbPointerDown(event, "min")}
+                    onPointerMove={handleSliderPointerMove}
+                    onPointerUp={handleSliderPointerUp}
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                    style={{ left: `${percentRange.min}%` }}
+                    aria-label="Lv.下限を変更"
+                  />
+                  <button
+                    type="button"
+                    onPointerDown={(event) => handleThumbPointerDown(event, "max")}
+                    onPointerMove={handleSliderPointerMove}
+                    onPointerUp={handleSliderPointerUp}
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                    style={{ left: `${percentRange.max}%` }}
+                    aria-label="Lv.上限を変更"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
