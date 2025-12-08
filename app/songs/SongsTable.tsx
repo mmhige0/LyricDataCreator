@@ -185,12 +185,6 @@ export function SongsTable({
       <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] table-fixed divide-y divide-slate-200 dark:divide-slate-800">
-            <colgroup>
-              <col className="w-[96px]" />
-              <col className="w-[320px]" />
-              <col className="w-[320px]" />
-              <col className="w-[80px]" />
-            </colgroup>
             <thead className="bg-slate-50/80 dark:bg-slate-900/70">
               <tr>
                 {[
