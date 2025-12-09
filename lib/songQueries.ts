@@ -272,15 +272,41 @@ export const getRandomSongs = async ({
       ? Prisma.sql`WHERE TRUE AND ${Prisma.join(whereSqlParts, Prisma.sql` AND `)}`
       : Prisma.empty
 
-  const data = await prisma.$queryRaw<
-    Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
-  >(Prisma.sql`
-    SELECT "id", "title", "artist", "youtubeUrl", "level"
-    FROM "Song"
-    ${whereSql}
-    ORDER BY random()
-    LIMIT ${normalizedLimit}
-  `)
+  let data: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+  try {
+    data = await prisma.$queryRaw<
+      Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+    >(Prisma.sql`
+      SELECT "id", "title", "artist", "youtubeUrl", "level"
+      FROM "Song"
+      ${whereSql}
+      ORDER BY random()
+      LIMIT ${normalizedLimit}
+    `)
+  } catch (error) {
+    // Fallback to in-memory shuffle if raw query fails for any reason
+    console.error("Random songs query failed, falling back to in-memory shuffle", {
+      error,
+      search: normalizedSearch,
+      searchVariants,
+      levelValueRange,
+    })
+    const candidates = await prisma.song.findMany({
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        youtubeUrl: true,
+        level: true,
+      },
+      where,
+    })
+    for (let i = candidates.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[candidates[i], candidates[j]] = [candidates[j], candidates[i]]
+    }
+    data = candidates.slice(0, normalizedLimit)
+  }
 
   return {
     data,
