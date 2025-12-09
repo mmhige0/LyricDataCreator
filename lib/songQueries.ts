@@ -250,8 +250,6 @@ export const getRandomSongs = async ({
       : {}),
   }
 
-  const total = await prisma.song.count({ where })
-
   const whereSqlParts: Prisma.Sql[] = []
   if (searchVariants.length > 0) {
     const likeClauses = searchVariants.map((variant) => {
@@ -310,7 +308,7 @@ export const getRandomSongs = async ({
 
   return {
     data,
-    total,
+    total: data.length,
     page: 1,
     totalPages: 1,
     pageSize: normalizedLimit,
