@@ -259,7 +259,7 @@ export const getRandomSongs = async ({
       return Prisma.sql`("title" ILIKE ${pattern} OR "artist" ILIKE ${pattern})`
     })
     if (likeClauses.length > 0) {
-      whereSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, Prisma.sql` OR `)})`)
+      whereSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, " OR ")})`)
     }
   }
   if (levelValueRange) {
