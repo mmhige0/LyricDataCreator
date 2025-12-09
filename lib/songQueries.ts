@@ -269,7 +269,7 @@ export const getRandomSongs = async ({
   }
   const whereSql =
     whereSqlParts.length > 0
-      ? Prisma.sql`WHERE TRUE AND ${Prisma.join(whereSqlParts, Prisma.sql` AND `)}`
+      ? Prisma.sql`WHERE TRUE AND ${Prisma.join(whereSqlParts, " AND ")}`
       : Prisma.empty
 
   let data: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
