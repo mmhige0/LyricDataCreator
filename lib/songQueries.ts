@@ -255,9 +255,8 @@ export const getRandomSongs = async ({
   const whereSqlParts: Prisma.Sql[] = []
   if (searchVariants.length > 0) {
     const likeClauses = searchVariants.map((variant) => {
-      const escaped = variant.replace(/[%_]/g, "\\$&")
-      const pattern = `%${escaped}%`
-      return Prisma.sql`("title" ILIKE ${pattern} ESCAPE '\\\\' OR "artist" ILIKE ${pattern} ESCAPE '\\\\')`
+      const pattern = `%${variant}%`
+      return Prisma.sql`("title" ILIKE ${pattern} OR "artist" ILIKE ${pattern})`
     })
     if (likeClauses.length > 0) {
       whereSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, Prisma.sql` OR `)})`)
@@ -271,7 +270,7 @@ export const getRandomSongs = async ({
   const whereSql =
     whereSqlParts.length > 0
       ? Prisma.sql`WHERE TRUE AND ${Prisma.join(whereSqlParts, Prisma.sql` AND `)}`
-      : Prisma.sql``
+      : Prisma.empty
 
   const data = await prisma.$queryRaw<
     Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
