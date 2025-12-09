@@ -153,6 +153,14 @@ export function SongsTable({
   const [randomLoading, setRandomLoading] = useState(false)
   const [randomError, setRandomError] = useState<string | null>(null)
   const [randomSorted, setRandomSorted] = useState(false)
+  const handleClearSearch = useCallback(() => {
+    setSearchInput("")
+    setSearch("")
+    setRandomSongs(null)
+    setRandomError(null)
+    setRandomSorted(false)
+    setPage(1)
+  }, [])
 
   useEffect(() => {
     if (!isSameKey(previousKeyRef.current, songsKey)) {
@@ -424,12 +432,24 @@ export function SongsTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-start md:gap-3">
         <div className="w-full md:w-[430px] md:flex-shrink-0">
-          <Input
-            placeholder="曲名やアーティスト名で検索"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            className="w-full bg-white"
-          />
+          <div className="relative">
+            <Input
+              placeholder="曲名やアーティスト名で検索"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              className="w-full bg-white pr-10"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-slate-800"
+                aria-label="検索をクリア"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex w-full flex-1 flex-col gap-2 md:max-w-none md:ml-0">
             <div className="flex items-center gap-3 rounded-md bg-slate-50/70 px-3 py-2 dark:bg-slate-800/40">
