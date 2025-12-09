@@ -29,6 +29,7 @@
 - Write concise, imperative commit messages in `type: Title` format (e.g., `feat: Add timing export controls`); group related changes.
 - For PRs, include: summary of behavior change, linked issue/feature, and manual test notes. Add screenshots or clips for UI-facing updates.
 - Ensure `npm run test` passes before requesting review; mention any skipped checks or follow-ups explicitly.
+- Always run the app verification and lint checks before committing, and do not commit without explicit approval.
 
 ## Security & Configuration Tips
 - The app targets Vercel (root path) now; asset URLs assume deployment at the domain root. Use `NEXT_PUBLIC_BASE_PATH` only if a non-root base is required.
