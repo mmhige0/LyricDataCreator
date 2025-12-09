@@ -6,7 +6,12 @@ import useSWR from "swr"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { LEVEL_DISPLAY_MAX, LEVEL_DISPLAY_MIN, normalizeDisplayLevelRange } from "@/lib/levels"
+import {
+  LEVEL_DISPLAY_MAX,
+  LEVEL_DISPLAY_MIN,
+  normalizeDisplayLevelRange,
+  parseLevelValue,
+} from "@/lib/levels"
 import {
   SONGS_PAGE_SIZE,
   type SongSortDirection,
@@ -52,6 +57,8 @@ const buildSongsKey = (params: SongsKey[1]): SongsKey => [
     levelMax: params.levelMax,
   },
 ]
+
+const RANDOM_SONG_COUNT = 10
 
 const fetchSongs = async ([, params]: SongsKey): Promise<SongsResponse> => {
   const searchParams = new URLSearchParams({
@@ -105,6 +112,9 @@ export function SongsTable({
     const timer = setTimeout(() => {
       setSearch(searchInput)
       setPage(1)
+      setRandomSongs(null)
+      setRandomError(null)
+      setRandomSorted(false)
     }, 250)
     return () => clearTimeout(timer)
   }, [searchInput])
@@ -139,6 +149,10 @@ export function SongsTable({
 
   const previousKeyRef = useRef<SongsKey>(songsKey)
   const [hideStaleRows, setHideStaleRows] = useState(false)
+  const [randomSongs, setRandomSongs] = useState<SongsResponse | null>(null)
+  const [randomLoading, setRandomLoading] = useState(false)
+  const [randomError, setRandomError] = useState<string | null>(null)
+  const [randomSorted, setRandomSorted] = useState(false)
 
   useEffect(() => {
     if (!isSameKey(previousKeyRef.current, songsKey)) {
@@ -180,21 +194,58 @@ export function SongsTable({
     }
   }, [data, page])
 
-  const songs = hideStaleRows ? [] : data?.data ?? []
-  const total = hideStaleRows ? 0 : data?.total ?? 0
-  const totalPages = hideStaleRows ? 1 : data?.totalPages ?? 1
-  const currentPage = data?.page ?? page
-  const loading = isLoading || (!data && isValidating)
-  const showRetryableError = Boolean(error)
+  const isRandomMode = randomLoading || Boolean(randomSongs)
+  const activeData = randomSongs ?? data
+  const randomTotal = randomSongs ? randomSongs.data.length : undefined
+  const hideRows = isRandomMode ? false : hideStaleRows
+  const songs = hideRows ? [] : activeData?.data ?? []
+  const pageSizeForDisplay = isRandomMode ? songs.length || 1 : activeData?.pageSize ?? SONGS_PAGE_SIZE
+  const total = hideRows ? 0 : isRandomMode ? randomTotal ?? 0 : activeData?.total ?? 0
+  const totalPages = hideRows ? 1 : isRandomMode ? 1 : activeData?.totalPages ?? 1
+  const currentPage = activeData?.page ?? page
+  const baseLoading = isLoading || (!data && isValidating)
+  const loading = isRandomMode ? randomLoading : baseLoading
+  const showRetryableError = isRandomMode ? Boolean(randomError) : Boolean(error)
+  const paginationDisabled = loading || isRandomMode
+  const errorMessage =
+    isRandomMode && randomError
+      ? randomError
+      : error?.message ?? "曲の読み込みに失敗しました"
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+      setSortDirection((prev) => {
+        const nextDirection = prev === "asc" ? "desc" : "asc"
+        if (randomSongs) {
+          setRandomSorted(true)
+          setRandomSongs((current) =>
+            current
+              ? {
+                  ...current,
+                  data: sortSongList(current.data, key as SongSortKey, nextDirection),
+                }
+              : current
+          )
+        }
+        return nextDirection
+      })
       setPage(1)
       return
     }
     setSortKey(key)
-    setSortDirection(key === "id" ? "desc" : "asc")
+    const nextDirection = key === "id" ? "desc" : "asc"
+    setSortDirection(nextDirection)
+    if (randomSongs) {
+      setRandomSorted(true)
+      setRandomSongs((current) =>
+        current
+          ? {
+              ...current,
+              data: sortSongList(current.data, key as SongSortKey, nextDirection),
+            }
+          : current
+      )
+    }
     setPage(1)
   }
 
@@ -216,6 +267,9 @@ export function SongsTable({
       (normalized.min !== LEVEL_DISPLAY_MIN || normalized.max !== LEVEL_DISPLAY_MAX)
         ? normalized
         : null
+    setRandomSongs(null)
+    setRandomError(null)
+    setRandomSorted(false)
     setAppliedLevelRange(nextRange)
     setPage(1)
   }, [])
@@ -228,11 +282,82 @@ export function SongsTable({
     [levelToPercent, normalizedSliderRange.max, normalizedSliderRange.min]
   )
 
+  const sortSongList = useCallback(
+    (list: SongsResponse["data"], key: SongSortKey, direction: SongSortDirection) => {
+      const multiplier = direction === "asc" ? 1 : -1
+      return [...list].sort((a, b) => {
+        if (key === "id") {
+          return (a.id - b.id) * multiplier
+        }
+        if (key === "level") {
+          const levelValueA = parseLevelValue(a.level)
+          const levelValueB = parseLevelValue(b.level)
+          if (levelValueA !== null && levelValueB !== null) {
+            return (levelValueA - levelValueB) * multiplier
+          }
+          if (levelValueA !== null) return -1 * multiplier
+          if (levelValueB !== null) return 1 * multiplier
+          const levelA = a.level ?? ""
+          const levelB = b.level ?? ""
+          return levelA.localeCompare(levelB, "ja") * multiplier
+        }
+        if (key === "artist") {
+          const artistA = a.artist ?? ""
+          const artistB = b.artist ?? ""
+          return artistA.localeCompare(artistB, "ja") * multiplier
+        }
+        return a.title.localeCompare(b.title, "ja") * multiplier
+      })
+    },
+    []
+  )
+
   const clearLevelFilter = () => {
+    setRandomSongs(null)
+    setRandomError(null)
+    setRandomSorted(false)
     setAppliedLevelRange(null)
     setSliderRange(LEVEL_DISPLAY_MIN, LEVEL_DISPLAY_MAX)
     setPage(1)
   }
+
+  const clearRandomSongs = useCallback(() => {
+    setRandomSongs(null)
+    setRandomError(null)
+    setRandomSorted(false)
+  }, [])
+
+  const requestRandomSongs = useCallback(async () => {
+    setRandomLoading(true)
+    setRandomError(null)
+    try {
+      const params = new URLSearchParams({ limit: String(RANDOM_SONG_COUNT) })
+      if (search.trim()) {
+        params.set("search", search.trim())
+      }
+      if (appliedLevelRange?.min != null) {
+        params.set("levelMin", String(appliedLevelRange.min))
+      }
+      if (appliedLevelRange?.max != null) {
+        params.set("levelMax", String(appliedLevelRange.max))
+      }
+
+      const response = await fetch(`/api/songs/random?${params.toString()}`)
+      if (!response.ok) {
+        throw new Error(`ランダム取得に失敗しました (${response.status})`)
+      }
+      const payload = (await response.json()) as SongsResponse
+      setRandomSongs(payload)
+      setRandomSorted(false)
+      setHideStaleRows(false)
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error ? requestError.message : "ランダム取得に失敗しました"
+      setRandomError(message)
+    } finally {
+      setRandomLoading(false)
+    }
+  }, [appliedLevelRange, search])
 
   const positionToValue = useCallback(
     (clientX: number) => {
@@ -297,8 +422,8 @@ export function SongsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between md:gap-6">
-        <div className="w-full md:w-80">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-start md:gap-3">
+        <div className="w-full md:w-[430px] md:flex-shrink-0">
           <Input
             placeholder="曲名やアーティスト名で検索"
             value={searchInput}
@@ -306,50 +431,68 @@ export function SongsTable({
             className="w-full bg-white"
           />
         </div>
-        <div className="w-full flex-1 md:max-w-[520px] md:ml-auto">
-          <div className="flex flex-col gap-2 p-1.5">
-            <div className="space-y-2 max-w-[420px] mx-auto w-full">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-900 dark:text-white">
-                <span>Lv.{normalizedSliderRange.min}</span>
-                <span>Lv.{normalizedSliderRange.max}</span>
-              </div>
-              <div className="relative pt-1.5">
+        <div className="flex w-full flex-1 flex-col gap-2 md:max-w-none md:ml-0">
+            <div className="flex items-center gap-3 rounded-md bg-slate-50/70 px-3 py-2 dark:bg-slate-800/40">
+            <div className="flex flex-1 items-center gap-2 min-w-[260px]">
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.min}</span>
+              <div
+                className="relative h-2 w-full max-w-[272px] cursor-pointer select-none rounded-full bg-slate-200 dark:bg-slate-700"
+                ref={trackRef}
+                onPointerDown={handleTrackPointerDown}
+                onPointerMove={handleSliderPointerMove}
+                onPointerUp={handleSliderPointerUp}
+              >
                 <div
-                  ref={trackRef}
-                  className="relative h-2 cursor-pointer select-none rounded-full bg-slate-200 dark:bg-slate-700"
-                  onPointerDown={handleTrackPointerDown}
+                  className="absolute h-full rounded-full bg-blue-500/70 dark:bg-blue-400/70"
+                  style={{
+                    left: `${percentRange.min}%`,
+                    width: `${Math.max(0, percentRange.max - percentRange.min)}%`,
+                  }}
+                />
+                <button
+                  type="button"
+                  onPointerDown={(event) => handleThumbPointerDown(event, "min")}
                   onPointerMove={handleSliderPointerMove}
                   onPointerUp={handleSliderPointerUp}
-                >
-                  <div
-                    className="absolute h-full rounded-full bg-blue-500/70 dark:bg-blue-400/70"
-                    style={{
-                      left: `${percentRange.min}%`,
-                      width: `${Math.max(0, percentRange.max - percentRange.min)}%`,
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onPointerDown={(event) => handleThumbPointerDown(event, "min")}
-                    onPointerMove={handleSliderPointerMove}
-                    onPointerUp={handleSliderPointerUp}
-                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
-                    style={{ left: `${percentRange.min}%` }}
-                    aria-label="Lv.下限を変更"
-                  />
-                  <button
-                    type="button"
-                    onPointerDown={(event) => handleThumbPointerDown(event, "max")}
-                    onPointerMove={handleSliderPointerMove}
-                    onPointerUp={handleSliderPointerUp}
-                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
-                    style={{ left: `${percentRange.max}%` }}
-                    aria-label="Lv.上限を変更"
-                  />
-                </div>
+                  className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                  style={{ left: `${percentRange.min}%` }}
+                  aria-label="Lv.下限を変更"
+                />
+                <button
+                  type="button"
+                  onPointerDown={(event) => handleThumbPointerDown(event, "max")}
+                  onPointerMove={handleSliderPointerMove}
+                  onPointerUp={handleSliderPointerUp}
+                  className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                  style={{ left: `${percentRange.max}%` }}
+                  aria-label="Lv.上限を変更"
+                />
               </div>
+              <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.max}</span>
+            </div>
+            <div className="flex items-center gap-2 md:justify-end min-w-[200px]">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={requestRandomSongs}
+                disabled={randomLoading || loading}
+              >
+                ランダム
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearRandomSongs}
+                disabled={randomLoading}
+                className={isRandomMode ? "" : "invisible"}
+              >
+                リセット
+              </Button>
             </div>
           </div>
+          {randomError && (
+            <p className="text-right text-xs text-red-600 dark:text-red-400">{randomError}</p>
+          )}
         </div>
       </div>
 
@@ -365,7 +508,8 @@ export function SongsTable({
                   { key: "level", label: "Lv.", className: "w-[80px]" },
                 ].map(({ key, label, className }) => {
                   const isActive = sortKey === key
-                  const direction = isActive ? (sortDirection === "asc" ? "↑" : "↓") : ""
+                  const showDirection = !isRandomMode || randomSorted
+                  const direction = isActive && showDirection ? (sortDirection === "asc" ? "↑" : "↓") : ""
 
                   return (
                     <th
@@ -428,7 +572,7 @@ export function SongsTable({
         )}
         {showRetryableError && (
           <div className="px-4 py-6 text-center text-sm text-red-600 dark:text-red-400">
-            エラーが発生しました: {error?.message ?? "曲の読み込みに失敗しました"}
+            エラーが発生しました: {errorMessage}
           </div>
         )}
       </div>
@@ -438,13 +582,13 @@ export function SongsTable({
           {total} 曲中{" "}
           {total === 0
             ? 0
-            : (currentPage - 1) * SONGS_PAGE_SIZE + 1}-{total === 0 ? 0 : Math.min(currentPage * SONGS_PAGE_SIZE, total)} 件を表示
+            : (currentPage - 1) * pageSizeForDisplay + 1}-{total === 0 ? 0 : Math.min(currentPage * pageSizeForDisplay, total)} 件を表示
         </span>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            disabled={currentPage <= 1 || loading}
+            disabled={currentPage <= 1 || paginationDisabled}
             onClick={() => setPage((value) => Math.max(1, value - 1))}
           >
             前へ
@@ -455,7 +599,7 @@ export function SongsTable({
           <Button
             variant="outline"
             size="sm"
-            disabled={currentPage >= totalPages || loading}
+            disabled={currentPage >= totalPages || paginationDisabled}
             onClick={() => setPage((value) => value + 1)}
           >
             次へ

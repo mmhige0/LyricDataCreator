@@ -15,6 +15,7 @@ export const SONGS_TAG = "songs"
 export const SONGS_COUNT_TAG = "songs-count"
 const SONG_DETAIL_TAG_PREFIX = "song-detail"
 const ONE_WEEK_SECONDS = 60 * 60 * 24 * 7
+const RANDOM_SONG_COUNT = 10
 
 type SongsQuery = {
   search: string
@@ -205,6 +206,77 @@ export const getSongsPage = async ({
     page: pageToUse,
     totalPages,
     pageSize: normalizedPageSize,
+  }
+}
+
+type RandomSongsQuery = {
+  search: string
+  levelMin?: number | null
+  levelMax?: number | null
+  limit?: number
+}
+
+export const getRandomSongs = async ({
+  search,
+  levelMin,
+  levelMax,
+  limit = RANDOM_SONG_COUNT,
+}: RandomSongsQuery): Promise<SongsResponse> => {
+  const normalizedSearch = search.trim()
+  const normalizedLevelRange = normalizeDisplayLevelRange(levelMin, levelMax)
+  const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
+  const normalizedLimit = clampPageSize(limit || RANDOM_SONG_COUNT)
+
+  if (!isDatabaseConfigured) {
+    return {
+      data: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+      pageSize: normalizedLimit,
+    }
+  }
+
+  const where: Prisma.SongWhereInput = {
+    ...(buildSearchFilter(normalizedSearch) ?? {}),
+    ...(levelValueRange
+      ? {
+          levelValue: {
+            gte: levelValueRange.minValue,
+            lte: levelValueRange.maxValue,
+          },
+        }
+      : {}),
+  }
+
+  const [total, allCandidates] = await Promise.all([
+    prisma.song.count({ where }),
+    prisma.song.findMany({
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        youtubeUrl: true,
+        level: true,
+      },
+      where,
+    }),
+  ])
+
+  const shuffled = [...allCandidates]
+  for (let i = shuffled.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+
+  const data = shuffled.slice(0, normalizedLimit)
+
+  return {
+    data,
+    total,
+    page: 1,
+    totalPages: 1,
+    pageSize: normalizedLimit,
   }
 }
 
