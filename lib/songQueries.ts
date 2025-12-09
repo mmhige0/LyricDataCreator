@@ -226,6 +226,7 @@ export const getRandomSongs = async ({
   const normalizedLevelRange = normalizeDisplayLevelRange(levelMin, levelMax)
   const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
   const normalizedLimit = clampPageSize(limit || RANDOM_SONG_COUNT)
+  const searchVariants = buildSearchVariants(normalizedSearch)
 
   if (!isDatabaseConfigured) {
     return {
@@ -249,27 +250,33 @@ export const getRandomSongs = async ({
       : {}),
   }
 
-  const [total, allCandidates] = await Promise.all([
-    prisma.song.count({ where }),
-    prisma.song.findMany({
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        youtubeUrl: true,
-        level: true,
-      },
-      where,
-    }),
-  ])
+  const total = await prisma.song.count({ where })
 
-  const shuffled = [...allCandidates]
-  for (let i = shuffled.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  const whereSqlParts: Prisma.Sql[] = []
+  if (searchVariants.length > 0) {
+    const likeClauses = searchVariants.map((variant) => {
+      const pattern = `%${variant}%`
+      return Prisma.sql`"title" ILIKE ${pattern} OR "artist" ILIKE ${pattern}`
+    })
+    whereSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, Prisma.sql` OR `)})`)
   }
+  if (levelValueRange) {
+    whereSqlParts.push(
+      Prisma.sql`"levelValue" BETWEEN ${levelValueRange.minValue} AND ${levelValueRange.maxValue}`
+    )
+  }
+  const whereSql =
+    whereSqlParts.length > 0 ? Prisma.sql`WHERE ${Prisma.join(whereSqlParts, Prisma.sql` AND `)}` : Prisma.sql``
 
-  const data = shuffled.slice(0, normalizedLimit)
+  const data = await prisma.$queryRaw<
+    Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+  >(Prisma.sql`
+    SELECT "id", "title", "artist", "youtubeUrl", "level"
+    FROM "Song"
+    ${whereSql}
+    ORDER BY random()
+    LIMIT ${normalizedLimit}
+  `)
 
   return {
     data,
