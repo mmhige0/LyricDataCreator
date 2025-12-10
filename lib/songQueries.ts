@@ -212,10 +212,10 @@ export const isSupportedSortKey = (value: string | null): value is SongSortKey =
   SONG_SORT_KEYS.includes(value as SongSortKey)
 
 export const revalidateSongsCache = () => {
-  revalidateTag(SONGS_TAG)
-  revalidateTag(SONGS_COUNT_TAG)
+  revalidateTag(SONGS_TAG, 'max')
+  revalidateTag(SONGS_COUNT_TAG, 'max')
 }
 
 export const revalidateSongCache = (id: number) => {
-  revalidateTag(buildSongDetailTag(id))
+  revalidateTag(buildSongDetailTag(id), 'max')
 }
