@@ -15,11 +15,12 @@ export const revalidate = 604800
 export const runtime = "nodejs"
 
 interface SongPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function SongPage({ params }: SongPageProps) {
-  const songId = Number(params.id)
+  const resolvedParams = await params
+  const songId = Number(resolvedParams.id)
   if (!Number.isFinite(songId)) {
     notFound()
   }
