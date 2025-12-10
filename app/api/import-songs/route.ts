@@ -69,13 +69,11 @@ export async function POST(request: Request) {
       results.push({ status: 'truncated' })
     }
 
-    // eslint-disable-next-line no-restricted-syntax
     for (const song of songs) {
       const title = song.title?.trim()
       const youtubeUrl = song.youtubeUrl?.trim()
       if (!title || !youtubeUrl) {
         results.push({ title: title || '(missing)', status: 'error', message: 'title and youtubeUrl are required' })
-        // eslint-disable-next-line no-continue
         continue
       }
 
@@ -84,12 +82,10 @@ export async function POST(request: Request) {
         scoreEntries = parseTxtToScoreEntries(song.txtContent ?? '')
       } catch (error) {
         results.push({ title, status: 'error', message: error instanceof Error ? error.message : 'parse error' })
-        // eslint-disable-next-line no-continue
         continue
       }
       if (!scoreEntries.length) {
         results.push({ title, status: 'skipped', message: 'no entries' })
-        // eslint-disable-next-line no-continue
         continue
       }
 
@@ -98,7 +94,6 @@ export async function POST(request: Request) {
 
       if (existing && body.noUpdate) {
         results.push({ title, status: 'skipped', id: existing.id })
-        // eslint-disable-next-line no-continue
         continue
       }
 

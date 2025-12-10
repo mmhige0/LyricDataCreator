@@ -93,7 +93,7 @@ export const useTypingGame = ({
         pageLastInputTime: null,
       })
     },
-    [builtMapLines, currentVideoTime, onGameEnd, skipSpaces]
+    [builtMapLines, currentVideoTime, onGameEnd]
   )
 
   const startGame = useCallback(() => {
@@ -117,7 +117,7 @@ export const useTypingGame = ({
     onRestartVideo?.()
   }, [onRestartVideo])
 
-  const setInputModeWithStorage = (next: InputMode | ((prev: InputMode) => InputMode)) => {
+  const setInputModeWithStorage = useCallback((next: InputMode | ((prev: InputMode) => InputMode)) => {
     setInputMode((prev) => {
       const resolved = typeof next === 'function' ? (next as (value: InputMode) => InputMode)(prev) : next
       if (typeof window !== 'undefined') {
@@ -125,7 +125,7 @@ export const useTypingGame = ({
       }
       return resolved
     })
-  }
+  }, [])
 
   // 入力モード切り替え（入力状態は保持）
   const toggleInputMode = useCallback(() => {
@@ -329,6 +329,7 @@ export const useTypingGame = ({
       currentVideoTime,
       gameStatus,
       inputMode,
+      initializePage,
       isPlaying,
       pageState.pageIndex,
       pageState.typingWord,
@@ -337,7 +338,6 @@ export const useTypingGame = ({
       onPageChange,
       onSkipToNextPage,
       onTogglePlayPause,
-      skipSpaces,
     ]
   )
 

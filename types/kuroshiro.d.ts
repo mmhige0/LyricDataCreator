@@ -1,4 +1,6 @@
 declare module 'kuroshiro' {
+  import type KuromojiAnalyzer from 'kuroshiro-analyzer-kuromoji'
+
   interface ConvertOptions {
     to?: 'hiragana' | 'katakana' | 'romaji'
     mode?: 'normal' | 'spaced' | 'okurigana' | 'furigana'
@@ -7,7 +9,7 @@ declare module 'kuroshiro' {
 
   export default class Kuroshiro {
     constructor()
-    init(analyzer: any): Promise<void>
+    init(analyzer: KuromojiAnalyzer): Promise<void>
     convert(text: string, options?: ConvertOptions): Promise<string>
   }
 }

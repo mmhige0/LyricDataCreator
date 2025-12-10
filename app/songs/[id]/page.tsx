@@ -4,7 +4,6 @@ import { getSongById } from "@/lib/songQueries"
 import { parseScoreEntries } from "@/lib/scoreSerialization"
 
 const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPlayer), {
-  ssr: false,
   loading: () => (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white flex items-center justify-center">
       <div className="text-sm text-slate-600 dark:text-slate-200">プレイヤーを読み込み中...</div>
@@ -12,7 +11,7 @@ const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPl
   ),
 })
 
-export const revalidate = 60 * 60 * 24 * 7
+export const revalidate = 604800
 export const runtime = "nodejs"
 
 interface SongPageProps {

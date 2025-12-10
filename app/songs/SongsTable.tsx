@@ -10,7 +10,6 @@ import {
   LEVEL_DISPLAY_MAX,
   LEVEL_DISPLAY_MIN,
   normalizeDisplayLevelRange,
-  parseLevelValue,
 } from "@/lib/levels"
 import {
   SONGS_PAGE_SIZE,
@@ -243,42 +242,6 @@ export function SongsTable({
     }),
     [levelToPercent, normalizedSliderRange.max, normalizedSliderRange.min]
   )
-
-  const sortSongList = useCallback(
-    (list: SongsResponse["data"], key: SongSortKey, direction: SongSortDirection) => {
-      const multiplier = direction === "asc" ? 1 : -1
-      return [...list].sort((a, b) => {
-        if (key === "id") {
-          return (a.id - b.id) * multiplier
-        }
-        if (key === "level") {
-          const levelValueA = parseLevelValue(a.level)
-          const levelValueB = parseLevelValue(b.level)
-          if (levelValueA !== null && levelValueB !== null) {
-            return (levelValueA - levelValueB) * multiplier
-          }
-          if (levelValueA !== null) return -1 * multiplier
-          if (levelValueB !== null) return 1 * multiplier
-          const levelA = a.level ?? ""
-          const levelB = b.level ?? ""
-          return levelA.localeCompare(levelB, "ja") * multiplier
-        }
-        if (key === "artist") {
-          const artistA = a.artist ?? ""
-          const artistB = b.artist ?? ""
-          return artistA.localeCompare(artistB, "ja") * multiplier
-        }
-        return a.title.localeCompare(b.title, "ja") * multiplier
-      })
-    },
-    []
-  )
-
-  const clearLevelFilter = () => {
-    setAppliedLevelRange(null)
-    setSliderRange(LEVEL_DISPLAY_MIN, LEVEL_DISPLAY_MAX)
-    setPage(1)
-  }
 
   const positionToValue = useCallback(
     (clientX: number) => {

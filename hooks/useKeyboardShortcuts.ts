@@ -30,11 +30,11 @@ export const useKeyboardShortcuts = ({
   editingId,
   seekBackward1Second,
   seekForward1Second,
-  adjustVolume,
-  toggleMute,
+  adjustVolume: _adjustVolume,
+  toggleMute: _toggleMute,
   lyricsInputRefs,
   timestampInputRef,
-  timestampOffset = 0,
+  timestampOffset: _timestampOffset = 0,
   pasteLyrics,
   undoLastOperation,
   redoLastOperation
@@ -42,7 +42,6 @@ export const useKeyboardShortcuts = ({
   return (event: KeyboardEvent) => {
     const activeElement = document.activeElement
     const isInputFocused = activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA"
-    const isSeekBarFocused = (activeElement as HTMLInputElement)?.type === "range"
 
     // Ctrl+Shift+V は常に動作（テキストフィールド外でも）
     if (event.ctrlKey && event.shiftKey && (event.key === "V" || event.key === "v")) {

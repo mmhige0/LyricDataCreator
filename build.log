@@ -1,0 +1,31 @@
+
+> lyric-data-creator@0.1.0 build
+> prisma generate && next build
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 135ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Curious about the SQL queries Prisma ORM generates? Optimize helps you enhance your visibility: https://pris.ly/tip-2-optimize
+
+┌─────────────────────────────────────────────────────────┐
+│  Update available 5.22.0 -> 7.1.0                       │
+│                                                         │
+│  This is a major update - please follow the guide at    │
+│  https://pris.ly/d/major-version-upgrade                │
+│                                                         │
+│  Run the following to update                            │
+│    npm i --save-dev prisma@latest                       │
+│    npm i @prisma/client@latest                          │
+└─────────────────────────────────────────────────────────┘
+   ▲ Next.js 16.0.8 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 2.1s
+   Running TypeScript ...
+   Collecting page data using 3 workers ...
+ ⨯ Invalid segment configuration export detected. This can cause unexpected behavior from the configs not being applied. You should see the relevant failures in the logs above. Please fix them to continue.

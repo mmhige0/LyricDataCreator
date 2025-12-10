@@ -7,7 +7,7 @@ const dest = path.join(__dirname, '..', 'public', 'dict');
 async function copyKuromojiDict() {
   try {
     await fs.promises.access(src, fs.constants.R_OK);
-  } catch (error) {
+  } catch {
     console.warn(`Kuromoji dictionaries not found at ${src}; skipping copy.`);
     return;
   }

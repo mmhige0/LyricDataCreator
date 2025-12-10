@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { extractVideoId } from '@/lib/youtubeUtils'
 import { youtubeErrors, handleError } from '@/lib/errorUtils'
 import type { YouTubePlayer } from '@/lib/types'
@@ -109,16 +109,6 @@ export const useYouTube = ({
     return () => clearInterval(interval)
   }, [player, isPlaying])
 
-  useEffect(() => {
-    if (!autoLoadInitialVideo) return
-    if (hasAutoLoadedInitialVideo.current) return
-    if (!isYouTubeAPIReady) return
-    if (!youtubeUrl) return
-
-    hasAutoLoadedInitialVideo.current = true
-    loadYouTubeVideo()
-  }, [autoLoadInitialVideo, isYouTubeAPIReady, youtubeUrl])
-
   const resetPlayer = () => {
     if (player) {
       try {
@@ -134,7 +124,7 @@ export const useYouTube = ({
     setDuration(0)
   }
 
-  const loadYouTubeVideo = () => {
+  const loadYouTubeVideo = useCallback(() => {
     const id = extractVideoId(youtubeUrl)
     if (!id) {
       youtubeErrors.invalidUrl()
@@ -222,7 +212,25 @@ export const useYouTube = ({
         }
       }, 100)
     }
-  }
+  }, [
+    elementId,
+    isYouTubeAPIReady,
+    onDurationChange,
+    onPlayerReady,
+    onPlayerStateChange,
+    player,
+    youtubeUrl,
+  ])
+
+  useEffect(() => {
+    if (!autoLoadInitialVideo) return
+    if (hasAutoLoadedInitialVideo.current) return
+    if (!isYouTubeAPIReady) return
+    if (!youtubeUrl) return
+
+    hasAutoLoadedInitialVideo.current = true
+    loadYouTubeVideo()
+  }, [autoLoadInitialVideo, isYouTubeAPIReady, loadYouTubeVideo, youtubeUrl])
 
   const togglePlayPause = () => {
     if (player) {
