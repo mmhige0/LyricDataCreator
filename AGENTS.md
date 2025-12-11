@@ -11,6 +11,7 @@
 - `npm run lint` / `npm run type-check` — ESLint (Next config) and TypeScript strict checks.
 - `npm run test` — runs lint, type-check, then `next build` to ensure the app still builds.
 - `npm run build` — production build for Vercel deployment (no GitHub Pages basePath/assetPrefix).
+- Prefer webpack for build/test (`npm run build -- --webpack`, add `-- --webpack` to `npm run test` if needed) because Turbopack currently fails in this sandbox when compiling `app/globals.css` (it tries to spawn a process that binds to a port, which the runtime forbids).
 - `npm run preview` — build then run `next start` for a pre-deploy check.
 - Run `npm install` once to copy Kuromoji dictionaries into `public/dict/` (handled by `postinstall`).
 
