@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Edit3, Gamepad2 } from "lucide-react"
@@ -225,9 +225,10 @@ export default function LyricsTypingApp() {
     setSongTitle,
   })
 
-  const handleExport = useCallback(() => {
-    exportScoreData(() => {
-      toast.success("書き出しが完了しました")
+  const handleExport = useCallback((event?: MouseEvent<HTMLButtonElement>) => {
+    const format = event?.shiftKey ? 'lrc' : 'txt'
+    exportScoreData(format, () => {
+      toast.success(`${format.toUpperCase()}を書き出しました`)
     })
   }, [exportScoreData])
 

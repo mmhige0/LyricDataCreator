@@ -1,4 +1,4 @@
-import { memo, useState, type FC } from 'react'
+import { memo, useState, type FC, type MouseEvent } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -54,7 +54,7 @@ interface ScoreManagementSectionProps {
   editingId: string | null
   getCurrentLyricsIndex: () => number
   importScoreData: () => void
-  exportScoreData: () => void
+  exportScoreData: (event?: MouseEvent<HTMLButtonElement>) => void
   deleteScoreEntry: (id: string) => void
   startEditScoreEntry: (entry: ScoreEntry) => void
   clearAllScoreEntries: () => void

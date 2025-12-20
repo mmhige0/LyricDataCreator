@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { toast } from 'sonner'
 import type { ScoreEntry } from '@/lib/types'
-import { parseLrcToScoreEntries } from '@/lib/lrcUtils'
+import { createLrcFromScoreEntries, parseLrcToScoreEntries } from '@/lib/lrcUtils'
 
 interface FileOperationsProps {
   scoreEntries: ScoreEntry[]
@@ -22,17 +22,7 @@ export const useFileOperations = ({
 }: FileOperationsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const exportScoreData = (onComplete?: () => void) => {
-    if (scoreEntries.length === 0) {
-      toast.error("ページがありません。")
-      return
-    }
-
-    const title = prompt("曲名を入力してください:", songTitle || "")
-    if (title === null) return
-
-    setSongTitle(title)
-
+  const createTxtExportContent = () => {
     let exportData = `${duration.toFixed(1)}\n`
 
     scoreEntries.forEach((entry) => {
@@ -41,19 +31,14 @@ export const useFileOperations = ({
     })
 
     exportData += `!/!/!/!/${999.9}\n`
+    return exportData
+  }
 
-    const blob = new Blob([exportData], { type: "text/plain;charset=utf-8" })
+  const triggerDownload = (content: string, filename: string, onComplete?: () => void) => {
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url
-    const now = new Date()
-    const timestamp = now.getFullYear() + "-" +
-      String(now.getMonth() + 1).padStart(2, "0") + "-" +
-      String(now.getDate()).padStart(2, "0") + "_" +
-      String(now.getHours()).padStart(2, "0") + "-" +
-      String(now.getMinutes()).padStart(2, "0") + "-" +
-      String(now.getSeconds()).padStart(2, "0")
-    const filename = title ? `${title}_${timestamp}.txt` : `譜面_${timestamp}.txt`
     link.download = filename
     document.body.appendChild(link)
     link.click()
@@ -65,6 +50,41 @@ export const useFileOperations = ({
     if (onComplete) {
       setTimeout(onComplete, 500)
     }
+  }
+
+  const exportScoreData = (format: 'txt' | 'lrc' = 'txt', onComplete?: () => void) => {
+    if (scoreEntries.length === 0) {
+      toast.error("ページがありません。")
+      return
+    }
+
+    const titleInput = prompt("曲名を入力してください:", songTitle || "")
+    if (titleInput === null) return
+
+    const trimmedTitle = titleInput.trim()
+    setSongTitle(trimmedTitle)
+
+    const now = new Date()
+    const timestamp = now.getFullYear() + "-" +
+      String(now.getMonth() + 1).padStart(2, "0") + "-" +
+      String(now.getDate()).padStart(2, "0") + "_" +
+      String(now.getHours()).padStart(2, "0") + "-" +
+      String(now.getMinutes()).padStart(2, "0") + "-" +
+      String(now.getSeconds()).padStart(2, "0")
+
+    if (format === 'lrc') {
+      const lrcContent = createLrcFromScoreEntries(scoreEntries, {
+        title: trimmedTitle,
+        duration
+      })
+      const filename = trimmedTitle ? `${trimmedTitle}_${timestamp}.lrc` : `譜面_${timestamp}.lrc`
+      triggerDownload(lrcContent, filename, onComplete)
+      return
+    }
+
+    const txtContent = createTxtExportContent()
+    const filename = trimmedTitle ? `${trimmedTitle}_${timestamp}.txt` : `譜面_${timestamp}.txt`
+    triggerDownload(txtContent, filename, onComplete)
   }
 
   const importScoreData = () => {
