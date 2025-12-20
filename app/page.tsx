@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Edit3, Gamepad2 } from "lucide-react"
+import { Edit3, Keyboard } from "lucide-react"
 import { AppHeader } from "@/components/AppHeader"
 
 export default function LandingPage() {
@@ -32,7 +32,7 @@ export default function LandingPage() {
           >
             <div className="flex items-center gap-4 text-slate-900 dark:text-white">
               <div className="rounded-full bg-emerald-100 p-4 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200">
-                <Gamepad2 className="h-6 w-6" />
+                <Keyboard className="h-6 w-6" />
               </div>
               <div>
                 <h3 className="text-2xl font-semibold">練習</h3>

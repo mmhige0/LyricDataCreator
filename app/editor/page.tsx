@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Edit3, Gamepad2 } from "lucide-react"
+import { Edit3, Keyboard } from "lucide-react"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
@@ -275,14 +275,14 @@ export default function LyricsTypingApp() {
               disabled={scoreEntries.length === 0 || !youtubeUrl}
               role="tab"
               aria-selected={activeView === "play"}
-              className={cn(
-                "rounded-full px-4 font-medium transition-colors",
-                activeView === "play"
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-100"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white",
-              )}
-            >
-              <Gamepad2 className="h-5 w-5 mr-2" />
+            className={cn(
+              "rounded-full px-4 font-medium transition-colors",
+              activeView === "play"
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-100"
+                : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white",
+            )}
+          >
+              <Keyboard className="h-5 w-5 mr-2" />
               プレイ
             </Button>
           </div>
