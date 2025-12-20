@@ -370,6 +370,7 @@ export function TypingGameContent({
   const showNextPageOverlay = isPageFullyTyped && nextPagePreviewLines.length > 0
   const overlayLines = showNextPageOverlay ? nextPagePreviewLines : undefined
   const hideBaseLines = isPageFullyTyped
+  const nextPageDisplayLines = nextPagePreviewLines.length > 0 ? nextPagePreviewLines : Array(4).fill('')
 
   // read-only 用ダミー関数群
   const dummyFunction = () => {}
@@ -598,17 +599,15 @@ export function TypingGameContent({
                 />
               </div>
 
-              {nextPagePreviewLines.length > 0 && (
-                <div className="mt-2 mb-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="h-40 pl-4 overflow-hidden flex flex-col justify-center space-y-1 text-2xl leading-snug text-gray-800 dark:text-gray-100 text-left select-none">
-                    {nextPagePreviewLines.map((line, index) => (
-                      <p key={index} className="truncate">
-                        {line || '\u00A0'}
-                      </p>
-                    ))}
-                  </div>
+              <div className="mt-2 mb-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="h-40 pl-4 overflow-hidden flex flex-col justify-center space-y-1 text-2xl leading-snug text-gray-800 dark:text-gray-100 text-left select-none">
+                  {nextPageDisplayLines.map((line, index) => (
+                    <p key={index} className="truncate">
+                      {line || '\u00A0'}
+                    </p>
+                  ))}
                 </div>
-              )}
+              </div>
 
 
               {/* ショートカットキー説明 */}
