@@ -102,7 +102,6 @@ export function SongsTable({
   const [sliderMin, setSliderMin] = useState<number>(LEVEL_DISPLAY_MIN)
   const [sliderMax, setSliderMax] = useState<number>(LEVEL_DISPLAY_MAX)
   const [appliedLevelRange, setAppliedLevelRange] = useState<{ min: number; max: number } | null>(null)
-  const prefetchedSongIdsRef = useRef<Set<number>>(new Set())
   const sliderMinRef = useRef(sliderMin)
   const sliderMaxRef = useRef(sliderMax)
   const trackRef = useRef<HTMLDivElement | null>(null)
@@ -407,12 +406,6 @@ export function SongsTable({
     router.push(`/songs/${id}`)
   }, [router])
 
-  const prefetchSongPage = useCallback((id: number) => {
-    if (prefetchedSongIdsRef.current.has(id)) return
-    prefetchedSongIdsRef.current.add(id)
-    router.prefetch(`/songs/${id}`)
-  }, [router])
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-start md:gap-3">
@@ -544,8 +537,6 @@ export function SongsTable({
                   role="button"
                   tabIndex={0}
                   onClick={() => handleRowNavigate(song.id)}
-                  onMouseEnter={() => prefetchSongPage(song.id)}
-                  onFocus={() => prefetchSongPage(song.id)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault()
