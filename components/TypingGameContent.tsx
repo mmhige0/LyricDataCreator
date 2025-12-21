@@ -338,6 +338,9 @@ export function TypingGameContent({
       ? displayWord.nextChar.roma + displayWord.remainWord.roma
       : displayWord.nextChar.kana + displayWord.remainWord.kana
     : ''
+  const toHalfWidthSpaces = (text: string) => text.replace(/\u3000/g, ' ')
+  const displayCorrectForUI = toHalfWidthSpaces(displayCorrect)
+  const displayRemainingForUI = toHalfWidthSpaces(displayRemaining)
   const getVisibleTypingText = (correct: string, remaining: string) => {
     const maxVisible = inputMode === 'roma' ? 60 : 30
     const scrollThreshold = inputMode === 'roma' ? 16 : 10
@@ -359,8 +362,8 @@ export function TypingGameContent({
   }
 
   const { visibleCorrect, visibleRemaining, prefixEllipsis, suffixEllipsis } = getVisibleTypingText(
-    displayCorrect,
-    displayRemaining,
+    displayCorrectForUI,
+    displayRemainingForUI,
   )
   const hasDisplayText = (displayCorrect + displayRemaining).length > 0
   const isPageFullyTyped =
@@ -574,7 +577,7 @@ export function TypingGameContent({
               </div>
               <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
                 {hasDisplayText && (
-                  <p className="text-2xl leading-relaxed tracking-wide break-all flex items-center">
+                  <p className="text-2xl leading-relaxed tracking-wide break-all flex items-center whitespace-pre">
                     {prefixEllipsis && (
                       <span className="text-gray-400 dark:text-gray-500 mr-1">…</span>
                     )}

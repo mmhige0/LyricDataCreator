@@ -54,8 +54,11 @@ export const TypingDisplay = ({
             const typedPart = line.slice(0, typedWithinLine)
             const remainingPart = line.slice(typedWithinLine)
 
-            return (
-              <p key={lineIndex} className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2">
+          return (
+              <p
+                key={lineIndex}
+                className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 whitespace-pre"
+              >
                 {isCompletedLine ? (
                   <span className="text-gray-300 dark:text-gray-500">{line || '\u00A0'}</span>
                 ) : isCurrentLine ? (
