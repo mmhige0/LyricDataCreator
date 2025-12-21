@@ -17,7 +17,15 @@ export const TypingDisplay = ({
 }: TypingDisplayProps) => {
   const typedKanaLength = typingWord?.correct.kana.length ?? 0
   const joinedLines = lines.join(' ')
-  const clampedTypedLength = Math.min(typedKanaLength, joinedLines.length)
+  const leadingWhitespaceLength = joinedLines.length - joinedLines.trimStart().length
+  const trailingWhitespaceLength = joinedLines.length - joinedLines.trimEnd().length
+  const trimmedLength = Math.max(0, joinedLines.length - leadingWhitespaceLength - trailingWhitespaceLength)
+  const hasTypedAll = trimmedLength === 0 ? true : typedKanaLength >= trimmedLength
+  const adjustedTypedLength = Math.min(
+    typedKanaLength + leadingWhitespaceLength + (hasTypedAll ? trailingWhitespaceLength : 0),
+    joinedLines.length
+  )
+  const clampedTypedLength = adjustedTypedLength
 
   let cursor = 0
   const shouldShowOverlayLines = hideBaseLines && overlayLines && overlayLines.length > 0
