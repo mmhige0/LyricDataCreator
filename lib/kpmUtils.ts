@@ -1,4 +1,4 @@
-import { parseWordToChunks, type WordChunk } from 'lyrics-typing-engine'
+import { buildTypingMap, type WordChunk } from 'lyrics-typing-engine'
 import { buildPageTypingData, ensureIntroPage } from './typingEngineAdapter'
 import { preprocessAndConvertLyrics } from './textUtils'
 import { convertKanjiToHiragana } from './hiraganaUtils'
@@ -81,7 +81,11 @@ const buildRomajiAndCount = async (
   let wordChunks: WordChunk[] = []
 
   try {
-    wordChunks = parseWordToChunks({ word: target, charPoint: 0 })
+    const builtLines = buildTypingMap({
+      rawMapLines: [{ time: 0, lyrics: target, word: target }],
+      charPoint: 0,
+    })
+    wordChunks = builtLines[0]?.wordChunks ?? []
   } catch (error) {
     console.error('Failed to parse word for KPM calculation', error)
     const fallbackRomaji = target.replace(/\s/g, '')

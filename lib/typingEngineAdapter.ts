@@ -82,14 +82,16 @@ export const skipSpaces = (typingWord: TypingWord): TypingWord => {
     chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
 
   while (isSkippableSpace(nextTypingWord.nextChunk)) {
-    const nextChunk = nextTypingWord.wordChunks[0]
+    const nextIndex = nextTypingWord.wordChunksIndex
+    const nextChunk = nextTypingWord.wordChunks[nextIndex]
     nextTypingWord = {
       correct: {
         kana: nextTypingWord.correct.kana + nextTypingWord.nextChunk.kana,
         roma: nextTypingWord.correct.roma + (nextTypingWord.nextChunk.romaPatterns[0] ?? ''),
       },
       nextChunk: nextChunk ?? { kana: '', romaPatterns: [], point: 0, type: undefined },
-      wordChunks: nextChunk ? nextTypingWord.wordChunks.slice(1) : [],
+      wordChunks: nextTypingWord.wordChunks,
+      wordChunksIndex: nextChunk ? nextIndex + 1 : nextIndex,
     }
     if (!nextChunk) break
   }

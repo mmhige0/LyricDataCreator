@@ -23,6 +23,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
 } from "lucide-react"
+import { createDisplayWord } from "lyrics-typing-engine"
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2]
 
@@ -76,11 +77,7 @@ export function TypingGameContent({
   totalDuration,
 }: TypingGameContentProps) {
   const [showPageList, setShowPageList] = useState(true)
-  const [isTabEnabled, setIsTabEnabledState] = useState(() => {
-    if (typeof window === 'undefined') return true
-    const storedValue = localStorage.getItem('typingTabEnabled')
-    return storedValue === 'false' ? false : true
-  })
+  const [isTabEnabled, setIsTabEnabledState] = useState(true)
   const [timeOffset, setTimeOffset] = useState(0)
   const [timeOffsetInput, setTimeOffsetInput] = useState('0')
 
@@ -93,6 +90,12 @@ export function TypingGameContent({
       return resolved
     })
   }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const storedValue = localStorage.getItem('typingTabEnabled')
+    setIsTabEnabled(storedValue === 'false' ? false : true)
+  }, [])
 
   const clampOffset = (value: number) => Math.min(100, Math.max(-100, value))
 
@@ -324,20 +327,17 @@ export function TypingGameContent({
 
   const currentPageLines = pageLyrics[pageState.pageIndex]?.slice(0, 4) ?? ['', '', '', '']
   const currentTypingWord = pageState.typingWord
-  const romajiCorrect = currentTypingWord?.correct.roma ?? ''
-  const romajiRemaining = currentTypingWord
-    ? (currentTypingWord.nextChunk.romaPatterns[0] ?? '') +
-      currentTypingWord.wordChunks.map((chunk) => chunk.romaPatterns[0] ?? '').join('')
+  const displayWord = currentTypingWord ? createDisplayWord(currentTypingWord) : null
+  const displayCorrect = displayWord
+    ? inputMode === 'roma'
+      ? displayWord.correct.roma
+      : displayWord.correct.kana
     : ''
-  const kanaCorrect = currentTypingWord?.correct.kana ?? ''
-  const kanaRemaining = currentTypingWord
-    ? currentTypingWord.nextChunk.kana + currentTypingWord.wordChunks.map((chunk) => chunk.kana).join('')
+  const displayRemaining = displayWord
+    ? inputMode === 'roma'
+      ? displayWord.nextChar.roma + displayWord.remainWord.roma
+      : displayWord.nextChar.kana + displayWord.remainWord.kana
     : ''
-  const displayCorrectRaw = inputMode === 'roma' ? romajiCorrect : kanaCorrect
-  const displayRemainingRaw = inputMode === 'roma' ? romajiRemaining : kanaRemaining
-  const sanitizeDisplay = (text: string) => text.replace(/[\s\u3000]+/g, '')
-  const displayCorrect = sanitizeDisplay(displayCorrectRaw)
-  const displayRemaining = sanitizeDisplay(displayRemainingRaw)
   const getVisibleTypingText = (correct: string, remaining: string) => {
     const maxVisible = inputMode === 'roma' ? 60 : 30
     const scrollThreshold = inputMode === 'roma' ? 16 : 10
@@ -366,7 +366,7 @@ export function TypingGameContent({
   const isPageFullyTyped =
     !!currentTypingWord &&
     !currentTypingWord.nextChunk.kana &&
-    currentTypingWord.wordChunks.length === 0
+    currentTypingWord.wordChunksIndex >= currentTypingWord.wordChunks.length
   const showNextPageOverlay = isPageFullyTyped && nextPagePreviewLines.length > 0
   const overlayLines = showNextPageOverlay ? nextPagePreviewLines : undefined
   const hideBaseLines = isPageFullyTyped

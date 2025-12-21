@@ -12,6 +12,7 @@ export const createEmptyTypingWord = (): TypingWord => ({
   correct: { kana: '', roma: '' },
   nextChunk: { kana: '', romaPatterns: [], point: 0, type: undefined },
   wordChunks: [],
+  wordChunksIndex: 0,
 })
 
 export const createBeforeFirstPageState = (): PageState => ({

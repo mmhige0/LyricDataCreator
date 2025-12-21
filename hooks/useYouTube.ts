@@ -63,7 +63,7 @@ export const useYouTube = ({
   const [currentTime, setCurrentTime] = useState<number>(0)
   const [duration, setDuration] = useState<number>(0)
   const [playbackRate, setPlaybackRate] = useState<number>(1)
-  const [volume, setVolume] = useState<number>(getStoredVolume)
+  const [volume, setVolume] = useState<number>(100)
   const [isMuted, setIsMuted] = useState<boolean>(false)
   const hasAutoLoadedInitialVideo = useRef(false)
 
@@ -97,6 +97,14 @@ export const useYouTube = ({
       clearTimeout(fallbackTimer)
     }
   }, [])
+
+  useEffect(() => {
+    const storedVolume = getStoredVolume()
+    setVolume(storedVolume)
+    if (player) {
+      player.setVolume(storedVolume)
+    }
+  }, [player])
 
   useEffect(() => {
     let interval: NodeJS.Timeout

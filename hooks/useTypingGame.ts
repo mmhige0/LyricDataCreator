@@ -43,11 +43,7 @@ export const useTypingGame = ({
   isPlaying,
 }: UseTypingGameProps) => {
   const [gameStatus, setGameStatus] = useState<GameStatus>('playing')
-  const [inputMode, setInputMode] = useState<InputMode>(() => {
-    if (typeof window === 'undefined') return 'roma'
-    const storedInputMode = localStorage.getItem('typingInputMode')
-    return storedInputMode === 'roma' || storedInputMode === 'kana' ? storedInputMode : 'roma'
-  })
+  const [inputMode, setInputMode] = useState<InputMode>('roma')
   const [pageState, setPageState] = useState<PageState>({
     ...createBeforeFirstPageState(),
   })
@@ -61,6 +57,11 @@ export const useTypingGame = ({
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    const storedInputMode = localStorage.getItem('typingInputMode')
+    const initialInputMode = storedInputMode === 'roma' || storedInputMode === 'kana' ? storedInputMode : 'roma'
+    setInputMode(initialInputMode)
+
     const correctSoundPath = withBasePath('/sounds/daken.mp3')
     const missSoundPath = withBasePath('/sounds/miss.mp3')
 
@@ -148,7 +149,9 @@ export const useTypingGame = ({
       // ページを進めるときに、打ち切り状態ならコンボを切る
       if (targetPageIndex > pageState.pageIndex) {
         const currentTypingWord = pageState.typingWord
-        const isIncomplete = !!currentTypingWord.nextChunk.kana || currentTypingWord.wordChunks.length > 0
+        const isIncomplete =
+          !!currentTypingWord.nextChunk.kana ||
+          currentTypingWord.wordChunksIndex < currentTypingWord.wordChunks.length
         if (isIncomplete) {
           setCombo(0)
         }
@@ -214,17 +217,17 @@ export const useTypingGame = ({
         if (!hasNextPage) return
 
         const nextPageTime = scoreEntries[pageState.pageIndex + 1].timestamp
-        const remainingTime = nextPageTime - currentVideoTime
+      const remainingTime = nextPageTime - currentVideoTime
 
-        const isPageFullyTyped =
-          !!pageState.typingWord &&
-          !pageState.typingWord.nextChunk.kana &&
-          pageState.typingWord.wordChunks.length === 0
+      const isPageFullyTyped =
+        !!pageState.typingWord &&
+        !pageState.typingWord.nextChunk.kana &&
+        pageState.typingWord.wordChunksIndex >= pageState.typingWord.wordChunks.length
 
-        const canSkip =
-          !!isPlaying && hasNextPage && remainingTime >= 3 && isPageFullyTyped
-        if (canSkip) {
-          onSkipToNextPage?.()
+      const canSkip =
+        !!isPlaying && hasNextPage && remainingTime >= 3 && isPageFullyTyped
+      if (canSkip) {
+        onSkipToNextPage?.()
         }
         return
       }
@@ -260,7 +263,8 @@ export const useTypingGame = ({
       if (!isTypingKey(event)) return
 
       const hasRemainingChars =
-        !!currentTypingWord.nextChunk.kana || currentTypingWord.wordChunks.length > 0
+        !!currentTypingWord.nextChunk.kana ||
+        currentTypingWord.wordChunksIndex < currentTypingWord.wordChunks.length
       if (!hasRemainingChars) return
 
       event.preventDefault()
@@ -285,9 +289,10 @@ export const useTypingGame = ({
         const isSpaceChunk = (chunk: TypingWord['nextChunk']) =>
           chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
 
-        const isWordCompletedFlag =
-          isSpaceChunk(updatedTypingWord.nextChunk) ||
-          (!updatedTypingWord.nextChunk.kana && updatedTypingWord.wordChunks.length === 0)
+        const hasRemainingAfterType =
+          !!updatedTypingWord.nextChunk.kana ||
+          updatedTypingWord.wordChunksIndex < updatedTypingWord.wordChunks.length
+        const isWordCompletedFlag = isSpaceChunk(updatedTypingWord.nextChunk) || !hasRemainingAfterType
 
         if (isWordCompletedFlag) {
           setCombo((prev) => {
@@ -300,7 +305,8 @@ export const useTypingGame = ({
         updatedTypingWord = skipSpaces(updatedTypingWord)
 
         const isPageFullyTyped =
-          !updatedTypingWord.nextChunk.kana && updatedTypingWord.wordChunks.length === 0
+          !updatedTypingWord.nextChunk.kana &&
+          updatedTypingWord.wordChunksIndex >= updatedTypingWord.wordChunks.length
 
         if (isPageFullyTyped && isPlaying === false && pageState.pageIndex >= 0) {
           initializePage(pageState.pageIndex)

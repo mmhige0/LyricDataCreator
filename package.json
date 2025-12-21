@@ -24,7 +24,7 @@
     "kuroshiro": "^1.2.0",
     "kuroshiro-analyzer-kuromoji": "^1.1.0",
     "lucide-react": "^0.543.0",
-    "lyrics-typing-engine": "^1.1.13",
+    "lyrics-typing-engine": "^2.0.0",
     "next": "^16.0.8",
     "postcss": "^8",
     "react": "^19.2.1",
