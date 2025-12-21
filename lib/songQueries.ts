@@ -12,7 +12,6 @@ import {
 } from "@/types/songs"
 
 export const SONGS_TAG = "songs"
-export const SONGS_COUNT_TAG = "songs-count"
 const SONG_DETAIL_TAG_PREFIX = "song-detail"
 const ONE_WEEK_SECONDS = 60 * 60 * 24 * 7
 
@@ -30,12 +29,6 @@ const buildLevelKey = (levelMin?: number | null, levelMax?: number | null) => {
   const normalized = normalizeDisplayLevelRange(levelMin, levelMax)
   return normalized ? `lvl:${normalized.min}-${normalized.max}` : "lvl:any"
 }
-
-const buildCountKey = (search: string, levelMin?: number | null, levelMax?: number | null) => [
-  "song-count",
-  search || "all",
-  buildLevelKey(levelMin, levelMax),
-]
 
 const convertKatakanaToHiragana = (text: string): string =>
   text.replace(/[\u30A1-\u30F6]/g, (char) => String.fromCharCode(char.charCodeAt(0) - 0x60))
@@ -134,10 +127,9 @@ export const getSongsPage = async ({
   if (!isDatabaseConfigured) {
     return {
       data: [],
-      total: 0,
       page: 1,
-      totalPages: 1,
       pageSize: normalizedPageSize,
+      hasNext: false,
     }
   }
 
@@ -155,23 +147,11 @@ export const getSongsPage = async ({
   }
   const orderBy = buildSort(sortKey, sortDirection)
 
-  const countKey = buildCountKey(normalizedSearch, normalizedLevelRange?.min, normalizedLevelRange?.max)
-  const total = await unstable_cache(
-    async () => prisma.song.count({ where }),
-    countKey,
-    {
-      tags: [SONGS_COUNT_TAG],
-      revalidate: ONE_WEEK_SECONDS,
-    }
-  )()
-  const totalPages = Math.max(1, Math.ceil(total / normalizedPageSize))
-  const pageToUse = Math.min(safePage, totalPages)
-
   const listKey = buildListKey({
     search: normalizedSearch,
     sortKey,
     sortDirection,
-    page: pageToUse,
+    page: safePage,
     pageSize: normalizedPageSize,
     levelMin: normalizedLevelRange?.min,
     levelMax: normalizedLevelRange?.max,
@@ -189,8 +169,8 @@ export const getSongsPage = async ({
         },
         where,
         orderBy,
-        skip: (pageToUse - 1) * normalizedPageSize,
-        take: normalizedPageSize,
+        skip: (safePage - 1) * normalizedPageSize,
+        take: normalizedPageSize + 1,
       }),
     listKey,
     {
@@ -198,13 +178,14 @@ export const getSongsPage = async ({
       revalidate: ONE_WEEK_SECONDS,
     }
   )()
+  const hasNext = data.length > normalizedPageSize
+  const pageData = hasNext ? data.slice(0, normalizedPageSize) : data
 
   return {
-    data,
-    total,
-    page: pageToUse,
-    totalPages,
+    data: pageData,
+    page: safePage,
     pageSize: normalizedPageSize,
+    hasNext,
   }
 }
 
@@ -213,7 +194,6 @@ export const isSupportedSortKey = (value: string | null): value is SongSortKey =
 
 export const revalidateSongsCache = () => {
   revalidateTag(SONGS_TAG, 'max')
-  revalidateTag(SONGS_COUNT_TAG, 'max')
 }
 
 export const revalidateSongCache = (id: number) => {

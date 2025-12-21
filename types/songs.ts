@@ -8,10 +8,9 @@ export type SongSummary = {
 
 export type SongsResponse = {
   data: SongSummary[]
-  total: number
   page: number
-  totalPages: number
   pageSize: number
+  hasNext: boolean
 }
 
 export const SONG_SORT_KEYS = ["id", "title", "artist", "level"] as const

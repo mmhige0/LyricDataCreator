@@ -183,23 +183,18 @@ export function SongsTable({
     }
   }, [data, error])
 
-  useEffect(() => {
-    if (data && page > data.totalPages) {
-      setPage(data.totalPages)
-    }
-  }, [data, page])
-
   const activeData = data
   const hideRows = hideStaleRows
   const songs = hideRows ? [] : activeData?.data ?? []
   const pageSizeForDisplay = activeData?.pageSize ?? SONGS_PAGE_SIZE
-  const total = hideRows ? 0 : activeData?.total ?? 0
-  const totalPages = hideRows ? 1 : activeData?.totalPages ?? 1
+  const hasNext = hideRows ? false : activeData?.hasNext ?? false
   const currentPage = activeData?.page ?? page
   const loading = isLoading || (!data && isValidating)
   const showRetryableError = Boolean(error)
   const paginationDisabled = loading
   const errorMessage = error?.message ?? "曲の読み込みに失敗しました"
+  const displayStart = songs.length === 0 ? 0 : (currentPage - 1) * pageSizeForDisplay + 1
+  const displayEnd = songs.length === 0 ? 0 : displayStart + songs.length - 1
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
@@ -452,10 +447,7 @@ export function SongsTable({
 
       <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
         <span>
-          {total} 曲中{" "}
-          {total === 0
-            ? 0
-            : (currentPage - 1) * pageSizeForDisplay + 1}-{total === 0 ? 0 : Math.min(currentPage * pageSizeForDisplay, total)} 件を表示
+          {displayStart}-{displayEnd} 件を表示
         </span>
         <div className="flex items-center gap-2">
           <Button
@@ -467,12 +459,12 @@ export function SongsTable({
             前へ
           </Button>
           <span className="text-xs">
-            {currentPage} / {totalPages}
+            {currentPage}
           </span>
           <Button
             variant="outline"
             size="sm"
-            disabled={currentPage >= totalPages || paginationDisabled}
+            disabled={!hasNext || paginationDisabled}
             onClick={() => setPage((value) => value + 1)}
           >
             次へ

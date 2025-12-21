@@ -30,10 +30,9 @@ export default async function SongsPage() {
         <SongsTable
           initialData={{
             data: initialData.data,
-            total: initialData.total,
             page: initialData.page,
-            totalPages: initialData.totalPages,
             pageSize: initialData.pageSize,
+            hasNext: initialData.hasNext,
           }}
           initialSortKey={INITIAL_SORT_KEY}
           initialSortDirection={INITIAL_SORT_DIRECTION}
