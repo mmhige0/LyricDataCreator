@@ -14,7 +14,8 @@ const halfWidthToFullWidth = (text: string): string => {
  * アルファベット・スペース以外の記号を削除する
  */
 const removeSymbols = (text: string): string => {
-  return text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\uFF66-\uFF9F\uFF21-\uFF3A\uFF41-\uFF5Aa-zA-Z\s]/g, "")
+  // 「々」は漢字ではないため明示的に許容する
+  return text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u3005\u4E00-\u9FAF\uFF66-\uFF9F\uFF21-\uFF3A\uFF41-\uFF5Aa-zA-Z\s]/g, "")
 }
 
 /**
