@@ -338,9 +338,9 @@ export function TypingGameContent({
       ? displayWord.nextChar.roma + displayWord.remainWord.roma
       : displayWord.nextChar.kana + displayWord.remainWord.kana
     : ''
-  const toHalfWidthSpaces = (text: string) => text.replace(/\u3000/g, ' ')
-  const displayCorrectForUI = toHalfWidthSpaces(displayCorrect)
-  const displayRemainingForUI = toHalfWidthSpaces(displayRemaining)
+  const normalizeDisplayText = (text: string) => text.replace(/\u3000/g, ' ').toLowerCase()
+  const displayCorrectForUI = normalizeDisplayText(displayCorrect)
+  const displayRemainingForUI = normalizeDisplayText(displayRemaining)
   const getVisibleTypingText = (correct: string, remaining: string) => {
     const maxVisible = inputMode === 'roma' ? 60 : 30
     const scrollThreshold = inputMode === 'roma' ? 16 : 10
