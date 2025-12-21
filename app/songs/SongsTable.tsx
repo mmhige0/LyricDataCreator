@@ -481,6 +481,7 @@ export function SongsTable({
                 size="sm"
                 onClick={requestRandomSongs}
                 disabled={randomLoading || loading}
+                className="bg-blue-500 text-white hover:bg-blue-600"
               >
                 ランダム
               </Button>
