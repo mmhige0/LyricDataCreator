@@ -10,6 +10,7 @@ import {
   LEVEL_DISPLAY_MAX,
   LEVEL_DISPLAY_MIN,
   normalizeDisplayLevelRange,
+  parseLevelValue,
 } from "@/lib/levels"
 import {
   SONGS_PAGE_SIZE,
@@ -56,6 +57,8 @@ const buildSongsKey = (params: SongsKey[1]): SongsKey => [
     levelMax: params.levelMax,
   },
 ]
+
+const RANDOM_SONG_COUNT = 10
 
 const fetchSongs = async ([, params]: SongsKey): Promise<SongsResponse> => {
   const searchParams = new URLSearchParams({
@@ -104,11 +107,18 @@ export function SongsTable({
   const sliderMaxRef = useRef(sliderMax)
   const trackRef = useRef<HTMLDivElement | null>(null)
   const [dragging, setDragging] = useState<"min" | "max" | null>(null)
+  const [randomSongs, setRandomSongs] = useState<SongsResponse | null>(null)
+  const [randomLoading, setRandomLoading] = useState(false)
+  const [randomError, setRandomError] = useState<string | null>(null)
+  const [randomSorted, setRandomSorted] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput)
       setPage(1)
+      setRandomSongs(null)
+      setRandomError(null)
+      setRandomSorted(false)
     }, 250)
     return () => clearTimeout(timer)
   }, [searchInput])
@@ -146,6 +156,9 @@ export function SongsTable({
   const handleClearSearch = useCallback(() => {
     setSearchInput("")
     setSearch("")
+    setRandomSongs(null)
+    setRandomError(null)
+    setRandomSorted(false)
     setPage(1)
   }, [])
 
@@ -183,28 +196,88 @@ export function SongsTable({
     }
   }, [data, error])
 
-  const activeData = data
-  const hideRows = hideStaleRows
+  const isRandomMode = randomLoading || Boolean(randomSongs)
+  const activeData = randomSongs ?? data
+  const hideRows = isRandomMode ? false : hideStaleRows
   const songs = hideRows ? [] : activeData?.data ?? []
-  const pageSizeForDisplay = activeData?.pageSize ?? SONGS_PAGE_SIZE
-  const hasNext = hideRows ? false : activeData?.hasNext ?? false
+  const pageSizeForDisplay = isRandomMode ? songs.length || 1 : activeData?.pageSize ?? SONGS_PAGE_SIZE
+  const hasNext = hideRows ? false : isRandomMode ? false : activeData?.hasNext ?? false
   const currentPage = activeData?.page ?? page
-  const loading = isLoading || (!data && isValidating)
-  const showRetryableError = Boolean(error)
-  const paginationDisabled = loading
-  const errorMessage = error?.message ?? "曲の読み込みに失敗しました"
+  const baseLoading = isLoading || (!data && isValidating)
+  const loading = isRandomMode ? randomLoading : baseLoading
+  const showRetryableError = isRandomMode ? Boolean(randomError) : Boolean(error)
+  const paginationDisabled = loading || isRandomMode
+  const errorMessage =
+    isRandomMode && randomError
+      ? randomError
+      : error?.message ?? "曲の読み込みに失敗しました"
   const displayStart = songs.length === 0 ? 0 : (currentPage - 1) * pageSizeForDisplay + 1
   const displayEnd = songs.length === 0 ? 0 : displayStart + songs.length - 1
 
+  const sortSongList = useCallback(
+    (list: SongsResponse["data"], key: SongSortKey, direction: SongSortDirection) => {
+      const multiplier = direction === "asc" ? 1 : -1
+      return [...list].sort((a, b) => {
+        if (key === "id") {
+          return (a.id - b.id) * multiplier
+        }
+        if (key === "level") {
+          const levelValueA = parseLevelValue(a.level)
+          const levelValueB = parseLevelValue(b.level)
+          if (levelValueA !== null && levelValueB !== null) {
+            return (levelValueA - levelValueB) * multiplier
+          }
+          if (levelValueA !== null) return -1 * multiplier
+          if (levelValueB !== null) return 1 * multiplier
+          const levelA = a.level ?? ""
+          const levelB = b.level ?? ""
+          return levelA.localeCompare(levelB, "ja") * multiplier
+        }
+        if (key === "artist") {
+          const artistA = a.artist ?? ""
+          const artistB = b.artist ?? ""
+          return artistA.localeCompare(artistB, "ja") * multiplier
+        }
+        return a.title.localeCompare(b.title, "ja") * multiplier
+      })
+    },
+    []
+  )
+
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) {
-      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+      setSortDirection((prev) => {
+        const nextDirection = prev === "asc" ? "desc" : "asc"
+        if (randomSongs) {
+          setRandomSorted(true)
+          setRandomSongs((current) =>
+            current
+              ? {
+                  ...current,
+                  data: sortSongList(current.data, key as SongSortKey, nextDirection),
+                }
+              : current
+          )
+        }
+        return nextDirection
+      })
       setPage(1)
       return
     }
     setSortKey(key)
     const nextDirection = key === "id" ? "desc" : "asc"
     setSortDirection(nextDirection)
+    if (randomSongs) {
+      setRandomSorted(true)
+      setRandomSongs((current) =>
+        current
+          ? {
+              ...current,
+              data: sortSongList(current.data, key as SongSortKey, nextDirection),
+            }
+          : current
+      )
+    }
     setPage(1)
   }
 
@@ -226,6 +299,9 @@ export function SongsTable({
       (normalized.min !== LEVEL_DISPLAY_MIN || normalized.max !== LEVEL_DISPLAY_MAX)
         ? normalized
         : null
+    setRandomSongs(null)
+    setRandomError(null)
+    setRandomSorted(false)
     setAppliedLevelRange(nextRange)
     setPage(1)
   }, [])
@@ -237,6 +313,44 @@ export function SongsTable({
     }),
     [levelToPercent, normalizedSliderRange.max, normalizedSliderRange.min]
   )
+
+  const clearRandomSongs = useCallback(() => {
+    setRandomSongs(null)
+    setRandomError(null)
+    setRandomSorted(false)
+  }, [])
+
+  const requestRandomSongs = useCallback(async () => {
+    setRandomLoading(true)
+    setRandomError(null)
+    try {
+      const params = new URLSearchParams({ limit: String(RANDOM_SONG_COUNT) })
+      if (search.trim()) {
+        params.set("search", search.trim())
+      }
+      if (appliedLevelRange?.min != null) {
+        params.set("levelMin", String(appliedLevelRange.min))
+      }
+      if (appliedLevelRange?.max != null) {
+        params.set("levelMax", String(appliedLevelRange.max))
+      }
+
+      const response = await fetch(`/api/songs/random?${params.toString()}`)
+      if (!response.ok) {
+        throw new Error(`ランダム取得に失敗しました (${response.status})`)
+      }
+      const payload = (await response.json()) as SongsResponse
+      setRandomSongs(payload)
+      setRandomSorted(false)
+      setHideStaleRows(false)
+    } catch (requestError) {
+      const message =
+        requestError instanceof Error ? requestError.message : "ランダム取得に失敗しました"
+      setRandomError(message)
+    } finally {
+      setRandomLoading(false)
+    }
+  }, [appliedLevelRange, search])
 
   const positionToValue = useCallback(
     (clientX: number) => {
@@ -361,7 +475,29 @@ export function SongsTable({
               </div>
               <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.max}</span>
             </div>
+            <div className="flex items-center gap-2 md:justify-end min-w-[200px]">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={requestRandomSongs}
+                disabled={randomLoading || loading}
+              >
+                ランダム
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearRandomSongs}
+                disabled={randomLoading}
+                className={isRandomMode ? "" : "invisible"}
+              >
+                リセット
+              </Button>
+            </div>
           </div>
+          {randomError && (
+            <p className="text-right text-xs text-red-600 dark:text-red-400">{randomError}</p>
+          )}
         </div>
       </div>
 
@@ -377,7 +513,9 @@ export function SongsTable({
                   { key: "level", label: "Lv.", className: "w-[80px]" },
                 ].map(({ key, label, className }) => {
                   const isActive = sortKey === key
-                  const direction = isActive ? (sortDirection === "asc" ? "↑" : "↓") : ""
+                  const showDirection = !isRandomMode || randomSorted
+                  const direction =
+                    isActive && showDirection ? (sortDirection === "asc" ? "↑" : "↓") : ""
 
                   return (
                     <th

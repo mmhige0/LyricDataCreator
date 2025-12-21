@@ -14,6 +14,7 @@ import {
 export const SONGS_TAG = "songs"
 const SONG_DETAIL_TAG_PREFIX = "song-detail"
 const ONE_WEEK_SECONDS = 60 * 60 * 24 * 7
+const RANDOM_SONG_COUNT = 10
 
 type SongsQuery = {
   search: string
@@ -23,6 +24,13 @@ type SongsQuery = {
   sortDirection: SongSortDirection
   levelMin?: number | null
   levelMax?: number | null
+}
+
+type RandomSongsQuery = {
+  search: string
+  levelMin?: number | null
+  levelMax?: number | null
+  limit?: number
 }
 
 const buildLevelKey = (levelMin?: number | null, levelMax?: number | null) => {
@@ -186,6 +194,103 @@ export const getSongsPage = async ({
     page: safePage,
     pageSize: normalizedPageSize,
     hasNext,
+  }
+}
+
+export const getRandomSongs = async ({
+  search,
+  levelMin,
+  levelMax,
+  limit = RANDOM_SONG_COUNT,
+}: RandomSongsQuery): Promise<SongsResponse> => {
+  const normalizedSearch = search.trim()
+  const normalizedLevelRange = normalizeDisplayLevelRange(levelMin, levelMax)
+  const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
+  const normalizedLimit = clampPageSize(limit || RANDOM_SONG_COUNT)
+  const searchVariants = buildSearchVariants(normalizedSearch)
+
+  if (!isDatabaseConfigured) {
+    return {
+      data: [],
+      page: 1,
+      pageSize: normalizedLimit,
+      hasNext: false,
+    }
+  }
+
+  const where: Prisma.SongWhereInput = {
+    ...(buildSearchFilter(normalizedSearch) ?? {}),
+    ...(levelValueRange
+      ? {
+          levelValue: {
+            gte: levelValueRange.minValue,
+            lte: levelValueRange.maxValue,
+          },
+        }
+      : {}),
+  }
+
+  const whereSqlParts: Prisma.Sql[] = []
+  if (searchVariants.length > 0) {
+    const likeClauses = searchVariants.map((variant) => {
+      const pattern = `%${variant}%`
+      return Prisma.sql`("title" ILIKE ${pattern} OR "artist" ILIKE ${pattern})`
+    })
+    if (likeClauses.length > 0) {
+      whereSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, " OR ")})`)
+    }
+  }
+  if (levelValueRange) {
+    whereSqlParts.push(
+      Prisma.sql`"levelValue" BETWEEN ${levelValueRange.minValue} AND ${levelValueRange.maxValue}`
+    )
+  }
+  const whereSql =
+    whereSqlParts.length > 0
+      ? Prisma.sql`WHERE TRUE AND ${Prisma.join(whereSqlParts, " AND ")}`
+      : Prisma.empty
+
+  let data: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+  try {
+    data = await prisma.$queryRaw<
+      Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+    >(Prisma.sql`
+      SELECT "id", "title", "artist", "youtubeUrl", "level"
+      FROM "Song"
+      ${whereSql}
+      ORDER BY random()
+      LIMIT ${normalizedLimit}
+    `)
+  } catch (error) {
+    // Fallback to in-memory shuffle if raw query fails for any reason.
+    console.error("Random songs query failed, falling back to in-memory shuffle", {
+      error,
+      search: normalizedSearch,
+      searchVariants,
+      levelValueRange,
+    })
+    const candidates = await prisma.song.findMany({
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        youtubeUrl: true,
+        level: true,
+      },
+      where,
+    })
+    for (let i = candidates.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[candidates[i], candidates[j]] = [candidates[j], candidates[i]]
+    }
+    data = candidates.slice(0, normalizedLimit)
+  }
+
+  return {
+    data,
+    page: 1,
+    pageSize: normalizedLimit,
+    hasNext: false,
   }
 }
 
