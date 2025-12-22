@@ -2,8 +2,8 @@ name: Keep Supabase Warm
 
 on:
   schedule:
-    # 15分おき（無料枠向けの控えめな間隔）
-    - cron: '*/15 * * * *'
+    # 1日1回（UTC 00:00）
+    - cron: '0 0 * * *'
   workflow_dispatch: {}
 
 permissions:
