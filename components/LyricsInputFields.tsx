@@ -21,7 +21,7 @@ export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
     e: React.KeyboardEvent<HTMLInputElement>,
     index: number
   ) => {
-    if (e.key !== 'Enter' || index >= lyrics.length - 1) return
+    if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || index >= lyrics.length - 1) return
 
     e.preventDefault()
 
