@@ -170,6 +170,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           lyrics={lyrics}
           setLyrics={setLyrics}
           lyricsInputRefs={lyricsInputRefs}
+          saveCurrentState={saveCurrentState}
         />
 
         <div className="flex justify-end">

@@ -8,13 +8,15 @@ interface LyricsInputFieldsProps {
   setLyrics: (lyrics: LyricsArray) => void
   lyricsInputRefs?: React.MutableRefObject<(HTMLInputElement | null)[]>
   placeholder?: string
+  saveCurrentState?: () => void
 }
 
 export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
   lyrics,
   setLyrics,
   lyricsInputRefs,
-  placeholder = "空行の場合は入力不要"
+  placeholder = "空行の場合は入力不要",
+  saveCurrentState
 }) => {
 
   const handleEnterKey = (
@@ -37,6 +39,9 @@ export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
     newLyrics[index] = before
     const shouldAddSpace = after.length > 0 && nextLine.length > 0
     newLyrics[index + 1] = `${after}${shouldAddSpace ? '　' : ''}${nextLine}`
+
+    // Allow undo/redo for Enter-based splits
+    saveCurrentState?.()
     setLyrics(newLyrics)
 
     const nextInput = lyricsInputRefs?.current?.[index + 1]
