@@ -121,12 +121,22 @@ export const useKeyboardShortcuts = ({
 
     if (event.key === "Tab" && isInputFocused) {
       const currentIndex = lyricsInputRefs.current.findIndex((ref) => ref === activeElement)
-      if (currentIndex >= 0 && currentIndex < 3) {
+      const isShift = event.shiftKey
+
+      if (currentIndex >= 0) {
+        if (isShift && currentIndex > 0) {
+          event.preventDefault()
+          lyricsInputRefs.current[currentIndex - 1]?.focus()
+        } else if (!isShift && currentIndex < 3) {
+          event.preventDefault()
+          lyricsInputRefs.current[currentIndex + 1]?.focus()
+        } else if (!isShift && currentIndex === 3) {
+          event.preventDefault()
+          timestampInputRef.current?.focus()
+        }
+      } else if (isShift && activeElement === timestampInputRef.current) {
         event.preventDefault()
-        lyricsInputRefs.current[currentIndex + 1]?.focus()
-      } else if (currentIndex === 3) {
-        event.preventDefault()
-        timestampInputRef.current?.focus()
+        lyricsInputRefs.current[3]?.focus()
       }
     }
   }

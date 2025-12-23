@@ -17,6 +17,37 @@ export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
   placeholder = "空行の場合は入力不要"
 }) => {
 
+  const handleEnterKey = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    if (e.key !== 'Enter' || index >= lyrics.length - 1) return
+
+    e.preventDefault()
+
+    const { selectionStart, selectionEnd, value } = e.currentTarget
+    const start = selectionStart ?? value.length
+    const end = selectionEnd ?? start
+
+    const before = value.slice(0, start)
+    const after = value.slice(end)
+    const nextLine = lyrics[index + 1] ?? ''
+
+    const newLyrics = [...lyrics] as LyricsArray
+    newLyrics[index] = before
+    const shouldAddSpace = after.length > 0 && nextLine.length > 0
+    newLyrics[index + 1] = `${after}${shouldAddSpace ? '　' : ''}${nextLine}`
+    setLyrics(newLyrics)
+
+    const nextInput = lyricsInputRefs?.current?.[index + 1]
+    if (nextInput) {
+      requestAnimationFrame(() => {
+        nextInput.focus()
+        nextInput.setSelectionRange(0, 0)
+      })
+    }
+  }
+
   return (
     <>
       {lyrics.map((line, index) => (
@@ -35,6 +66,7 @@ export const LyricsInputFields: React.FC<LyricsInputFieldsProps> = ({
               newLyrics[index] = e.target.value
               setLyrics(newLyrics)
             }}
+            onKeyDown={(e) => handleEnterKey(e, index)}
             className="h-12 text-lg px-4"
           />
         </div>
