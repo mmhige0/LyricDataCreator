@@ -164,7 +164,7 @@ export function SongsTable({
     !appliedLevelRange
 
   const getSongsKey = useCallback(
-    (pageIndex: number, previousPageData?: SongsResponse) => {
+    (pageIndex: number, previousPageData: SongsResponse | null) => {
       if (previousPageData && !previousPageData.hasNext) {
         return null
       }
@@ -183,7 +183,7 @@ export function SongsTable({
     isValidating,
     setSize,
   } = useSWRInfinite<SongsResponse, Error>(getSongsKey, fetchSongs, {
-    fallbackData: shouldUseFallback ? [initialData] : undefined,
+    fallbackData: shouldUseFallback && initialData ? [initialData] : undefined,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     errorRetryCount: 2,
