@@ -645,7 +645,7 @@ export function TypingGameContent({
           {/* 右側: ページ一覧 */}
               {showPageList && (
                 <div className="w-full max-w-md lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
-                  <ScoreManagementSection
+              <ScoreManagementSection
                 scoreEntries={normalizedScoreEntries}
                 duration={effectiveDuration}
                 player={player}
@@ -663,6 +663,7 @@ export function TypingGameContent({
                 canUndo={false}
                 canRedo={false}
                 readOnly
+                kpmModeOverride={inputMode}
                 timeOffsetControl={{
                   value: timeOffsetInput,
                   displayValue: timeOffset,

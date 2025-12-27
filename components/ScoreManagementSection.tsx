@@ -65,6 +65,7 @@ interface ScoreManagementSectionProps {
   canUndo: boolean
   canRedo: boolean
   readOnly?: boolean
+  kpmModeOverride?: 'roma' | 'kana'
   timeOffsetControl?: {
     value: string
     displayValue: number
@@ -92,6 +93,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   canUndo,
   canRedo,
   readOnly = false,
+  kpmModeOverride,
   timeOffsetControl,
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
@@ -99,6 +101,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const [adjustValue, setAdjustValue] = useState<string>('0')
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
   const [kpmMode, setKpmMode] = useState<'roma' | 'kana'>('roma')
+  const effectiveKpmMode = kpmModeOverride ?? kpmMode
 
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
@@ -269,7 +272,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       )}
                     </div>
                     <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                      <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={kpmMode} />
+                      <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} />
                     </div>
                     {!readOnly && (
                       <div className="flex flex-col gap-1 min-w-fit self-center">
