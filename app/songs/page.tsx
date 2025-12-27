@@ -7,17 +7,12 @@ import {
   type SongsResponse,
 } from "@/types/songs"
 import { SongsTable } from "./SongsTable"
-import { Space_Grotesk } from "next/font/google"
 
 export const revalidate = 180
 export const runtime = "nodejs"
 
 const INITIAL_SORT_KEY: SongSortKey = "id"
 const INITIAL_SORT_DIRECTION: SongSortDirection = "desc"
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-})
 
 export default async function SongsPage() {
   const initialData: SongsResponse = await getSongsPage({
@@ -29,7 +24,7 @@ export default async function SongsPage() {
   })
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b from-slate-50 via-amber-50/40 to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-white ${spaceGrotesk.className}`}>
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-amber-50/40 to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-white">
       <AppHeader title="Song Typing Theater" titleHref="/" />
       <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
         <SongsTable

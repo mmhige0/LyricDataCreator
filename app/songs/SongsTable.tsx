@@ -546,7 +546,7 @@ export function SongsTable({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-2">
         {songs.map((song) => {
           const thumbnailUrl = getYouTubeThumbnailUrl(song.youtubeUrl)
           return (
@@ -556,36 +556,34 @@ export function SongsTable({
               onClick={() => handleRowNavigate(song.id)}
               className="group text-left"
             >
-              <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
-                <div className="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-800">
+              <div className="flex overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                <div className="relative w-[180px] shrink-0 overflow-hidden bg-slate-200 dark:bg-slate-800 aspect-video">
                   {thumbnailUrl ? (
                     <img
                       src={thumbnailUrl}
                       alt={`${song.title}のYouTubeサムネイル`}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
                       loading="lazy"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex h-full w-full items-center justify-center px-2 text-xs text-slate-500 dark:text-slate-400">
                       サムネイルなし
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent opacity-0 transition group-hover:opacity-100" />
-                  <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-800 shadow-sm">
+                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/10 to-transparent opacity-0 transition group-hover:opacity-100" />
+                </div>
+                <div className="relative flex min-w-0 flex-1 flex-col justify-center space-y-3 p-5">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     No.{song.id}
                   </div>
-                </div>
-                <div className="space-y-2 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="text-base font-semibold text-slate-900 truncate dark:text-white">
-                      {song.title}
-                    </div>
-                    <div className="shrink-0 text-sm font-semibold text-slate-500 dark:text-slate-400">
-                      Lv.{song.level ?? "—"}
-                    </div>
+                  <div className="min-w-0 text-xl font-semibold text-slate-900 truncate dark:text-white">
+                    {song.title}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-300">
+                  <div className="text-lg font-medium text-slate-700 dark:text-slate-200">
                     {song.artist ?? "—"}
+                  </div>
+                  <div className="absolute right-5 top-5 text-base font-semibold text-slate-500 dark:text-slate-400">
+                    Lv.{song.level ?? "—"}
                   </div>
                 </div>
               </div>
