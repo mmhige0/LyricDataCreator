@@ -12,6 +12,7 @@ import {
   normalizeDisplayLevelRange,
   parseLevelValue,
 } from "@/lib/levels"
+import { extractVideoId } from "@/lib/youtubeUtils"
 import {
   SONGS_PAGE_SIZE,
   type SongSortDirection,
@@ -59,6 +60,17 @@ const buildSongsKey = (params: SongsKey[1]): SongsKey => [
 ]
 
 const RANDOM_SONG_COUNT = 10
+const SORT_OPTIONS: Array<{ key: SongSortKey; label: string }> = [
+  { key: "id", label: "No." },
+  { key: "title", label: "曲名" },
+  { key: "artist", label: "アーティスト" },
+  { key: "level", label: "Lv." },
+]
+
+const getYouTubeThumbnailUrl = (youtubeUrl: string) => {
+  const videoId = extractVideoId(youtubeUrl)
+  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : ""
+}
 
 const fetchSongs = async ([, params]: SongsKey): Promise<SongsResponse> => {
   const searchParams = new URLSearchParams({
@@ -407,178 +419,210 @@ export function SongsTable({
   }, [router])
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-start md:gap-3">
-        <div className="w-full md:w-[430px] md:flex-shrink-0">
-          <div className="relative">
-            <Input
-              placeholder="曲名やアーティスト名で検索"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              className="w-full bg-white pr-10"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-slate-800"
-                aria-label="検索をクリア"
-              >
-                ×
-              </button>
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="w-full xl:max-w-[440px]">
+            <div className="relative">
+              <Input
+                placeholder="曲名やアーティスト名で検索"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                className="w-full bg-white pr-10 shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-slate-950"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-slate-800"
+                  aria-label="検索をクリア"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="flex w-full flex-col gap-3 xl:max-w-[720px]">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50/70 px-3 py-3 dark:bg-slate-800/40">
+              <div className="flex flex-1 items-center gap-2 min-w-[260px]">
+                <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.min}</span>
+                <div
+                  className="relative h-2 w-full max-w-[280px] cursor-pointer select-none rounded-full bg-slate-200 dark:bg-slate-700"
+                  ref={trackRef}
+                  onPointerDown={handleTrackPointerDown}
+                  onPointerMove={handleSliderPointerMove}
+                  onPointerUp={handleSliderPointerUp}
+                >
+                  <div
+                    className="absolute h-full rounded-full bg-blue-500/70 dark:bg-blue-400/70"
+                    style={{
+                      left: `${percentRange.min}%`,
+                      width: `${Math.max(0, percentRange.max - percentRange.min)}%`,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onPointerDown={(event) => handleThumbPointerDown(event, "min")}
+                    onPointerMove={handleSliderPointerMove}
+                    onPointerUp={handleSliderPointerUp}
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                    style={{ left: `${percentRange.min}%` }}
+                    aria-label="Lv.下限を変更"
+                  />
+                  <button
+                    type="button"
+                    onPointerDown={(event) => handleThumbPointerDown(event, "max")}
+                    onPointerMove={handleSliderPointerMove}
+                    onPointerUp={handleSliderPointerUp}
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                    style={{ left: `${percentRange.max}%` }}
+                    aria-label="Lv.上限を変更"
+                  />
+                </div>
+                <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.max}</span>
+              </div>
+            </div>
+            {randomError && (
+              <p className="text-right text-xs text-red-600 dark:text-red-400">{randomError}</p>
             )}
           </div>
         </div>
-        <div className="flex w-full flex-1 flex-col gap-2 md:max-w-none md:ml-0">
-          <div className="flex items-center gap-3 rounded-md bg-slate-50/70 px-3 py-2 dark:bg-slate-800/40">
-            <div className="flex flex-1 items-center gap-2 min-w-[260px]">
-              <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.min}</span>
-              <div
-                className="relative h-2 w-full max-w-[272px] cursor-pointer select-none rounded-full bg-slate-200 dark:bg-slate-700"
-                ref={trackRef}
-                onPointerDown={handleTrackPointerDown}
-                onPointerMove={handleSliderPointerMove}
-                onPointerUp={handleSliderPointerUp}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {SORT_OPTIONS.map(({ key, label }) => {
+            const isActive = sortKey === key
+            const showDirection = !isRandomMode || randomSorted
+            const direction =
+              isActive && showDirection ? (sortDirection === "asc" ? "↑" : "↓") : ""
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleSort(key)}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  isRandomMode && !randomSorted
+                    ? "border-slate-100 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                    : isActive
+                      ? "border-slate-900 bg-slate-900 text-white shadow-sm dark:border-white dark:bg-white dark:text-slate-900"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                }`}
               >
-                <div
-                  className="absolute h-full rounded-full bg-blue-500/70 dark:bg-blue-400/70"
-                  style={{
-                    left: `${percentRange.min}%`,
-                    width: `${Math.max(0, percentRange.max - percentRange.min)}%`,
-                  }}
-                />
-                <button
-                  type="button"
-                  onPointerDown={(event) => handleThumbPointerDown(event, "min")}
-                  onPointerMove={handleSliderPointerMove}
-                  onPointerUp={handleSliderPointerUp}
-                  className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
-                  style={{ left: `${percentRange.min}%` }}
-                  aria-label="Lv.下限を変更"
-                />
-                <button
-                  type="button"
-                  onPointerDown={(event) => handleThumbPointerDown(event, "max")}
-                  onPointerMove={handleSliderPointerMove}
-                  onPointerUp={handleSliderPointerUp}
-                  className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
-                  style={{ left: `${percentRange.max}%` }}
-                  aria-label="Lv.上限を変更"
-                />
-              </div>
-              <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.max}</span>
-            </div>
-            <div className="flex items-center gap-2 md:justify-end min-w-[200px]">
-              <Button
-                variant="default"
-                size="sm"
-                onClick={requestRandomSongs}
-                disabled={randomLoading || loading}
-                className="bg-blue-500 text-white hover:bg-blue-600"
-              >
-                ランダム
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearRandomSongs}
-                disabled={randomLoading}
-                className={isRandomMode ? "" : "invisible"}
-              >
-                リセット
-              </Button>
-            </div>
+                {label}
+                <span className="ml-1 text-[10px]">{direction}</span>
+              </button>
+            )
+          })}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={requestRandomSongs}
+              disabled={randomLoading || loading}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                isRandomMode
+                  ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-white dark:bg-white dark:text-slate-900"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+              }`}
+            >
+              ランダム
+            </button>
+            <button
+              type="button"
+              onClick={clearRandomSongs}
+              disabled={randomLoading}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                isRandomMode
+                  ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  : "invisible"
+              }`}
+            >
+              リセット
+            </button>
           </div>
-          {randomError && (
-            <p className="text-right text-xs text-red-600 dark:text-red-400">{randomError}</p>
-          )}
+        </div>
+        <div className="text-sm text-slate-600 dark:text-slate-300">
+          {displayStart}-{displayEnd} 件を表示
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] table-fixed divide-y divide-slate-200 dark:divide-slate-800">
-            <thead className="bg-slate-50/80 dark:bg-slate-900/70">
-              <tr>
-                {[
-                  { key: "id", label: "No.", className: "w-[96px]" },
-                  { key: "title", label: "曲名", className: "w-[320px]" },
-                  { key: "artist", label: "アーティスト名", className: "w-[320px]" },
-                  { key: "level", label: "Lv.", className: "w-[80px]" },
-                ].map(({ key, label, className }) => {
-                  const isActive = sortKey === key
-                  const showDirection = !isRandomMode || randomSorted
-                  const direction =
-                    isActive && showDirection ? (sortDirection === "asc" ? "↑" : "↓") : ""
-
-                  return (
-                    <th
-                      key={key}
-                      scope="col"
-                      className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 ${className ?? ""}`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(key as typeof sortKey)}
-                        className="flex items-center gap-1 text-left hover:text-blue-600 dark:hover:text-blue-400"
-                      >
-                        <span>{label}</span>
-                        <span className="text-[10px] leading-none">{direction}</span>
-                      </button>
-                    </th>
-                  )
-                })}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-              {songs.map((song) => (
-                <tr
-                  key={song.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleRowNavigate(song.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault()
-                      handleRowNavigate(song.id)
-                    }
-                  }}
-                  className="group cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                >
-                  <td className="w-[96px] px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white">
-                    {song.id}
-                  </td>
-                  <td className="w-[320px] px-4 py-3 text-sm font-medium text-slate-900 dark:text-white truncate">
-                    {song.title}
-                  </td>
-                  <td className="w-[320px] px-4 py-3 text-sm text-slate-700 dark:text-slate-200 truncate">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {songs.map((song) => {
+          const thumbnailUrl = getYouTubeThumbnailUrl(song.youtubeUrl)
+          return (
+            <button
+              key={song.id}
+              type="button"
+              onClick={() => handleRowNavigate(song.id)}
+              className="group text-left"
+            >
+              <div className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
+                <div className="relative aspect-video overflow-hidden bg-slate-200 dark:bg-slate-800">
+                  {thumbnailUrl ? (
+                    <img
+                      src={thumbnailUrl}
+                      alt={`${song.title}のYouTubeサムネイル`}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-slate-500 dark:text-slate-400">
+                      サムネイルなし
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/10 to-transparent opacity-0 transition group-hover:opacity-100" />
+                  <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-800 shadow-sm">
+                    No.{song.id}
+                  </div>
+                </div>
+                <div className="space-y-2 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-base font-semibold text-slate-900 truncate dark:text-white">
+                      {song.title}
+                    </div>
+                    <div className="shrink-0 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                      Lv.{song.level ?? "—"}
+                    </div>
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-300">
                     {song.artist ?? "—"}
-                  </td>
-                  <td className="w-[80px] px-4 py-3 text-sm text-slate-700 dark:text-slate-200">
-                    {song.level ?? "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {songs.length === 0 && !loading && (
-          <div className="px-4 py-6 text-center text-sm text-slate-600 dark:text-slate-300">条件に一致する曲がありません。</div>
-        )}
-        {loading && (
-          <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">読み込み中...</div>
-        )}
-        {showRetryableError && (
-          <div className="px-4 py-6 text-center text-sm text-red-600 dark:text-red-400">
-            エラーが発生しました: {errorMessage}
-          </div>
+                  </div>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+        {loading && songs.length === 0 && (
+          <>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              >
+                <div className="aspect-video animate-pulse bg-slate-200 dark:bg-slate-800" />
+                <div className="space-y-3 p-4">
+                  <div className="h-4 w-3/4 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-3 w-1/2 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-3 w-1/3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                </div>
+              </div>
+            ))}
+          </>
         )}
       </div>
+
+      {songs.length === 0 && !loading && (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 py-12 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
+          条件に一致する曲がありません。
+        </div>
+      )}
+      {showRetryableError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50/80 py-6 text-center text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300">
+          エラーが発生しました: {errorMessage}
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
-        <span>
-          {displayStart}-{displayEnd} 件を表示
-        </span>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -588,9 +632,7 @@ export function SongsTable({
           >
             前へ
           </Button>
-          <span className="text-xs">
-            {currentPage}
-          </span>
+          <span className="text-xs">{currentPage}</span>
           <Button
             variant="outline"
             size="sm"
@@ -599,6 +641,9 @@ export function SongsTable({
           >
             次へ
           </Button>
+        </div>
+        <div className="hidden text-xs text-slate-500 md:block">
+          ページを移動してさらに表示
         </div>
       </div>
     </div>
