@@ -233,6 +233,8 @@ export function TypingGameContent({
     isPlaying: isPlaying,
   })
 
+  const kpmModeOverride = inputMode === 'roma' || inputMode === 'kana' ? inputMode : undefined
+
   // YouTube 動画をロード（URL 設定完了後、一度だけ）
   // F9 / F10 で再生速度を変更
   useEffect(() => {
@@ -663,7 +665,7 @@ export function TypingGameContent({
                 canUndo={false}
                 canRedo={false}
                 readOnly
-                kpmModeOverride={inputMode}
+                kpmModeOverride={kpmModeOverride}
                 timeOffsetControl={{
                   value: timeOffsetInput,
                   displayValue: timeOffset,
