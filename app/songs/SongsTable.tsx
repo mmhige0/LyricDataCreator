@@ -509,16 +509,16 @@ export function SongsTable({
                 key={key}
                 type="button"
                 onClick={() => toggleSort(key)}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
                   isRandomMode && !randomSorted
-                    ? "border-slate-100 bg-white text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                    ? "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                     : isActive
-                      ? "border-slate-900 bg-slate-900 text-white shadow-sm dark:border-white dark:bg-white dark:text-slate-900"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                      ? "border-blue-500 bg-blue-500 text-white shadow-sm hover:bg-blue-600 dark:border-blue-400 dark:bg-blue-400 dark:text-slate-900"
+                      : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                 }`}
               >
                 {label}
-                <span className="ml-1 text-[10px]">{direction}</span>
+                <span className="ml-1 inline-block w-3 text-[10px]">{direction}</span>
               </button>
             )
           })}
@@ -527,10 +527,10 @@ export function SongsTable({
               type="button"
               onClick={requestRandomSongs}
               disabled={randomLoading || loading}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`rounded-full border px-4 py-1.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 isRandomMode
-                  ? "border-slate-900 bg-slate-900 text-white hover:bg-slate-800 dark:border-white dark:bg-white dark:text-slate-900"
-                  : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600 dark:border-blue-400 dark:bg-blue-400 dark:text-slate-900"
+                  : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
               }`}
             >
               ランダム
@@ -539,7 +539,7 @@ export function SongsTable({
               type="button"
               onClick={clearRandomSongs}
               disabled={randomLoading}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 isRandomMode
                   ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                   : "invisible"
