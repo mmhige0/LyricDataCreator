@@ -2,10 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { PointerEvent as ReactPointerEvent } from "react"
-import useSWR from "swr"
+import useSWRInfinite from "swr/infinite"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import {
   LEVEL_DISPLAY_MAX,
   LEVEL_DISPLAY_MIN,
@@ -31,15 +30,6 @@ type SongsKey = [
     levelMax: number | null
   },
 ]
-
-const isSameKey = (a: SongsKey, b: SongsKey) =>
-  a[0] === b[0] &&
-  a[1].search === b[1].search &&
-  a[1].page === b[1].page &&
-  a[1].sortKey === b[1].sortKey &&
-  a[1].sortDirection === b[1].sortDirection &&
-  a[1].levelMin === b[1].levelMin &&
-  a[1].levelMax === b[1].levelMax
 
 interface SongsTableProps {
   initialData?: SongsResponse
@@ -69,7 +59,7 @@ const SORT_OPTIONS: Array<{ key: SongSortKey; label: string }> = [
 
 const getYouTubeThumbnailUrl = (youtubeUrl: string) => {
   const videoId = extractVideoId(youtubeUrl)
-  return videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : ""
+  return videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : ""
 }
 
 const fetchSongs = async ([, params]: SongsKey): Promise<SongsResponse> => {
@@ -108,7 +98,6 @@ export function SongsTable({
   const router = useRouter()
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
-  const [page, setPage] = useState(initialData?.page ?? 1)
   const [sortKey, setSortKey] = useState<SongSortKey>(initialSortKey)
   const [sortDirection, setSortDirection] = useState<SongSortDirection>(initialSortDirection)
   const [sliderMin, setSliderMin] = useState<number>(LEVEL_DISPLAY_MIN)
@@ -117,6 +106,7 @@ export function SongsTable({
   const sliderMinRef = useRef(sliderMin)
   const sliderMaxRef = useRef(sliderMax)
   const trackRef = useRef<HTMLDivElement | null>(null)
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const [dragging, setDragging] = useState<"min" | "max" | null>(null)
   const [randomSongs, setRandomSongs] = useState<SongsResponse | null>(null)
   const [randomLoading, setRandomLoading] = useState(false)
@@ -126,7 +116,6 @@ export function SongsTable({
   useEffect(() => {
     const timer = setTimeout(() => {
       setSearch(searchInput)
-      setPage(1)
       setRandomSongs(null)
       setRandomError(null)
       setRandomSorted(false)
@@ -149,81 +138,75 @@ export function SongsTable({
     [sliderMax, sliderMin]
   )
 
-  const songsKey = useMemo(
-    () =>
-      buildSongsKey({
-        search,
-        page,
-        sortKey,
-        sortDirection,
-        levelMin: appliedLevelRange?.min ?? null,
-        levelMax: appliedLevelRange?.max ?? null,
-      }),
-    [appliedLevelRange, page, search, sortDirection, sortKey]
+  const songsKeyParams = useMemo(
+    () => ({
+      search,
+      sortKey,
+      sortDirection,
+      levelMin: appliedLevelRange?.min ?? null,
+      levelMax: appliedLevelRange?.max ?? null,
+    }),
+    [appliedLevelRange, search, sortDirection, sortKey]
   )
-
-  const previousKeyRef = useRef<SongsKey>(songsKey)
-  const [hideStaleRows, setHideStaleRows] = useState(false)
   const handleClearSearch = useCallback(() => {
     setSearchInput("")
     setSearch("")
     setRandomSongs(null)
     setRandomError(null)
     setRandomSorted(false)
-    setPage(1)
   }, [])
-
-  useEffect(() => {
-    if (!isSameKey(previousKeyRef.current, songsKey)) {
-      setHideStaleRows(true)
-      previousKeyRef.current = songsKey
-    }
-  }, [songsKey])
 
   const shouldUseFallback =
     Boolean(initialData) &&
     search.trim() === "" &&
-    page === (initialData?.page ?? 1) &&
     sortKey === initialSortKey &&
     sortDirection === initialSortDirection &&
     !appliedLevelRange
+
+  const getSongsKey = useCallback(
+    (pageIndex: number, previousPageData?: SongsResponse) => {
+      if (previousPageData && !previousPageData.hasNext) {
+        return null
+      }
+      return buildSongsKey({
+        ...songsKeyParams,
+        page: pageIndex + 1,
+      })
+    },
+    [songsKeyParams]
+  )
 
   const {
     data,
     error,
     isLoading,
     isValidating,
-  } = useSWR<SongsResponse, Error>(songsKey, fetchSongs, {
-    fallbackData: shouldUseFallback ? initialData : undefined,
+    setSize,
+  } = useSWRInfinite<SongsResponse, Error>(getSongsKey, fetchSongs, {
+    fallbackData: shouldUseFallback ? [initialData] : undefined,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
     errorRetryCount: 2,
     errorRetryInterval: 1500,
   })
 
-  useEffect(() => {
-    if (data || error) {
-      setHideStaleRows(false)
-    }
-  }, [data, error])
+  const resetPagination = useCallback(() => setSize(1), [setSize])
 
   const isRandomMode = randomLoading || Boolean(randomSongs)
-  const activeData = randomSongs ?? data
-  const hideRows = isRandomMode ? false : hideStaleRows
-  const songs = hideRows ? [] : activeData?.data ?? []
-  const pageSizeForDisplay = isRandomMode ? songs.length || 1 : activeData?.pageSize ?? SONGS_PAGE_SIZE
-  const hasNext = hideRows ? false : isRandomMode ? false : activeData?.hasNext ?? false
-  const currentPage = activeData?.page ?? page
+  const lastPage = data?.[data.length - 1]
+  const hasNext = isRandomMode ? false : lastPage?.hasNext ?? false
+  const songs = useMemo(() => {
+    if (randomSongs) return randomSongs.data
+    return data?.flatMap((pageData) => pageData.data) ?? []
+  }, [data, randomSongs])
   const baseLoading = isLoading || (!data && isValidating)
   const loading = isRandomMode ? randomLoading : baseLoading
   const showRetryableError = isRandomMode ? Boolean(randomError) : Boolean(error)
-  const paginationDisabled = loading || isRandomMode
   const errorMessage =
     isRandomMode && randomError
       ? randomError
       : error?.message ?? "曲の読み込みに失敗しました"
-  const displayStart = songs.length === 0 ? 0 : (currentPage - 1) * pageSizeForDisplay + 1
-  const displayEnd = songs.length === 0 ? 0 : displayStart + songs.length - 1
+  const showLoadMoreSpinner = !isRandomMode && isValidating && songs.length > 0 && hasNext
 
   const sortSongList = useCallback(
     (list: SongsResponse["data"], key: SongSortKey, direction: SongSortDirection) => {
@@ -272,7 +255,9 @@ export function SongsTable({
         }
         return nextDirection
       })
-      setPage(1)
+      if (!randomSongs) {
+        resetPagination()
+      }
       return
     }
     setSortKey(key)
@@ -289,7 +274,9 @@ export function SongsTable({
           : current
       )
     }
-    setPage(1)
+    if (!randomSongs) {
+      resetPagination()
+    }
   }
 
   const setSliderRange = useCallback((nextMin: number, nextMax: number) => {
@@ -314,8 +301,8 @@ export function SongsTable({
     setRandomError(null)
     setRandomSorted(false)
     setAppliedLevelRange(nextRange)
-    setPage(1)
-  }, [])
+    resetPagination()
+  }, [resetPagination])
 
   const percentRange = useMemo(
     () => ({
@@ -353,7 +340,6 @@ export function SongsTable({
       const payload = (await response.json()) as SongsResponse
       setRandomSongs(payload)
       setRandomSorted(false)
-      setHideStaleRows(false)
     } catch (requestError) {
       const message =
         requestError instanceof Error ? requestError.message : "ランダム取得に失敗しました"
@@ -418,6 +404,28 @@ export function SongsTable({
     router.push(`/songs/${id}`)
   }, [router])
 
+  useEffect(() => {
+    resetPagination()
+  }, [resetPagination, songsKeyParams])
+
+  useEffect(() => {
+    if (isRandomMode) return
+    if (!hasNext) return
+    const target = loadMoreRef.current
+    if (!target) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (!entry?.isIntersecting) return
+        if (isValidating) return
+        setSize((current) => current + 1)
+      },
+      { rootMargin: "200px 0px", threshold: 0.1 }
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [hasNext, isRandomMode, isValidating, setSize])
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
@@ -443,7 +451,7 @@ export function SongsTable({
             </div>
           </div>
           <div className="flex w-full flex-col gap-3 xl:max-w-[720px]">
-            <div className="flex flex-wrap items-center gap-3 rounded-xl bg-slate-50/70 px-3 py-3 dark:bg-slate-800/40">
+            <div className="flex flex-wrap items-center gap-3">
               <div className="flex flex-1 items-center gap-2 min-w-[260px]">
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.min}</span>
                 <div
@@ -541,9 +549,6 @@ export function SongsTable({
             </button>
           </div>
         </div>
-        <div className="text-sm text-slate-600 dark:text-slate-300">
-          {displayStart}-{displayEnd} 件を表示
-        </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
@@ -557,12 +562,12 @@ export function SongsTable({
               className="group text-left"
             >
               <div className="flex overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
-                <div className="relative w-[180px] shrink-0 overflow-hidden bg-slate-200 dark:bg-slate-800 aspect-video">
+                <div className="relative w-[240px] shrink-0 overflow-hidden rounded-2xl bg-slate-200 dark:bg-slate-800 aspect-video">
                   {thumbnailUrl ? (
                     <img
                       src={thumbnailUrl}
                       alt={`${song.title}のYouTubeサムネイル`}
-                      className="h-full w-full object-contain transition duration-500 group-hover:scale-105"
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                       loading="lazy"
                     />
                   ) : (
@@ -570,19 +575,18 @@ export function SongsTable({
                       サムネイルなし
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-r from-slate-950/60 via-slate-950/10 to-transparent opacity-0 transition group-hover:opacity-100" />
                 </div>
                 <div className="relative flex min-w-0 flex-1 flex-col justify-center space-y-3 p-5">
                   <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     No.{song.id}
                   </div>
-                  <div className="min-w-0 text-xl font-semibold text-slate-900 truncate dark:text-white">
+                  <div className="min-w-0 text-lg font-semibold text-slate-900 truncate dark:text-white">
                     {song.title}
                   </div>
-                  <div className="text-lg font-medium text-slate-700 dark:text-slate-200">
+                  <div className="text-base font-medium text-slate-700 dark:text-slate-200">
                     {song.artist ?? "—"}
                   </div>
-                  <div className="absolute right-5 top-5 text-base font-semibold text-slate-500 dark:text-slate-400">
+                  <div className="absolute bottom-5 right-5 text-base font-semibold text-slate-500 dark:text-slate-400">
                     Lv.{song.level ?? "—"}
                   </div>
                 </div>
@@ -595,19 +599,26 @@ export function SongsTable({
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`skeleton-${index}`}
-                className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                className="flex overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
               >
-                <div className="aspect-video animate-pulse bg-slate-200 dark:bg-slate-800" />
-                <div className="space-y-3 p-4">
-                  <div className="h-4 w-3/4 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-3 w-1/2 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-3 w-1/3 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="aspect-video w-[240px] animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                <div className="flex flex-1 flex-col justify-center space-y-3 p-5">
+                  <div className="h-3 w-16 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-5 w-3/4 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-4 w-1/2 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
                 </div>
               </div>
             ))}
           </>
         )}
       </div>
+
+      {!isRandomMode && hasNext && <div ref={loadMoreRef} className="h-10" />}
+      {showLoadMoreSpinner && (
+        <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+          さらに読み込み中...
+        </div>
+      )}
 
       {songs.length === 0 && !loading && (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 py-12 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
@@ -620,30 +631,6 @@ export function SongsTable({
         </div>
       )}
 
-      <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage <= 1 || paginationDisabled}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}
-          >
-            前へ
-          </Button>
-          <span className="text-xs">{currentPage}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!hasNext || paginationDisabled}
-            onClick={() => setPage((value) => value + 1)}
-          >
-            次へ
-          </Button>
-        </div>
-        <div className="hidden text-xs text-slate-500 md:block">
-          ページを移動してさらに表示
-        </div>
-      </div>
     </div>
   )
 }

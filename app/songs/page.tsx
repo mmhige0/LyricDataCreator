@@ -24,7 +24,7 @@ export default async function SongsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-amber-50/40 to-slate-100 text-slate-900 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 dark:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       <AppHeader title="Song Typing Theater" titleHref="/" />
       <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
         <SongsTable
