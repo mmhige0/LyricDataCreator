@@ -30,7 +30,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
             </div>
             {lineKpm && lineKpm.charCount[kpmMode] > 0 && (
               <div className="text-xs font-mono text-muted-foreground ml-2">
-                {lineKpm.kpm[kpmMode].toFixed(1)} kpm
+                {lineKpm.kpm[kpmMode].toFixed(0)} kpm
               </div>
             )}
           </div>
@@ -38,7 +38,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
       })}
       {kpmData && (
         <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right leading-tight">
-          {kpmData.totalKpm[kpmMode].toFixed(1)} kpm
+          {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
         </div>
       )}
     </div>
