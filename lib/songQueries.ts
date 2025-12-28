@@ -242,17 +242,21 @@ export const getRandomSongs = async ({
   }
 
   const whereSqlParts: Prisma.Sql[] = []
+  const searchSqlParts: Prisma.Sql[] = []
   if (searchVariants.length > 0) {
     const likeClauses = searchVariants.map((variant) => {
       const pattern = `%${variant}%`
       return Prisma.sql`("title" ILIKE ${pattern} OR "artist" ILIKE ${pattern})`
     })
     if (likeClauses.length > 0) {
-      whereSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, " OR ")})`)
+      searchSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, " OR ")})`)
     }
   }
   if (searchId !== null) {
-    whereSqlParts.push(Prisma.sql`"id" = ${searchId}`)
+    searchSqlParts.push(Prisma.sql`"id" = ${searchId}`)
+  }
+  if (searchSqlParts.length > 0) {
+    whereSqlParts.push(Prisma.sql`(${Prisma.join(searchSqlParts, " OR ")})`)
   }
   if (levelValueRange) {
     whereSqlParts.push(
