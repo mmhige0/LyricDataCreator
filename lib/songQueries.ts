@@ -50,6 +50,12 @@ const buildSearchVariants = (search: string) => {
   return Array.from(new Set([search, hiragana, katakana])).filter((text) => text.length > 0)
 }
 
+const parseSearchId = (search: string) => {
+  if (!/^\d+$/.test(search)) return null
+  const parsed = Number.parseInt(search, 10)
+  return Number.isNaN(parsed) ? null : parsed
+}
+
 const buildListKey = (params: {
   search: string
   sortKey: SongSortKey
@@ -69,14 +75,18 @@ const buildListKey = (params: {
 
 const buildSearchFilter = (search: string) => {
   const variants = buildSearchVariants(search)
+  const searchId = parseSearchId(search)
 
-  if (variants.length === 0) return undefined
+  if (variants.length === 0 && searchId === null) return undefined
 
   return {
-    OR: variants.flatMap((variant) => [
-      { title: { contains: variant, mode: "insensitive" as const } },
-      { artist: { contains: variant, mode: "insensitive" as const } },
-    ]),
+    OR: [
+      ...variants.flatMap((variant) => [
+        { title: { contains: variant, mode: "insensitive" as const } },
+        { artist: { contains: variant, mode: "insensitive" as const } },
+      ]),
+      ...(searchId !== null ? [{ id: searchId }] : []),
+    ],
   } satisfies Prisma.SongWhereInput
 }
 
@@ -208,6 +218,7 @@ export const getRandomSongs = async ({
   const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
   const normalizedLimit = clampPageSize(limit || RANDOM_SONG_COUNT)
   const searchVariants = buildSearchVariants(normalizedSearch)
+  const searchId = parseSearchId(normalizedSearch)
 
   if (!isDatabaseConfigured) {
     return {
@@ -239,6 +250,9 @@ export const getRandomSongs = async ({
     if (likeClauses.length > 0) {
       whereSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, " OR ")})`)
     }
+  }
+  if (searchId !== null) {
+    whereSqlParts.push(Prisma.sql`"id" = ${searchId}`)
   }
   if (levelValueRange) {
     whereSqlParts.push(

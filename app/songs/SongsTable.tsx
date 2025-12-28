@@ -433,7 +433,7 @@ export function SongsTable({
           <div className="w-full xl:max-w-[440px]">
             <div className="relative">
               <Input
-                placeholder="曲名やアーティスト名で検索"
+                placeholder="曲番・曲名・アーティスト名で検索"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 className="w-full bg-white pr-10 shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-slate-950"
