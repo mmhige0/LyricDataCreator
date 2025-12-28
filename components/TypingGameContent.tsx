@@ -340,9 +340,17 @@ export function TypingGameContent({
       ? displayWord.nextChar.roma + displayWord.remainWord.roma
       : displayWord.nextChar.kana + displayWord.remainWord.kana
     : ''
+  const isPageFullyTyped =
+    !!currentTypingWord &&
+    !currentTypingWord.nextChunk.kana &&
+    currentTypingWord.wordChunksIndex >= currentTypingWord.wordChunks.length
+  const showNextPageOverlay = isPageFullyTyped && nextPagePreviewLines.length > 0
+  const previewTypingText = showNextPageOverlay ? nextPagePreviewLines.join(' ') : ''
+  const effectiveDisplayCorrect = showNextPageOverlay ? '' : displayCorrect
+  const effectiveDisplayRemaining = showNextPageOverlay ? previewTypingText : displayRemaining
   const normalizeDisplayText = (text: string) => text.replace(/\u3000/g, ' ').toLowerCase()
-  const displayCorrectForUI = normalizeDisplayText(displayCorrect)
-  const displayRemainingForUI = normalizeDisplayText(displayRemaining)
+  const displayCorrectForUI = normalizeDisplayText(effectiveDisplayCorrect)
+  const displayRemainingForUI = normalizeDisplayText(effectiveDisplayRemaining)
   const getVisibleTypingText = (correct: string, remaining: string) => {
     const maxVisible = inputMode === 'roma' ? 60 : 30
     const scrollThreshold = inputMode === 'roma' ? 16 : 10
@@ -367,12 +375,7 @@ export function TypingGameContent({
     displayCorrectForUI,
     displayRemainingForUI,
   )
-  const hasDisplayText = (displayCorrect + displayRemaining).length > 0
-  const isPageFullyTyped =
-    !!currentTypingWord &&
-    !currentTypingWord.nextChunk.kana &&
-    currentTypingWord.wordChunksIndex >= currentTypingWord.wordChunks.length
-  const showNextPageOverlay = isPageFullyTyped && nextPagePreviewLines.length > 0
+  const hasDisplayText = (effectiveDisplayCorrect + effectiveDisplayRemaining).length > 0
   const overlayLines = showNextPageOverlay ? nextPagePreviewLines : undefined
   const hideBaseLines = isPageFullyTyped
   const nextPageDisplayLines = nextPagePreviewLines.length > 0 ? nextPagePreviewLines : Array(4).fill('')
@@ -586,7 +589,13 @@ export function TypingGameContent({
                     <span className="text-gray-400 dark:text-gray-500">
                       {visibleCorrect}
                     </span>
-                    <span className="text-black dark:text-white">
+                    <span
+                      className={
+                        showNextPageOverlay
+                          ? "text-gray-400 dark:text-gray-500"
+                          : "text-black dark:text-white"
+                      }
+                    >
                       {visibleRemaining}
                     </span>
                     {suffixEllipsis && (
