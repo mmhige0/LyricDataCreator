@@ -345,9 +345,8 @@ export function TypingGameContent({
     !currentTypingWord.nextChunk.kana &&
     currentTypingWord.wordChunksIndex >= currentTypingWord.wordChunks.length
   const showNextPageOverlay = isPageFullyTyped && nextPagePreviewLines.length > 0
-  const previewTypingText = showNextPageOverlay ? nextPagePreviewLines.join(' ') : ''
-  const effectiveDisplayCorrect = showNextPageOverlay ? '' : displayCorrect
-  const effectiveDisplayRemaining = showNextPageOverlay ? previewTypingText : displayRemaining
+  const effectiveDisplayCorrect = isPageFullyTyped ? '' : displayCorrect
+  const effectiveDisplayRemaining = isPageFullyTyped ? '' : displayRemaining
   const normalizeDisplayText = (text: string) => text.replace(/\u3000/g, ' ').toLowerCase()
   const displayCorrectForUI = normalizeDisplayText(effectiveDisplayCorrect)
   const displayRemainingForUI = normalizeDisplayText(effectiveDisplayRemaining)
@@ -589,13 +588,7 @@ export function TypingGameContent({
                     <span className="text-gray-400 dark:text-gray-500">
                       {visibleCorrect}
                     </span>
-                    <span
-                      className={
-                        showNextPageOverlay
-                          ? "text-gray-400 dark:text-gray-500"
-                          : "text-black dark:text-white"
-                      }
-                    >
+                    <span className="text-black dark:text-white">
                       {visibleRemaining}
                     </span>
                     {suffixEllipsis && (
