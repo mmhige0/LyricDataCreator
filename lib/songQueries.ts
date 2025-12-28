@@ -13,7 +13,6 @@ import {
 
 export const SONGS_TAG = "songs"
 const SONG_DETAIL_TAG_PREFIX = "song-detail"
-const ONE_WEEK_SECONDS = 60 * 60 * 24 * 7
 const RANDOM_SONG_COUNT = 10
 
 type SongsQuery = {
@@ -122,7 +121,7 @@ export const getSongById = async (id: number) => {
     buildSongDetailKey(id),
     {
       tags: [buildSongDetailTag(id)],
-      revalidate: ONE_WEEK_SECONDS, // 7 days
+      revalidate: false,
     }
   )()
 }
@@ -193,7 +192,7 @@ export const getSongsPage = async ({
     listKey,
     {
       tags: [SONGS_TAG],
-      revalidate: ONE_WEEK_SECONDS,
+      revalidate: false,
     }
   )()
   const hasNext = data.length > normalizedPageSize

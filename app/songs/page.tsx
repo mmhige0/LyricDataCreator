@@ -8,7 +8,7 @@ import {
 } from "@/types/songs"
 import { SongsTable } from "./SongsTable"
 
-export const revalidate = 180
+export const revalidate = false
 export const runtime = "nodejs"
 
 const INITIAL_SORT_KEY: SongSortKey = "id"

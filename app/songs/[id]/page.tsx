@@ -11,7 +11,7 @@ const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPl
   ),
 })
 
-export const revalidate = 604800
+export const revalidate = false
 export const runtime = "nodejs"
 
 interface SongPageProps {
