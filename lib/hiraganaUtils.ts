@@ -1,134 +1,39 @@
-import Kuroshiro from 'kuroshiro'
-import KuromojiAnalyzer from 'kuroshiro-analyzer-kuromoji'
 import { withBasePath } from './basePath'
 import { preprocessAndConvertLyrics } from './textUtils'
 
-// Kuroshiroのインスタンスを管理するクラス
-class HiraganaConverter {
-  private static instance: HiraganaConverter
-  private kuroshiro: Kuroshiro | null = null
-  private isInitialized: boolean = false
-  private isInitializing: boolean = false
-  private initPromise: Promise<void> | null = null
+const containsKanji = (text: string): boolean => /[\u4e00-\u9faf]/.test(text)
 
-  private constructor() {}
+const requestHiraganaConversion = async (lines: string[]): Promise<string[]> => {
+  const response = await fetch(withBasePath('/api/hiragana'), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ lines }),
+  })
 
-  static getInstance(): HiraganaConverter {
-    if (!HiraganaConverter.instance) {
-      HiraganaConverter.instance = new HiraganaConverter()
-    }
-    return HiraganaConverter.instance
+  let payload: { lines?: string[]; error?: string } | null = null
+  try {
+    payload = await response.json()
+  } catch (error) {
+    console.error('Failed to parse hiragana API response', error)
   }
 
-  async initialize(): Promise<void> {
-    if (this.isInitialized) return
-    if (this.isInitializing) return this.initPromise!
-
-    this.isInitializing = true
-    this.initPromise = this._doInitialize()
-
-    try {
-      await this.initPromise
-      this.isInitialized = true
-    } catch (error) {
-      console.error('Failed to initialize kuroshiro:', error)
-      throw error
-    } finally {
-      this.isInitializing = false
-    }
+  if (!response.ok) {
+    const message = payload?.error ?? 'ひらがな変換に失敗しました'
+    throw new Error(message)
   }
 
-  private async _doInitialize(): Promise<void> {
-    if (typeof window === 'undefined') {
-      // サーバーサイドでは何もしない
-      return
-    }
-
-    try {
-      this.kuroshiro = new Kuroshiro()
-
-      const dictPath = withBasePath('/dict/')
-
-      await this.kuroshiro.init(new KuromojiAnalyzer({
-        dictPath: dictPath
-      }))
-    } catch (error) {
-      console.error('Kuroshiro initialization error:', error)
-      throw new Error('漢字変換エンジンの初期化に失敗しました')
-    }
+  if (!payload?.lines || !Array.isArray(payload.lines)) {
+    throw new Error('ひらがな変換の結果が不正です')
   }
 
-  async convertKanjiToHiragana(text: string): Promise<string> {
-    if (!text || text.trim() === '') return text
-
-    // 漢字が含まれている場合のみKuroshiroを使用（前処理は呼び出し側で実行済み）
-    if (this.containsKanji(text)) {
-      if (!this.isInitialized) {
-        await this.initialize()
-      }
-
-      if (!this.kuroshiro) {
-        throw new Error('変換エンジンが初期化されていません')
-      }
-
-      try {
-        const result = await this.kuroshiro.convert(text, { to: 'hiragana' })
-        return result
-      } catch (error) {
-        console.error('Conversion error:', error)
-        throw new Error('テキストの変換中にエラーが発生しました')
-      }
-    }
-
-    // 漢字が含まれていない場合はそのまま返す
-    return text
+  if (payload.lines.length !== lines.length) {
+    throw new Error('ひらがな変換の結果に不足があります')
   }
 
-  async convertToRomaji(text: string): Promise<string> {
-    if (!text || text.trim() === '') return text
-
-    if (!this.isInitialized) {
-      await this.initialize()
-    }
-
-    if (!this.kuroshiro) {
-      throw new Error('変換エンジンが初期化されていません')
-    }
-
-    try {
-      // 日本式ローマ字で変換
-      const result = await this.kuroshiro.convert(text, {
-        to: 'romaji',
-        mode: 'spaced',
-        romajiSystem: 'nippon'
-      })
-      return result
-    } catch (error) {
-      console.error('Romaji conversion error:', error)
-      throw new Error('ローマ字変換中にエラーが発生しました')
-    }
-  }
-
-  /**
-   * テキストに漢字が含まれているかチェック
-   */
-  private containsKanji(text: string): boolean {
-    return /[\u4e00-\u9faf]/.test(text)
-  }
-
-  getInitializationStatus(): {
-    isInitialized: boolean
-    isInitializing: boolean
-  } {
-    return {
-      isInitialized: this.isInitialized,
-      isInitializing: this.isInitializing
-    }
-  }
+  return payload.lines
 }
-
-// 公開API
-const converter = HiraganaConverter.getInstance()
 
 /**
  * 漢字を含むテキストをひらがなに変換する（漢字変換のみ）
@@ -137,16 +42,11 @@ const converter = HiraganaConverter.getInstance()
  * @returns ひらがなに変換されたテキスト
  */
 export const convertKanjiToHiragana = async (text: string): Promise<string> => {
-  return converter.convertKanjiToHiragana(text)
-}
+  if (!text || text.trim() === '') return text
+  if (!containsKanji(text)) return text
 
-/**
- * テキストをローマ字に変換する（日本式）
- * @param text 変換対象のテキスト
- * @returns ローマ字に変換されたテキスト
- */
-const convertToRomaji = async (text: string): Promise<string> => {
-  return converter.convertToRomaji(text)
+  const [converted] = await requestHiraganaConversion([text])
+  return converted ?? text
 }
 
 /**
@@ -155,33 +55,15 @@ const convertToRomaji = async (text: string): Promise<string> => {
 export const convertLyricsArrayToHiragana = async (
   lyrics: [string, string, string, string]
 ): Promise<[string, string, string, string]> => {
-  const convertedLyrics = await Promise.all(
-    lyrics.map(async line => {
-      if (line.trim() === '') return ''
-      // まず基本的な変換処理（記号削除、全角変換、カタカナ→ひらがな）
-      const preprocessed = preprocessAndConvertLyrics(line)
-      // 漢字が含まれている場合はKuroshiroで変換
-      return await convertKanjiToHiragana(preprocessed)
-    })
-  )
-  return convertedLyrics as [string, string, string, string]
-}
+  const preprocessedLines = lyrics.map(line => {
+    if (line.trim() === '') return ''
+    return preprocessAndConvertLyrics(line)
+  })
 
+  if (preprocessedLines.every(line => line === '' || !containsKanji(line))) {
+    return preprocessedLines as [string, string, string, string]
+  }
 
-/**
- * 歌詞配列の各行を一括でローマ字に変換（日本式）
- * 注意: 保存時に既に前処理済みのデータを想定（重複前処理を回避）
- */
-export const convertLyricsArrayToRomaji = async (
-  lyrics: [string, string, string, string]
-): Promise<[string, string, string, string]> => {
-  const convertedLyrics = await Promise.all(
-    lyrics.map(async line => {
-      if (line.trim() === '') return ''
-      // 保存時に既に前処理済みのため、ひらがな変換とローマ字変換のみ実行
-      const hiragana = await convertKanjiToHiragana(line)
-      return await convertToRomaji(hiragana)
-    })
-  )
-  return convertedLyrics as [string, string, string, string]
+  const convertedLines = await requestHiraganaConversion(preprocessedLines)
+  return convertedLines as [string, string, string, string]
 }

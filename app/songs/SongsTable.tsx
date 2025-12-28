@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { PointerEvent as ReactPointerEvent } from "react"
 import useSWRInfinite from "swr/infinite"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Input } from "@/components/ui/input"
 import {
   LEVEL_DISPLAY_MAX,
@@ -564,11 +565,12 @@ export function SongsTable({
               <div className="flex overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
                 <div className="relative w-[240px] shrink-0 overflow-hidden rounded-2xl bg-slate-200 dark:bg-slate-800 aspect-video">
                   {thumbnailUrl ? (
-                    <img
+                    <Image
                       src={thumbnailUrl}
                       alt={`${song.title}のYouTubeサムネイル`}
+                      fill
+                      sizes="(min-width: 768px) 240px, 100vw"
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                      loading="lazy"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center px-2 text-xs text-slate-500 dark:text-slate-400">
