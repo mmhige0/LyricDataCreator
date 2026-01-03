@@ -35,6 +35,8 @@ jobs:
 
       - name: Build test
         run: npm run build
+        env:
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
 
       - name: Check build output
         run: |
