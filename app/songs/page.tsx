@@ -8,8 +8,8 @@ import {
 } from "@/types/songs"
 import { SongsTable } from "./SongsTable"
 
-export const revalidate = false
 export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
 
 const INITIAL_SORT_KEY: SongSortKey = "id"
 const INITIAL_SORT_DIRECTION: SongSortDirection = "desc"
