@@ -30,6 +30,8 @@ jobs:
 
       - name: TypeScript type check
         run: npm run type-check
+        env:
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
 
       - name: Build test
         run: npm run build
