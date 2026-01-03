@@ -12,11 +12,7 @@ if (!connectionString) {
 
 const disableSslVerify =
   process.env.PGSSL_NO_VERIFY === 'true' || process.env.PGSSL_NO_VERIFY === '1'
-const sslRootCertRaw = process.env.PGSSL_ROOT_CERT
-const sslRootCertBase64 = process.env.PGSSL_ROOT_CERT_BASE64
-const sslRootCert = sslRootCertBase64
-  ? Buffer.from(sslRootCertBase64, 'base64').toString('utf8')
-  : sslRootCertRaw?.replace(/\\n/g, '\n')
+const sslRootCert = process.env.PGSSL_ROOT_CERT
 
 const adapter = new PrismaPg(
   disableSslVerify
