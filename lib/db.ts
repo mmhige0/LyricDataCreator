@@ -10,7 +10,17 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set')
 }
 
-const adapter = new PrismaPg({ connectionString })
+const disableSslVerify =
+  process.env.PGSSL_NO_VERIFY === 'true' || process.env.PGSSL_NO_VERIFY === '1'
+const sslRootCert = process.env.PGSSL_ROOT_CERT
+
+const adapter = new PrismaPg(
+  disableSslVerify
+    ? { connectionString, ssl: { rejectUnauthorized: false } }
+    : sslRootCert
+      ? { connectionString, ssl: { ca: sslRootCert, rejectUnauthorized: true } }
+      : { connectionString },
+)
 
 export const prisma =
   globalForPrisma.prisma ??
