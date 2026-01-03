@@ -1,0 +1,9 @@
+{
+  "extends": [
+    "config:base",
+    ":semanticCommits"
+  ],
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": { "enabled": true }
+}

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches-ignore: [master]  # masterブランチ以外のpush時
+    branches-ignore: [main]  # mainブランチ以外のpush時
   pull_request:
-    branches: [master]         # masterへのPR時
+    branches: [main]         # mainへのPR時
 
 permissions:
   contents: read
