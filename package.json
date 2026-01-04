@@ -10,8 +10,7 @@
     "lint": "eslint .",
     "type-check": "prisma generate && tsc --noEmit",
     "test": "npm run lint && npm run type-check && npm run build",
-    "preview": "npm run build && npm run start",
-    "deploy-check": "npm run test"
+    "preview": "npm run build && npm run start"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.2.0",

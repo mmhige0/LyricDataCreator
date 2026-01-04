@@ -1,19 +1,18 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Next.js 14 App Router lives in `app/` (`layout.tsx`, `page.tsx`) with global styles in `app/globals.css`.
+- Next.js 16 App Router lives in `app/` (`layout.tsx`, `page.tsx`) with global styles in `app/globals.css`.
 - Reusable view logic sits in `components/` (shared UI in `components/ui/`), custom hooks in `hooks/`, helpers in `lib/`, and shared types in `types/`.
-- Static assets belong in `public/`; `postinstall` populates `public/dict/` with Kuromoji dictionaries required for Japanese text parsing.
+- Static assets belong in `public/`.
 - Production build output lives in `.next/` after `npm run build`; treat it as generated (Vercel deployment target).
 
 ## Build, Test, and Development Commands
 - `npm run dev` — start the local dev server at `http://localhost:3000`.
-- `npm run lint` / `npm run type-check` — ESLint (Next config) and TypeScript strict checks.
+- `npm run lint` / `npm run type-check` — ESLint (Next config) and TypeScript strict checks (`type-check` runs `prisma generate`).
 - `npm run test` — runs lint, type-check, then `next build` to ensure the app still builds.
-- `npm run build` — production build for Vercel deployment (no GitHub Pages basePath/assetPrefix).
+- `npm run build` — runs `prisma generate` then `next build` for Vercel deployment (no GitHub Pages basePath/assetPrefix).
 - Prefer webpack for build/test (`npm run build -- --webpack`, add `-- --webpack` to `npm run test` if needed) because Turbopack currently fails in this sandbox when compiling `app/globals.css` (it tries to spawn a process that binds to a port, which the runtime forbids).
 - `npm run preview` — build then run `next start` for a pre-deploy check.
-- Run `npm install` once to copy Kuromoji dictionaries into `public/dict/` (handled by `postinstall`).
 
 ## Coding Style & Naming Conventions
 - TypeScript with strict mode; prefer named functional components. Indent with 2 spaces, single quotes, and trailing commas where sensible.
