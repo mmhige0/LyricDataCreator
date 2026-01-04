@@ -201,9 +201,6 @@ export function TypingGameContent({
       const seekTime = Math.max(0, currentPageTimestamp - 1)
       seekTo(seekTime)
 
-      if (!isPlaying) {
-        player.playVideo()
-      }
     } else {
       const targetTimestamp = adjustedScoreEntries[resolvedTargetIndex]?.timestamp ?? 0
       const adjustedTimestamp = Math.max(0, targetTimestamp - 1)
@@ -213,9 +210,6 @@ export function TypingGameContent({
         seekTo(finalTimestamp)
       }
 
-      if (!isPlaying) {
-        player.playVideo()
-      }
     }
   }
 
