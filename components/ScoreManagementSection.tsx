@@ -66,6 +66,7 @@ interface ScoreManagementSectionProps {
   canRedo: boolean
   readOnly?: boolean
   kpmModeOverride?: 'roma' | 'kana'
+  pageNumberOffset?: number
   timeOffsetControl?: {
     value: string
     displayValue: number
@@ -94,6 +95,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   canRedo,
   readOnly = false,
   kpmModeOverride,
+  pageNumberOffset = 0,
   timeOffsetControl,
 }) => {
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
@@ -216,6 +218,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
               const isEditing = editingId === entry.id
               const kpmData = kpmDataMap.get(entry.id) || null
               const isClickable = readOnly && Boolean(player)
+              const displayPageNumber = Math.max(0, index + 1 - pageNumberOffset)
 
               return (
                 <div
@@ -249,7 +252,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
                       <div className="text-sm font-mono text-muted-foreground flex items-center justify-between">
-                        <span>#{index + 1}</span>
+                        <span>#{displayPageNumber}</span>
                         {!readOnly && scoreEntries[index + 1] && (
                           <span className="text-xs">
                             {(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s

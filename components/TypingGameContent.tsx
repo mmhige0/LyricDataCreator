@@ -281,6 +281,8 @@ export function TypingGameContent({
     onClose()
   }
 
+  const hasIntroPage = normalizedScoreEntries.length > scoreEntries.length
+
   const getCurrentLyricsIndex = () => {
     return pageState.pageIndex
   }
@@ -648,7 +650,7 @@ export function TypingGameContent({
           {/* 右側: ページ一覧 */}
               {showPageList && (
                 <div className="w-full max-w-md lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
-              <ScoreManagementSection
+                <ScoreManagementSection
                 scoreEntries={normalizedScoreEntries}
                 duration={effectiveDuration}
                 player={player}
@@ -666,6 +668,7 @@ export function TypingGameContent({
                 canUndo={false}
                 canRedo={false}
                 readOnly
+                pageNumberOffset={hasIntroPage ? 1 : 0}
                 kpmModeOverride={kpmModeOverride}
                 timeOffsetControl={{
                   value: timeOffsetInput,
