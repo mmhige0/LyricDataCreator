@@ -185,11 +185,19 @@ export function TypingGameContent({
 
   const { builtMapLines, pageLyrics } = pageTypingData
 
-  const handlePageChange = (direction: 'prev' | 'next') => {
+  const handlePageChange = (direction: 'prev' | 'next', targetPageIndex?: number) => {
     if (!player) return
 
+    const resolvedTargetIndex =
+      typeof targetPageIndex === 'number'
+        ? targetPageIndex
+        : pageState.pageIndex + (direction === 'next' ? 1 : -1)
+
+    if (resolvedTargetIndex < 0 || resolvedTargetIndex >= adjustedScoreEntries.length) return
+
     if (direction === 'prev') {
-      const currentPageTimestamp = adjustedScoreEntries[pageState.pageIndex]?.timestamp || 0
+      const referenceTimestamp = adjustedScoreEntries[resolvedTargetIndex + 1]?.timestamp ?? 0
+      const currentPageTimestamp = referenceTimestamp || adjustedScoreEntries[resolvedTargetIndex]?.timestamp || 0
       const seekTime = Math.max(0, currentPageTimestamp - 1)
       seekTo(seekTime)
 
@@ -197,19 +205,16 @@ export function TypingGameContent({
         player.playVideo()
       }
     } else {
-      const targetPageIndex = pageState.pageIndex + 1
-      if (targetPageIndex < adjustedScoreEntries.length) {
-        const targetTimestamp = adjustedScoreEntries[targetPageIndex].timestamp
-        const adjustedTimestamp = Math.max(0, targetTimestamp - 1)
-        const finalTimestamp = Math.max(currentTime, adjustedTimestamp)
+      const targetTimestamp = adjustedScoreEntries[resolvedTargetIndex]?.timestamp ?? 0
+      const adjustedTimestamp = Math.max(0, targetTimestamp - 1)
+      const finalTimestamp = Math.max(currentTime, adjustedTimestamp)
 
-        if (finalTimestamp !== currentTime) {
-          seekTo(finalTimestamp)
-        }
+      if (finalTimestamp !== currentTime) {
+        seekTo(finalTimestamp)
+      }
 
-        if (!isPlaying) {
-          player.playVideo()
-        }
+      if (!isPlaying) {
+        player.playVideo()
       }
     }
   }
@@ -229,7 +234,7 @@ export function TypingGameContent({
     },
     onTogglePlayPause: togglePlayPause,
      onSkipToNextPage: () => handlePageChange("next"),
-     onPageChange: (direction) => handlePageChange(direction),
+     onPageChange: (direction, targetPageIndex) => handlePageChange(direction, targetPageIndex),
     isPlaying: isPlaying,
   })
 

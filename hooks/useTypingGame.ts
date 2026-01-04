@@ -26,7 +26,7 @@ interface UseTypingGameProps {
   onRestartVideo?: () => void
   onTogglePlayPause?: () => void
   onSkipToNextPage?: () => void
-  onPageChange?: (direction: 'prev' | 'next') => void
+  onPageChange?: (direction: 'prev' | 'next', targetPageIndex: number) => void
   isPlaying?: boolean
 }
 
@@ -54,6 +54,7 @@ export const useTypingGame = ({
 
   const correctSoundRef = useRef<HTMLAudioElement | null>(null)
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
+  const pendingNextPageIndexRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -143,6 +144,12 @@ export const useTypingGame = ({
     }
 
     const targetPageIndex = findTargetPageIndexByTime(scoreEntries, currentVideoTime)
+    if (
+      pendingNextPageIndexRef.current !== null &&
+      targetPageIndex >= pendingNextPageIndexRef.current
+    ) {
+      pendingNextPageIndexRef.current = null
+    }
 
     if (targetPageIndex !== pageState.pageIndex && targetPageIndex !== -1) {
       // ページを進めるときに、打ち切り状態ならコンボを切る
@@ -234,18 +241,26 @@ export const useTypingGame = ({
       // ←: 前のページ、→: 次のページ
       if (event.key === 'ArrowLeft') {
         event.preventDefault()
-        if (isPlaying && pageState.pageIndex > 0) {
+        pendingNextPageIndexRef.current = null
+        const targetPageIndex = pageState.pageIndex - 1
+        if (targetPageIndex >= 0) {
           setCombo(0)
-          onPageChange?.('prev')
+          onPageChange?.('prev', targetPageIndex)
         }
         return
       }
 
       if (event.key === 'ArrowRight') {
         event.preventDefault()
-        if (isPlaying && pageState.pageIndex < scoreEntries.length - 1) {
+        const basePageIndex =
+          pendingNextPageIndexRef.current !== null
+            ? pendingNextPageIndexRef.current
+            : pageState.pageIndex
+        const targetPageIndex = basePageIndex + 1
+        if (targetPageIndex < scoreEntries.length) {
           setCombo(0)
-          onPageChange?.('next')
+          pendingNextPageIndexRef.current = targetPageIndex
+          onPageChange?.('next', targetPageIndex)
         }
         return
       }
