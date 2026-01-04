@@ -1,10 +1,9 @@
-import { withBasePath } from './basePath'
 import { preprocessAndConvertLyrics } from './textUtils'
 
 const containsKanji = (text: string): boolean => /[\u4e00-\u9faf]/.test(text)
 
 const requestHiraganaConversion = async (lines: string[]): Promise<string[]> => {
-  const response = await fetch(withBasePath('/api/hiragana'), {
+  const response = await fetch('/api/hiragana', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

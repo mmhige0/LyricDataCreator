@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { withBasePath } from '@/lib/basePath'
 import type { ScoreEntry } from '@/lib/types'
 import type { BuiltMapLine, TypingWord, InputMode } from 'lyrics-typing-engine'
 import { evaluateKanaInput, evaluateRomaInput, isTypingKey } from 'lyrics-typing-engine'
@@ -62,8 +61,8 @@ export const useTypingGame = ({
     const initialInputMode = storedInputMode === 'roma' || storedInputMode === 'kana' ? storedInputMode : 'roma'
     setInputMode(initialInputMode)
 
-    const correctSoundPath = withBasePath('/sounds/daken.mp3')
-    const missSoundPath = withBasePath('/sounds/miss.mp3')
+    const correctSoundPath = '/sounds/daken.mp3'
+    const missSoundPath = '/sounds/miss.mp3'
 
     correctSoundRef.current = new Audio(correctSoundPath)
     missSoundRef.current = new Audio(missSoundPath)

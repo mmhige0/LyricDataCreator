@@ -33,7 +33,7 @@
 - Always run the app verification and lint checks before committing, and do not commit without explicit approval.
 
 ## Security & Configuration Tips
-- The app targets Vercel (root path) now; asset URLs assume deployment at the domain root. Use `NEXT_PUBLIC_BASE_PATH` only if a non-root base is required.
+- The app targets Vercel (root path) now; asset URLs assume deployment at the domain root.
 - Avoid committing generated build artifacts or large datasets; keep secrets out of config and favor environment variables when adding new integrations.
 
 ## useEffect Usage Guidelines
