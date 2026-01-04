@@ -13,18 +13,22 @@ jobs:
   ping-health-endpoint:
     runs-on: ubuntu-latest
     steps:
-      - name: Call health endpoint
+      - name: Call Supabase REST endpoint
         env:
-          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "$HEALTHCHECK_URL" ]; then
-            echo "HEALTHCHECK_URL secret is not set. Add it in the repo settings."
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_URL or SUPABASE_ANON_KEY secret is not set. Add them in the repo settings."
             exit 1
           fi
 
           # Retry up to 3 times in case the pool is still waking up.
           for i in 1 2 3; do
-            if curl -fsS --max-time 10 "$HEALTHCHECK_URL"; then
+            if curl -fsS --max-time 10 \
+              -H "apikey: $SUPABASE_ANON_KEY" \
+              -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              "$SUPABASE_URL/rest/v1/song?select=id&limit=1"; then
               echo "Health check succeeded on attempt $i"
               exit 0
             fi
