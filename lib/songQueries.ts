@@ -273,7 +273,7 @@ export const getRandomSongs = async ({
       Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
     >(Prisma.sql`
       SELECT "id", "title", "artist", "youtubeUrl", "level"
-      FROM "Song"
+      FROM "song"
       ${whereSql}
       ORDER BY random()
       LIMIT ${normalizedLimit}

@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   const results: Array<Record<string, unknown>> = []
   try {
     if (body.truncate) {
-      await prisma.$executeRawUnsafe('TRUNCATE TABLE "Song" RESTART IDENTITY CASCADE;')
+      await prisma.$executeRawUnsafe('TRUNCATE TABLE "song" RESTART IDENTITY CASCADE;')
       results.push({ status: 'truncated' })
     }
 

@@ -24,4 +24,5 @@ model Song {
   @@index([title])
   @@index([artist])
   @@index([levelValue])
+  @@map("song")
 }
