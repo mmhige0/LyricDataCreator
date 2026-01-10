@@ -5,10 +5,10 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
-    "build": "DATABASE_URL=\"postgresql://user:pass@localhost:5432/db\" prisma generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
-    "type-check": "DATABASE_URL=\"postgresql://user:pass@localhost:5432/db\" prisma generate && tsc --noEmit",
+    "type-check": "prisma generate && tsc --noEmit",
     "test": "npm run lint && npm run type-check && npm run unit && npm run build",
     "unit": "vitest run",
     "preview": "npm run build && npm run start"
