@@ -5,11 +5,12 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "DATABASE_URL=\"postgresql://user:pass@localhost:5432/db\" prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
-    "type-check": "prisma generate && tsc --noEmit",
-    "test": "npm run lint && npm run type-check && npm run build",
+    "type-check": "DATABASE_URL=\"postgresql://user:pass@localhost:5432/db\" prisma generate && tsc --noEmit",
+    "test": "npm run lint && npm run type-check && npm run unit && npm run build",
+    "unit": "vitest run",
     "preview": "npm run build && npm run start"
   },
   "dependencies": {
@@ -40,7 +41,8 @@
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.1",
     "prisma": "^7.2.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   },
   "overrides": {
     "@next/eslint-plugin-next": {
