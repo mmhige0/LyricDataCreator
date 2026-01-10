@@ -41,6 +41,19 @@ const calculateKpm = (charCount: number, durationSeconds: number): number => {
 const isSpaceChunk = (chunk: WordChunk): boolean =>
   chunk.type === 'space' || chunk.kana === ' ' || chunk.kana === '　'
 
+const applyNEndingPatchToChunks = (wordChunks: WordChunk[]): WordChunk[] =>
+  wordChunks.map((chunk, index) => {
+    const nextChunk = wordChunks[index + 1]
+    const isSpaceNext = !nextChunk || isSpaceChunk(nextChunk)
+    if (chunk.kana === 'ん' && isSpaceNext) {
+      return {
+        ...chunk,
+        romaPatterns: ['nn', "n'", 'xn'],
+      }
+    }
+    return chunk
+  })
+
 const dakutenChars = new Set([
   'が', 'ぎ', 'ぐ', 'げ', 'ご',
   'ざ', 'じ', 'ず', 'ぜ', 'ぞ',
@@ -78,7 +91,8 @@ const buildFromTypingMap = (target: string) => {
       rawMapLines: [{ time: 0, lyrics: target, word: target }],
       charPoint: 0,
     })
-    wordChunks = builtLines[0]?.wordChunks ?? []
+    const builtChunks = builtLines[0]?.wordChunks ?? []
+    wordChunks = applyNEndingPatchToChunks(builtChunks)
   } catch (error) {
     console.error('Failed to parse word for KPM calculation', error)
     const fallbackRomaji = target.replace(/\s/g, '')
