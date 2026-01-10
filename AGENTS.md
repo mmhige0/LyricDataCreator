@@ -9,10 +9,11 @@
 ## Build, Test, and Development Commands
 - `npm run dev` — start the local dev server at `http://localhost:3000`.
 - `npm run lint` / `npm run type-check` — ESLint (Next config) and TypeScript strict checks (`type-check` runs `prisma generate`).
-- `npm run test` — runs lint, type-check, then `next build` to ensure the app still builds.
+- `npm run test` — runs lint, type-check, unit tests, then `next build` to ensure the app still builds.
 - `npm run build` — runs `prisma generate` then `next build` for Vercel deployment (no GitHub Pages basePath/assetPrefix).
 - Prefer webpack for build/test (`npm run build -- --webpack`, add `-- --webpack` to `npm run test` if needed) because Turbopack currently fails in this sandbox when compiling `app/globals.css` (it tries to spawn a process that binds to a port, which the runtime forbids).
 - `npm run preview` — build then run `next start` for a pre-deploy check.
+- Prisma config loads `.env` via `dotenv/config`; CI must provide `DATABASE_URL` explicitly (GitHub Actions does not have `.env`).
 
 ## Coding Style & Naming Conventions
 - TypeScript with strict mode; prefer named functional components. Indent with 2 spaces, single quotes, and trailing commas where sensible.
@@ -21,9 +22,8 @@
 - Use the `@/*` path alias for absolute imports from the repo root.
 
 ## Testing Guidelines
-- No standalone unit/integration harness is present yet; the current guardrail is `npm run test` (lint + types + build).
+- Unit tests run via Vitest (`npm run unit`), and `npm run test` is the guardrail (lint + types + unit + build).
 - When adding non-trivial logic (e.g., parsing, timing calculations), include targeted tests or lightweight validation scripts and wire them into `npm run test` if possible.
-- Keep fixtures small and commit only deterministic test assets.
 
 ## Commit & Pull Request Guidelines
 - Write concise, imperative commit messages in `type: Title` format (e.g., `feat: Add timing export controls`); group related changes.
