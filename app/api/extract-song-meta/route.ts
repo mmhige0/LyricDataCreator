@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-lite'
+const DEFAULT_GEMINI_MODEL = 'gemma-3-27b-it'
 
 const getGeminiEndpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
@@ -15,13 +15,20 @@ type GeminiResponse = {
   candidates?: GeminiCandidate[]
 }
 
-const buildPrompt = (title: string, channelName: string) => `
-You extract song metadata from a YouTube title and channel name.
+const MAX_TITLE_LENGTH = 50
+
+const sanitizeTitle = (value: string) => {
+  const withoutInvisibles = value.replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+  return withoutInvisibles.trim().slice(0, MAX_TITLE_LENGTH)
+}
+
+const buildPrompt = (title: string) => `
+You extract song metadata from a YouTube title.
 Return JSON only with key "title".
+If the title includes a featured artist, use the format "Song Title feat. Artist Name".
 If you are unsure, return empty strings.
 
 Title: ${title}
-Channel: ${channelName}
 `
 
 const parseGeminiJson = (raw: string): { title?: string } | null => {
@@ -45,11 +52,10 @@ const parseGeminiJson = (raw: string): { title?: string } | null => {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const title = typeof body?.title === 'string' ? body.title.trim() : ''
-    const channelName = typeof body?.channelName === 'string' ? body.channelName.trim() : ''
-
-    if (!title || !channelName) {
-      return NextResponse.json({ error: 'title and channelName are required' }, { status: 400 })
+    const rawTitle = typeof body?.title === 'string' ? body.title : ''
+    const title = rawTitle ? sanitizeTitle(rawTitle) : ''
+    if (!title) {
+      return NextResponse.json({ error: 'title is required' }, { status: 400 })
     }
 
     const apiKey = process.env.GEMINI_API_KEY
@@ -67,12 +73,11 @@ export async function POST(request: Request) {
         contents: [
           {
             role: 'user',
-            parts: [{ text: buildPrompt(title, channelName) }],
+            parts: [{ text: buildPrompt(title) }],
           },
         ],
         generationConfig: {
           temperature: 0.2,
-          responseMimeType: 'application/json',
         },
       }),
     })

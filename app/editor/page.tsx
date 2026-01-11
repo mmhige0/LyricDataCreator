@@ -193,6 +193,7 @@ export default function LyricsTypingApp() {
 
   useEffect(() => {
     if (!videoTitle) return
+    if (songTitle.trim()) return
     const extractKey = videoTitle
     if (lastExtractKeyRef.current === extractKey) return
     lastExtractKeyRef.current = extractKey
