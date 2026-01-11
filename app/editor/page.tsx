@@ -21,6 +21,7 @@ import { CreditsSection } from "@/components/CreditsSection"
 import { cn } from "@/lib/utils"
 import { createNewSessionId, getOrCreateSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
+import { extractVideoId } from "@/lib/youtubeUtils"
 import type { DraftListEntry } from "@/lib/types"
 
 export default function LyricsTypingApp() {
@@ -45,7 +46,6 @@ export default function LyricsTypingApp() {
     currentTime,
     duration,
     setDuration,
-    videoTitle,
     playbackRate,
     volume,
     isMuted,
@@ -191,48 +191,46 @@ export default function LyricsTypingApp() {
     setIsInitialized(true)
   }, [])
 
-  useEffect(() => {
-    if (!videoTitle) return
+  const extractSongMetadata = useCallback(async () => {
+    if (!youtubeUrl) return
     if (songTitle.trim()) return
-    const extractKey = videoTitle
+    if (!extractVideoId(youtubeUrl)) return
+    const extractKey = youtubeUrl
     if (lastExtractKeyRef.current === extractKey) return
     lastExtractKeyRef.current = extractKey
-    let isCancelled = false
 
-    const extractMetadata = async () => {
-      try {
-        const response = await fetch('/api/extract-song-meta', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ title: videoTitle }),
-        })
+    try {
+      const response = await fetch('/api/extract-song-meta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ youtubeUrl }),
+      })
 
-        if (!response.ok) {
-          console.warn('Failed to extract metadata', response.status)
-          return
-        }
-
-        const data = await response.json()
-        if (isCancelled) return
-
-        const extractedTitle = typeof data?.title === 'string' ? data.title.trim() : ''
-
-        if (extractedTitle && (!songTitle || songTitle === autoTitleRef.current)) {
-          autoTitleRef.current = extractedTitle
-          setSongTitle(extractedTitle)
-        }
-      } catch (error) {
-        console.warn('Failed to extract metadata', error)
+      if (!response.ok) {
+        console.warn('Failed to extract metadata', response.status)
+        return
       }
-    }
 
-    extractMetadata()
-    return () => {
-      isCancelled = true
+      const data = await response.json()
+      if (lastExtractKeyRef.current !== extractKey) return
+
+      const extractedTitle = typeof data?.title === 'string' ? data.title.trim() : ''
+
+      if (extractedTitle && (!songTitle || songTitle === autoTitleRef.current)) {
+        autoTitleRef.current = extractedTitle
+        setSongTitle(extractedTitle)
+      }
+    } catch (error) {
+      console.warn('Failed to extract metadata', error)
     }
-  }, [videoTitle, songTitle])
+  }, [songTitle, youtubeUrl])
+
+  const handleLoadYouTubeVideo = useCallback(() => {
+    loadYouTubeVideo()
+    void extractSongMetadata()
+  }, [extractSongMetadata, loadYouTubeVideo])
 
   const handleRestoreDraft = useCallback(
     (sessionId: string) => {
@@ -361,7 +359,7 @@ export default function LyricsTypingApp() {
                 isMuted={isMuted}
                 isLoadingVideo={isLoadingVideo}
                 isYouTubeAPIReady={isYouTubeAPIReady}
-                loadYouTubeVideo={loadYouTubeVideo}
+                loadYouTubeVideo={handleLoadYouTubeVideo}
                 togglePlayPause={togglePlayPause}
                 seekBackward={seekBackward}
                 seekForward={seekForward}
