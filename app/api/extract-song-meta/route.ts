@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { extractVideoId } from '@/lib/youtubeUtils'
 
 const DEFAULT_GEMINI_MODEL = 'gemma-3-27b-it'
 
@@ -20,6 +21,19 @@ const MAX_TITLE_LENGTH = 50
 const sanitizeTitle = (value: string) => {
   const withoutInvisibles = value.replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
   return withoutInvisibles.trim().slice(0, MAX_TITLE_LENGTH)
+}
+
+const getYouTubeTitle = async (youtubeUrl: string) => {
+  const videoId = extractVideoId(youtubeUrl)
+  if (!videoId) return ''
+
+  const canonicalUrl = `https://www.youtube.com/watch?v=${videoId}`
+  const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(canonicalUrl)}&format=json`
+  const response = await fetch(oembedUrl, { method: 'GET' })
+  if (!response.ok) return ''
+
+  const data = (await response.json()) as { title?: string }
+  return typeof data?.title === 'string' ? data.title : ''
 }
 
 const buildPrompt = (title: string) => `
@@ -52,10 +66,14 @@ const parseGeminiJson = (raw: string): { title?: string } | null => {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    const rawYoutubeUrl = typeof body?.youtubeUrl === 'string' ? body.youtubeUrl : ''
     const rawTitle = typeof body?.title === 'string' ? body.title : ''
-    const title = rawTitle ? sanitizeTitle(rawTitle) : ''
+    const youtubeUrl = rawYoutubeUrl.trim()
+    const fetchedTitle = youtubeUrl ? await getYouTubeTitle(youtubeUrl) : ''
+    const titleSource = fetchedTitle || rawTitle
+    const title = titleSource ? sanitizeTitle(titleSource) : ''
     if (!title) {
-      return NextResponse.json({ error: 'title is required' }, { status: 400 })
+      return NextResponse.json({ error: 'title or youtubeUrl is required' }, { status: 400 })
     }
 
     const apiKey = process.env.GEMINI_API_KEY
