@@ -16,6 +16,8 @@ interface LyricsEditCardProps {
   setTimestamp: React.Dispatch<React.SetStateAction<string>>
   player: YouTubePlayer | null
   seekToInput?: (inputValue: string) => void
+  isDisabled?: boolean
+  disabledReason?: string
 
   // Mode-specific props
   mode: 'add' | 'edit'
@@ -47,6 +49,8 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   setTimestamp,
   player,
   seekToInput,
+  isDisabled = false,
+  disabledReason = '編集中はページ追加できません',
   mode,
   editingEntryIndex,
   onAdd,
@@ -109,20 +113,30 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
   const getIconColor = () => {
     return mode === 'edit' ? 'bg-blue-500' : 'bg-green-500'
   }
+  const isEditMode = mode === 'edit'
 
   return (
-    <Card className="bg-white dark:bg-slate-900 border shadow-lg">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-semibold flex items-center gap-2">
-          <div className={`p-2 rounded-lg text-white ${getIconColor()}`}>
-            {getIcon()}
-          </div>
-          {getTitle()}
-        </CardTitle>
-      </CardHeader>
+    <Card
+      className={`bg-white dark:bg-slate-900 border shadow-lg ${isDisabled ? 'bg-slate-100 text-slate-500' : ''}`}
+    >
+      {!isEditMode && (
+        <CardHeader className={`pb-4 ${isDisabled ? 'opacity-60 grayscale' : ''}`}>
+          <CardTitle className="text-xl font-semibold flex items-center gap-2 flex-wrap">
+            <div className={`p-2 rounded-lg text-white ${getIconColor()}`}>
+              {getIcon()}
+            </div>
+            {getTitle()}
+            {isDisabled && (
+              <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-1">
+                {disabledReason}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+      )}
 
-      <CardContent className="space-y-4">
-        <div className="mb-8">
+      <CardContent className={`space-y-4 ${isDisabled ? 'opacity-60 grayscale' : ''}`}>
+        <div className={`mb-8 ${isDisabled ? 'pointer-events-none' : ''}`}>
           <TimestampInput
             timestamp={timestamp}
             setTimestamp={setTimestamp}
@@ -132,11 +146,14 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
             timestampOffset={timestampOffset}
             setTimestampOffset={setTimestampOffset}
             getCurrentTimestamp={getCurrentTimestamp}
+            hideLabel={isEditMode}
           />
         </div>
 
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-base font-medium text-muted-foreground">歌詞</div>
+        <div className={`flex items-center justify-between mb-2 ${isDisabled ? 'pointer-events-none' : ''}`}>
+          <div className={`text-base font-medium text-muted-foreground ${isEditMode ? 'invisible' : ''}`}>
+            歌詞
+          </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -160,61 +177,63 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           </div>
         </div>
 
-        {conversionError && (
+        {conversionError && !isDisabled && (
           <div className="text-sm text-red-600 mb-2 p-2 bg-red-50 border border-red-200 rounded">
             {conversionError}
           </div>
         )}
 
-        <LyricsInputFields
-          lyrics={lyrics}
-          setLyrics={setLyrics}
-          lyricsInputRefs={lyricsInputRefs}
-          saveCurrentState={saveCurrentState}
-        />
+        <div className={isDisabled ? 'pointer-events-none' : ''}>
+          <LyricsInputFields
+            lyrics={lyrics}
+            setLyrics={setLyrics}
+            lyricsInputRefs={lyricsInputRefs}
+            saveCurrentState={saveCurrentState}
+          />
 
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearLyrics}
-            className="text-xs"
-          >
-            <Eraser className="h-3 w-3 mr-1" />
-            クリア
-          </Button>
-        </div>
-
-        <div className="flex gap-2">
-          {mode === 'add' ? (
+          <div className="flex justify-end my-2">
             <Button
-              onClick={onAdd}
-              disabled={!timestamp}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+              variant="outline"
+              size="sm"
+              onClick={handleClearLyrics}
+              className="text-xs"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              ページ追加
+              <Eraser className="h-3 w-3 mr-1" />
+              クリア
             </Button>
-          ) : (
-            <>
+          </div>
+
+          <div className="flex gap-2">
+            {mode === 'add' ? (
               <Button
-                variant="outline"
-                onClick={onSave}
-                className="flex-1"
+                onClick={onAdd}
+                disabled={!timestamp}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
               >
-                <Check className="h-4 w-4 mr-2" />
-                保存
+                <Plus className="h-4 w-4 mr-2" />
+                ページ追加
               </Button>
-              <Button
-                variant="outline"
-                onClick={onCancel}
-                className="flex-1"
-              >
-                <X className="h-4 w-4 mr-2" />
-                キャンセル
-              </Button>
-            </>
-          )}
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={onSave}
+                  className="flex-1"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  保存
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={onCancel}
+                  className="flex-1"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  キャンセル
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -374,20 +374,16 @@ export default function LyricsTypingApp() {
               />
 
               <LyricsEditCard
-                lyrics={editingId ? editingLyrics : lyrics}
-                setLyrics={editingId ? setEditingLyrics : setLyrics}
-                timestamp={editingId ? editingTimestamp : timestamp}
-                setTimestamp={editingId ? setEditingTimestamp : setTimestamp}
+                lyrics={lyrics}
+                setLyrics={setLyrics}
+                timestamp={timestamp}
+                setTimestamp={setTimestamp}
                 player={player}
                 seekToInput={seekToInput}
-                mode={editingId ? "edit" : "add"}
-                editingEntry={editingId ? scoreEntries.find((entry) => entry.id === editingId) : null}
-                editingEntryIndex={
-                  editingId ? scoreEntries.findIndex((entry) => entry.id === editingId) : undefined
-                }
+                mode="add"
+                isDisabled={Boolean(editingId)}
+                disabledReason="ページ編集中"
                 onAdd={addScoreEntry}
-                onSave={saveEditScoreEntry}
-                onCancel={cancelEditScoreEntry}
                 lyricsInputRefs={lyricsInputRefs}
                 timestampInputRef={timestampInputRef}
                 timestampOffset={timestampOffset}
@@ -403,6 +399,13 @@ export default function LyricsTypingApp() {
                 duration={duration}
                 player={player}
                 editingId={editingId}
+                editingLyrics={editingLyrics}
+                setEditingLyrics={setEditingLyrics}
+                editingTimestamp={editingTimestamp}
+                setEditingTimestamp={setEditingTimestamp}
+                saveEditScoreEntry={saveEditScoreEntry}
+                cancelEditScoreEntry={cancelEditScoreEntry}
+                saveCurrentState={saveCurrentState}
                 getCurrentLyricsIndex={getCurrentLyricsIndex}
                 importScoreData={importScoreData}
                 exportScoreData={handleExport}

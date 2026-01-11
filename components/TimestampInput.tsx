@@ -13,6 +13,7 @@ interface TimestampInputProps {
   timestampOffset?: number
   setTimestampOffset?: (offset: number) => void
   getCurrentTimestamp?: (offset: number) => string
+  hideLabel?: boolean
 }
 
 export const TimestampInput: React.FC<TimestampInputProps> = ({
@@ -23,7 +24,8 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
   timestampInputRef,
   timestampOffset = 0,
   setTimestampOffset,
-  getCurrentTimestamp
+  getCurrentTimestamp,
+  hideLabel = false
 }) => {
   const [offsetInputValue, setOffsetInputValue] = useState<string>(timestampOffset.toFixed(2))
   const [isOffsetFocused, setIsOffsetFocused] = useState(false)
@@ -81,7 +83,9 @@ export const TimestampInput: React.FC<TimestampInputProps> = ({
 
   return (
     <div>
-      <div className="text-base font-medium text-muted-foreground mb-2">ページ表示タイミング（秒）</div>
+      {!hideLabel && (
+        <div className="text-base font-medium text-muted-foreground mb-2">ページ表示タイミング（秒）</div>
+      )}
       <div className="flex gap-2 items-center flex-wrap">
         <Button
           variant="outline"

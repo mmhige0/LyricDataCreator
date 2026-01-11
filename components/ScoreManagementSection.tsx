@@ -1,4 +1,4 @@
-import { memo, useState, type FC, type MouseEvent } from 'react'
+import { memo, useEffect, useRef, useState, type Dispatch, type FC, type MouseEvent, type SetStateAction } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,7 +7,8 @@ import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, Redo, ScrollTe
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
-import type { ScoreEntry, YouTubePlayer } from '@/lib/types'
+import { LyricsEditCard } from '@/components/LyricsEditCard'
+import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
 
 interface EntryDisplayProps {
@@ -24,12 +25,12 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
         return (
           <div key={lineIndex} className="flex justify-between items-center">
             <div className="flex-1 min-w-0">
-              <div className={line ? "" : "text-muted-foreground"}>
+              <div className={`select-text ${line ? "" : "text-muted-foreground"}`}>
                 {line || "!"}
               </div>
             </div>
             {lineKpm && lineKpm.charCount[kpmMode] > 0 && (
-              <div className="text-xs font-mono text-muted-foreground ml-2">
+              <div className="text-xs font-mono text-muted-foreground ml-2 select-none">
                 {lineKpm.kpm[kpmMode].toFixed(0)} kpm
               </div>
             )}
@@ -37,7 +38,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
         )
       })}
       {kpmData && (
-        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right leading-tight">
+        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right leading-tight select-none">
           {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
         </div>
       )}
@@ -52,6 +53,13 @@ interface ScoreManagementSectionProps {
   duration: number
   player: YouTubePlayer | null
   editingId: string | null
+  editingLyrics?: LyricsArray
+  setEditingLyrics?: Dispatch<SetStateAction<LyricsArray>>
+  editingTimestamp?: string
+  setEditingTimestamp?: Dispatch<SetStateAction<string>>
+  saveEditScoreEntry?: () => void
+  cancelEditScoreEntry?: () => void
+  saveCurrentState?: () => void
   getCurrentLyricsIndex: () => number
   importScoreData: () => void
   exportScoreData: (event?: MouseEvent<HTMLButtonElement>) => void
@@ -81,6 +89,13 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   duration,
   player,
   editingId,
+  editingLyrics,
+  setEditingLyrics,
+  editingTimestamp,
+  setEditingTimestamp,
+  saveEditScoreEntry,
+  cancelEditScoreEntry,
+  saveCurrentState,
   getCurrentLyricsIndex,
   importScoreData,
   exportScoreData,
@@ -104,6 +119,17 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
   const [kpmMode, setKpmMode] = useState<'roma' | 'kana'>('roma')
   const effectiveKpmMode = kpmModeOverride ?? kpmMode
+  const editingLyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const editingTimestampInputRef = useRef<HTMLInputElement | null>(null)
+  const canInlineEdit =
+    !readOnly &&
+    Boolean(editingId) &&
+    Boolean(editingLyrics) &&
+    Boolean(setEditingLyrics) &&
+    typeof editingTimestamp === 'string' &&
+    Boolean(setEditingTimestamp) &&
+    Boolean(saveEditScoreEntry) &&
+    Boolean(cancelEditScoreEntry)
 
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
@@ -111,6 +137,19 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     enabled: autoScroll,
     onUserScroll: () => setAutoScroll(false)
   })
+
+  useEffect(() => {
+    if (readOnly || !editingId) return
+    const entryIndex = scoreEntries.findIndex((entry) => entry.id === editingId)
+    if (entryIndex < 0) return
+    const entryElement = entryRefs.current[entryIndex]
+    if (!entryElement) return
+
+    entryElement.scrollIntoView({
+      block: 'center',
+      behavior: 'smooth',
+    })
+  }, [editingId, readOnly, scoreEntries, entryRefs])
 
 
   const handleBulkTimingAdjust = () => {
@@ -126,6 +165,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     }
 
     bulkAdjustTimings(value)
+  }
+
+  const handleInlineSave = () => {
+    if (!saveEditScoreEntry || typeof editingTimestamp !== 'string') return
+    const parsedTimestamp = Number.parseFloat(editingTimestamp)
+    if (!Number.isFinite(parsedTimestamp)) {
+      toast.error('タイムスタンプは数値で入力してください。')
+      return
+    }
+    saveEditScoreEntry()
   }
 
   return (
@@ -293,9 +342,10 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                           size="sm"
                           onClick={() => startEditScoreEntry(entry)}
                           className={`text-xs ${isEditing ? 'bg-blue-100 border-blue-300' : ''}`}
+                          disabled={isEditing}
                         >
                           <Edit className="h-3 w-3 mr-1" />
-                          編集
+                          {isEditing ? '編集中' : '編集'}
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => deleteScoreEntry(entry.id)} className="text-xs">
                           <Trash2 className="h-3 w-3 mr-1" />
@@ -304,6 +354,31 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       </div>
                     )}
                   </div>
+                  {canInlineEdit && isEditing && (
+                    <div className="mt-4">
+                      <LyricsEditCard
+                        lyrics={editingLyrics ?? ["", "", "", ""]}
+                        setLyrics={(nextLyrics) => setEditingLyrics?.(nextLyrics)}
+                        timestamp={editingTimestamp ?? "0.00"}
+                        setTimestamp={(nextTimestamp) => setEditingTimestamp?.(nextTimestamp)}
+                        player={player}
+                        seekToInput={(inputValue) => {
+                          if (!inputValue) return
+                          const parsedTimestamp = Number.parseFloat(inputValue)
+                          if (Number.isFinite(parsedTimestamp)) {
+                            seekToAndPlay(parsedTimestamp)
+                          }
+                        }}
+                        mode="edit"
+                        editingEntryIndex={index}
+                        onSave={handleInlineSave}
+                        onCancel={() => cancelEditScoreEntry?.()}
+                        lyricsInputRefs={editingLyricsInputRefs}
+                        timestampInputRef={editingTimestampInputRef}
+                        saveCurrentState={saveCurrentState}
+                      />
+                    </div>
+                  )}
                 </div>
               )
             })}
