@@ -30,6 +30,8 @@ export default function LyricsTypingApp() {
   const [activeView, setActiveView] = useState<"editor" | "play">("editor")
   const [drafts, setDrafts] = useState<DraftListEntry[]>([])
   const hasRestoredDraftRef = useRef(false)
+  const autoTitleRef = useRef<string | null>(null)
+  const lastExtractKeyRef = useRef<string | null>(null)
 
   const {
     isYouTubeAPIReady,
@@ -43,6 +45,7 @@ export default function LyricsTypingApp() {
     currentTime,
     duration,
     setDuration,
+    videoTitle,
     playbackRate,
     volume,
     isMuted,
@@ -188,6 +191,49 @@ export default function LyricsTypingApp() {
     setIsInitialized(true)
   }, [])
 
+  useEffect(() => {
+    if (!videoTitle) return
+    if (songTitle.trim()) return
+    const extractKey = videoTitle
+    if (lastExtractKeyRef.current === extractKey) return
+    lastExtractKeyRef.current = extractKey
+    let isCancelled = false
+
+    const extractMetadata = async () => {
+      try {
+        const response = await fetch('/api/extract-song-meta', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ title: videoTitle }),
+        })
+
+        if (!response.ok) {
+          console.warn('Failed to extract metadata', response.status)
+          return
+        }
+
+        const data = await response.json()
+        if (isCancelled) return
+
+        const extractedTitle = typeof data?.title === 'string' ? data.title.trim() : ''
+
+        if (extractedTitle && (!songTitle || songTitle === autoTitleRef.current)) {
+          autoTitleRef.current = extractedTitle
+          setSongTitle(extractedTitle)
+        }
+      } catch (error) {
+        console.warn('Failed to extract metadata', error)
+      }
+    }
+
+    extractMetadata()
+    return () => {
+      isCancelled = true
+    }
+  }, [videoTitle, songTitle])
+
   const handleRestoreDraft = useCallback(
     (sessionId: string) => {
       hasRestoredDraftRef.current = true
@@ -199,7 +245,7 @@ export default function LyricsTypingApp() {
         toast.success("下書きを復元しました")
       }
     },
-    [setYoutubeUrl, setScoreEntries],
+    [setYoutubeUrl, setScoreEntries, setSongTitle],
   )
 
   const handleCloseRestoreDialog = useCallback(() => {

@@ -62,6 +62,8 @@ export const useYouTube = ({
   const [isPlaying, setIsPlaying] = useState<boolean>(false)
   const [currentTime, setCurrentTime] = useState<number>(0)
   const [duration, setDuration] = useState<number>(0)
+  const [videoTitle, setVideoTitle] = useState<string>("")
+  const [channelName, setChannelName] = useState<string>("")
   const [playbackRate, setPlaybackRate] = useState<number>(1)
   const [volume, setVolume] = useState<number>(100)
   const [isMuted, setIsMuted] = useState<boolean>(false)
@@ -130,7 +132,16 @@ export const useYouTube = ({
     setIsPlaying(false)
     setCurrentTime(0)
     setDuration(0)
+    setVideoTitle("")
+    setChannelName("")
   }
+
+  const updateVideoMetadata = useCallback((currentPlayer: YouTubePlayer | null) => {
+    if (!currentPlayer?.getVideoData) return
+    const data = currentPlayer.getVideoData()
+    setVideoTitle(data?.title ?? "")
+    setChannelName(data?.author ?? "")
+  }, [])
 
   const loadYouTubeVideo = useCallback(() => {
     const id = extractVideoId(youtubeUrl)
@@ -156,6 +167,7 @@ export const useYouTube = ({
           setDuration(videoDuration)
           onDurationChange?.(videoDuration)
         }
+        updateVideoMetadata(player)
         setIsLoadingVideo(false)
       }, 1000)
     } else {
@@ -189,6 +201,7 @@ export const useYouTube = ({
                 setPlayer(event.target)
                 const videoDuration = event.target.getDuration()
                 setDuration(videoDuration)
+                updateVideoMetadata(event.target)
 
                 // localStorageから保存された音量を適用
                 const storedVolume = getStoredVolume()
@@ -227,6 +240,7 @@ export const useYouTube = ({
     onPlayerReady,
     onPlayerStateChange,
     player,
+    updateVideoMetadata,
     youtubeUrl,
   ])
 
@@ -350,6 +364,8 @@ export const useYouTube = ({
     setCurrentTime,
     duration,
     setDuration,
+    videoTitle,
+    channelName,
     playbackRate,
     volume,
     isMuted,

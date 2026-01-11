@@ -10,6 +10,7 @@ export interface YouTubePlayer {
   seekTo(seconds: number, allowSeekAhead: boolean): void
   getCurrentTime(): number
   getDuration(): number
+  getVideoData(): { title?: string; author?: string }
   setPlaybackRate(suggestedRate: number): void
   loadVideoById(videoId: string): void
   getPlayerState(): number
