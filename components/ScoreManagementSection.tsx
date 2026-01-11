@@ -273,7 +273,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 <div
                   key={entry.id}
                   ref={(el) => { entryRefs.current[index] = el }}
-                  className={`p-3 border rounded-lg hover:bg-muted/50 ${
+                  className={`relative group p-3 border rounded-lg hover:bg-muted/50 ${
                     isCurrentlyPlaying ? "bg-primary/10 border-primary" : ""
                   } ${isEditing ? "bg-blue-50 border-blue-200" : ""} ${
                     isClickable ? "cursor-pointer" : ""
@@ -283,7 +283,14 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       ? () => {
                           seekToAndPlay(entry.timestamp)
                         }
-                      : undefined
+                      : (event) => {
+                          if (!event.ctrlKey && !event.metaKey) return
+                          const target = event.target
+                          if (target instanceof HTMLElement && target.closest('button')) {
+                            return
+                          }
+                          startEditScoreEntry(entry)
+                        }
                   }
                   role={isClickable ? 'button' : undefined}
                   tabIndex={isClickable ? 0 : undefined}
@@ -298,6 +305,11 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       : undefined
                   }
                 >
+                  {!readOnly && (
+                    <span className="pointer-events-none absolute right-2 -top-2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-sm transition duration-150 ease-out group-hover:opacity-100 dark:bg-slate-100 dark:text-slate-900">
+                      Ctrl+クリックで編集
+                    </span>
+                  )}
                   <div className="flex items-start gap-4">
                     <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
                       <div className="text-sm font-mono text-muted-foreground flex items-center justify-between">
@@ -323,9 +335,9 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         </div>
                       )}
                     </div>
-                    <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                      <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} />
-                    </div>
+                  <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
+                    <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} />
+                  </div>
                     {!readOnly && (
                       <div className="flex flex-col gap-1 min-w-fit self-center">
                         <Button
