@@ -139,6 +139,21 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   })
 
   useEffect(() => {
+    if (readOnly || !editingId || !cancelEditScoreEntry) return
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      cancelEditScoreEntry()
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [cancelEditScoreEntry, editingId, readOnly])
+
+  useEffect(() => {
     if (readOnly || !editingId) return
     const entryIndex = scoreEntries.findIndex((entry) => entry.id === editingId)
     if (entryIndex < 0) return

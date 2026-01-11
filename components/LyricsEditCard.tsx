@@ -204,16 +204,16 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           </div>
 
           <div className="flex gap-2">
-            {mode === 'add' ? (
-              <Button
-                onClick={onAdd}
-                disabled={!timestamp}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                ページ追加
-              </Button>
-            ) : (
+          {mode === 'add' ? (
+            <Button
+              onClick={onAdd}
+              disabled={!timestamp}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              ページ追加 ( Ctrl + Enter )
+            </Button>
+          ) : (
               <>
                 <Button
                   variant="outline"
@@ -221,7 +221,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
                   className="flex-1"
                 >
                   <Check className="h-4 w-4 mr-2" />
-                  保存
+                  保存 ( Ctrl + Enter )
                 </Button>
                 <Button
                   variant="outline"
@@ -229,7 +229,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
                   className="flex-1"
                 >
                   <X className="h-4 w-4 mr-2" />
-                  キャンセル
+                  キャンセル ( Esc )
                 </Button>
               </>
             )}
