@@ -301,7 +301,7 @@ export default function LyricsTypingApp() {
   }, [canPlay])
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16">
+    <div className="min-h-screen page-shell pb-16">
       <input
         ref={fileInputRef}
         type="file"
@@ -316,7 +316,7 @@ export default function LyricsTypingApp() {
         songTitle={songTitle || undefined}
         actions={
           <div
-            className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 text-sm shadow-inner dark:bg-slate-900"
+            className="inline-flex items-center gap-1 rounded-full bg-muted p-1 text-sm shadow-inner"
             role="tablist"
             aria-label="画面モード切り替え"
             onKeyDown={handleTabKeyDown}
@@ -334,8 +334,8 @@ export default function LyricsTypingApp() {
               className={cn(
                 "rounded-full px-4 font-medium transition-colors",
                 activeView === "editor"
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-100"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white",
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Edit3 className="h-5 w-5 mr-2" />
@@ -355,8 +355,8 @@ export default function LyricsTypingApp() {
               className={cn(
                 "rounded-full px-4 font-medium transition-colors",
                 activeView === "play"
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-100"
-                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white",
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Keyboard className="h-5 w-5 mr-2" />

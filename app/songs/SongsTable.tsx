@@ -429,7 +429,7 @@ export function SongsTable({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200/70 bg-white/80 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
+      <div className="rounded-2xl border border-border bg-card/80 p-4 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="w-full xl:max-w-[440px]">
             <div className="relative">
@@ -437,13 +437,13 @@ export function SongsTable({
                 placeholder="曲番・曲名・アーティスト名で検索"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                className="w-full bg-white pr-10 shadow-sm focus-visible:ring-2 focus-visible:ring-primary dark:bg-slate-950"
+                className="w-full bg-card pr-10 shadow-sm focus-visible:ring-2 focus-visible:ring-primary dark:bg-background"
               />
               {searchInput && (
                 <button
                   type="button"
                   onClick={handleClearSearch}
-                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:hover:bg-slate-800"
+                  className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:hover:bg-muted"
                   aria-label="検索をクリア"
                 >
                   ×
@@ -453,17 +453,17 @@ export function SongsTable({
           </div>
           <div className="flex w-full flex-col gap-3 xl:max-w-[720px]">
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex flex-1 items-center gap-2 min-w-[260px]">
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.min}</span>
+              <div className="flex flex-1 items-center gap-4 min-w-[260px]">
+                <span className="text-sm font-semibold text-foreground shrink-0">Lv.{normalizedSliderRange.min}</span>
                 <div
-                  className="relative h-2 w-full max-w-[280px] cursor-pointer select-none rounded-full bg-slate-200 dark:bg-slate-700"
+                  className="relative h-2 w-full max-w-[280px] cursor-pointer select-none rounded-full slider-track"
                   ref={trackRef}
                   onPointerDown={handleTrackPointerDown}
                   onPointerMove={handleSliderPointerMove}
                   onPointerUp={handleSliderPointerUp}
                 >
                   <div
-                    className="absolute h-full rounded-full bg-blue-500/70 dark:bg-blue-400/70"
+                    className="absolute h-full rounded-full bg-primary/70"
                     style={{
                       left: `${percentRange.min}%`,
                       width: `${Math.max(0, percentRange.max - percentRange.min)}%`,
@@ -474,7 +474,7 @@ export function SongsTable({
                     onPointerDown={(event) => handleThumbPointerDown(event, "min")}
                     onPointerMove={handleSliderPointerMove}
                     onPointerUp={handleSliderPointerUp}
-                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-border bg-card shadow-sm outline-none ring-2 ring-transparent transition hover:ring-primary/30 focus-visible:ring-primary"
                     style={{ left: `${percentRange.min}%` }}
                     aria-label="Lv.下限を変更"
                   />
@@ -483,16 +483,16 @@ export function SongsTable({
                     onPointerDown={(event) => handleThumbPointerDown(event, "max")}
                     onPointerMove={handleSliderPointerMove}
                     onPointerUp={handleSliderPointerUp}
-                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-slate-300 bg-white shadow-sm outline-none ring-2 ring-transparent transition hover:ring-blue-200 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900"
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-border bg-card shadow-sm outline-none ring-2 ring-transparent transition hover:ring-primary/30 focus-visible:ring-primary"
                     style={{ left: `${percentRange.max}%` }}
                     aria-label="Lv.上限を変更"
                   />
                 </div>
-                <span className="text-sm font-semibold text-slate-900 dark:text-white">Lv.{normalizedSliderRange.max}</span>
+                <span className="text-sm font-semibold text-foreground shrink-0">Lv.{normalizedSliderRange.max}</span>
               </div>
             </div>
             {randomError && (
-              <p className="text-right text-xs text-red-600 dark:text-red-400">{randomError}</p>
+              <p className="text-right text-xs text-destructive">{randomError}</p>
             )}
           </div>
         </div>
@@ -512,10 +512,10 @@ export function SongsTable({
                 onClick={() => toggleSort(key)}
                 className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
                   isRandomMode && !randomSorted
-                    ? "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                    ? "border-border bg-card text-foreground hover:border-primary/30 hover:bg-primary/10"
                     : isActive
-                      ? "border-blue-500 bg-blue-500 text-white shadow-sm hover:bg-blue-600 dark:border-blue-400 dark:bg-blue-400 dark:text-slate-900"
-                      : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                      ? "border-primary bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                      : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-primary/10"
                 }`}
               >
                 {label}
@@ -530,8 +530,8 @@ export function SongsTable({
               disabled={randomLoading || loading}
               className={`rounded-full border px-4 py-1.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 isRandomMode
-                  ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600 dark:border-blue-400 dark:bg-blue-400 dark:text-slate-900"
-                  : "border-slate-200 bg-white text-slate-900 hover:border-slate-300 hover:bg-blue-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "border-border bg-card text-foreground hover:border-primary/30 hover:bg-primary/10"
               }`}
             >
               ランダム
@@ -542,7 +542,7 @@ export function SongsTable({
               disabled={randomLoading}
               className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 isRandomMode
-                  ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-amber-50/60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  ? "border-border bg-card text-foreground hover:border-accent/30 hover:bg-accent/10"
                   : "invisible"
               }`}
             >
@@ -562,8 +562,8 @@ export function SongsTable({
               onClick={() => handleRowNavigate(song.id)}
               className="group text-left"
             >
-              <div className="flex overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-slate-800 dark:bg-slate-900">
-                <div className="relative w-[240px] shrink-0 overflow-hidden rounded-2xl bg-slate-200 dark:bg-slate-800 aspect-video">
+              <div className="flex overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                <div className="relative w-[240px] shrink-0 overflow-hidden rounded-2xl bg-muted aspect-video">
                   {thumbnailUrl ? (
                     <Image
                       src={thumbnailUrl}
@@ -573,22 +573,22 @@ export function SongsTable({
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center px-2 text-xs text-slate-500 dark:text-slate-400">
+                    <div className="flex h-full w-full items-center justify-center px-2 text-xs text-muted-foreground">
                       サムネイルなし
                     </div>
                   )}
                 </div>
                 <div className="relative flex min-w-0 flex-1 flex-col justify-center space-y-3 p-5">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     No.{song.id}
                   </div>
-                  <div className="min-w-0 text-lg font-semibold text-slate-900 truncate dark:text-white">
+                  <div className="min-w-0 text-lg font-semibold text-foreground truncate">
                     {song.title}
                   </div>
-                  <div className="text-base font-medium text-slate-700 dark:text-slate-200">
+                  <div className="text-base font-medium text-secondary-foreground">
                     {song.artist ?? "—"}
                   </div>
-                  <div className="absolute bottom-5 right-5 text-base font-semibold text-slate-500 dark:text-slate-400">
+                  <div className="absolute bottom-5 right-5 text-base font-semibold text-muted-foreground">
                     Lv.{song.level ?? "—"}
                   </div>
                 </div>
@@ -601,13 +601,13 @@ export function SongsTable({
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`skeleton-${index}`}
-                className="flex overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                className="flex overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
               >
-                <div className="aspect-video w-[240px] animate-pulse rounded-2xl bg-slate-200 dark:bg-slate-800" />
+                <div className="aspect-video w-[240px] animate-pulse rounded-2xl bg-muted" />
                 <div className="flex flex-1 flex-col justify-center space-y-3 p-5">
-                  <div className="h-3 w-16 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-5 w-3/4 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
-                  <div className="h-4 w-1/2 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-3 w-16 animate-pulse rounded-full bg-muted" />
+                  <div className="h-5 w-3/4 animate-pulse rounded-full bg-muted" />
+                  <div className="h-4 w-1/2 animate-pulse rounded-full bg-muted" />
                 </div>
               </div>
             ))}
@@ -617,18 +617,18 @@ export function SongsTable({
 
       {!isRandomMode && hasNext && <div ref={loadMoreRef} className="h-10" />}
       {showLoadMoreSpinner && (
-        <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+        <div className="text-center text-sm text-muted-foreground">
           さらに読み込み中...
         </div>
       )}
 
       {songs.length === 0 && !loading && (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 py-12 text-center text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
+        <div className="rounded-2xl border border-dashed border-border bg-card/80 py-12 text-center text-sm text-muted-foreground shadow-sm">
           条件に一致する曲がありません。
         </div>
       )}
       {showRetryableError && (
-        <div className="rounded-2xl border border-red-200 bg-red-50/80 py-6 text-center text-sm text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-300">
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 py-6 text-center text-sm text-destructive">
           エラーが発生しました: {errorMessage}
         </div>
       )}

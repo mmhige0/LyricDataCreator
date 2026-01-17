@@ -2,7 +2,7 @@
 
 export function CreditsSection() {
   return (
-    <section className="max-w-[1600px] mx-auto px-8 mt-16 border-t pt-8">
+    <section className="max-w-[1600px] mx-auto px-8 mt-16 border-t border-border pt-8">
       <h2 className="text-2xl font-semibold text-foreground mb-6">クレジット</h2>
 
       <div className="space-y-6 text-lg text-foreground">
@@ -14,7 +14,7 @@ export function CreditsSection() {
                 href="https://illust-stock.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+                className="font-semibold text-primary hover:text-primary/80 transition-colors duration-200"
               >
                 イラストストック
               </a>
@@ -25,7 +25,7 @@ export function CreditsSection() {
                 href="https://soundeffect-lab.info/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+                className="font-semibold text-primary hover:text-primary/80 transition-colors duration-200"
               >
                 効果音ラボ
               </a>
@@ -41,7 +41,7 @@ export function CreditsSection() {
               href="https://ytyping.net/"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+              className="font-semibold text-primary hover:text-primary/80 transition-colors duration-200"
             >
               YTyping
             </a>

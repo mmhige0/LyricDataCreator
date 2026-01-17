@@ -232,8 +232,8 @@ export function TypingGameContent({
       seekToAndPlayRaw(0)
     },
     onTogglePlayPause: togglePlayPause,
-     onSkipToNextPage: () => handlePageChange("next"),
-     onPageChange: (direction, targetPageIndex) => handlePageChange(direction, targetPageIndex),
+    onSkipToNextPage: () => handlePageChange("next"),
+    onPageChange: (direction, targetPageIndex) => handlePageChange(direction, targetPageIndex),
     isPlaying: isPlaying,
   })
 
@@ -387,10 +387,10 @@ export function TypingGameContent({
   const nextPageDisplayLines = nextPagePreviewLines.length > 0 ? nextPagePreviewLines : Array(4).fill('')
 
   // read-only 用ダミー関数群
-  const dummyFunction = () => {}
-  const dummyFunctionWithId = (_id: string) => {}
-  const dummyFunctionWithEntry = (_entry: ScoreEntry) => {}
-  const dummyFunctionWithNumber = (_n: number) => {}
+  const dummyFunction = () => { }
+  const dummyFunctionWithId = (_id: string) => { }
+  const dummyFunctionWithEntry = (_entry: ScoreEntry) => { }
+  const dummyFunctionWithNumber = (_n: number) => { }
 
   return (
     <>
@@ -443,14 +443,14 @@ export function TypingGameContent({
         <div className="flex justify-center gap-8 items-start">
           {/* 左側: ゲーム画面 */}
           <div className="space-y-6 max-w-5xl w-full">
-            <main className="bg-white dark:bg-slate-900 rounded-lg shadow-lg p-6 flex flex-col">
+            <main className="bg-card text-card-foreground rounded-lg shadow-lg p-6 flex flex-col">
               {/* YouTube 動画プレイヤー */}
               <div className="flex justify-center mb-4">
                 <div id="typing-youtube-player" className="rounded-lg overflow-hidden" />
               </div>
 
               {/* 動画コントロール */}
-              <div className="space-y-3 p-4 bg-muted rounded-lg mb-4">
+              <div className="space-y-3 p-4 control-panel mb-4">
                 {/* 1段目: 再生コントロールボタン */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -487,7 +487,7 @@ export function TypingGameContent({
                       <select
                         value={playbackRate}
                         onChange={(e) => changePlaybackRate(Number(e.target.value))}
-                        className="text-sm border rounded px-2 py-1"
+                        className="text-sm border rounded px-2 py-1 bg-background text-foreground"
                       >
                         <option value={0.25}>0.25x</option>
                         <option value={0.5}>0.5x</option>
@@ -500,11 +500,11 @@ export function TypingGameContent({
                     </div>
                   </div>
 
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={toggleMute}
-                    variant="outline"
-                    size="sm"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={toggleMute}
+                      variant="outline"
+                      size="sm"
                       className="h-8 w-8 p-0"
                       disabled={!player}
                     >
@@ -521,10 +521,10 @@ export function TypingGameContent({
                       max="100"
                       value={isMuted ? 0 : volume}
                       onChange={(e) => setPlayerVolume(Number(e.target.value))}
-                      className="w-20 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      className="volume-slider"
                       disabled={!player}
                     />
-                    <span className="text-sm text-gray-600 min-w-[3rem]">
+                    <span className="text-sm text-muted-foreground min-w-[3rem]">
                       {isMuted ? 0 : Math.round(volume)}%
                     </span>
                   </div>
@@ -551,27 +551,25 @@ export function TypingGameContent({
                   combo={combo}
                   totalMiss={totalMiss}
                 />
-              {/* 入力モード */}
-                <div className="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                {/* 入力モード */}
+                <div className="flex items-center text-sm text-muted-foreground">
                   <span className="inline-flex items-center h-8">
-                    <span className={inputMode === 'roma' ? 'font-bold' : ''}>ローマ字</span>
+                    <span className={inputMode === 'roma' ? 'font-bold text-primary' : ''}>ローマ字</span>
                     <span className="mx-1">/</span>
-                    <span className={inputMode === 'kana' ? 'font-bold' : ''}>かな</span>
-                  <span className="ml-2">&nbsp;Tabで切り替え</span>
+                    <span className={inputMode === 'kana' ? 'font-bold text-primary' : ''}>かな</span>
+                    <span className="ml-2">&nbsp;Tabで切り替え</span>
                   </span>
                   <button
                     type="button"
                     onClick={toggleTabEnabled}
-                    className={`ml-3 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                      isTabEnabled
-                        ? 'bg-blue-500 dark:bg-blue-400'
-                        : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
+                    className={`ml-3 relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isTabEnabled
+                        ? 'bg-primary'
+                        : 'bg-muted-foreground/30'
+                      }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                        isTabEnabled ? 'translate-x-4' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isTabEnabled ? 'translate-x-4' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                 </div>
@@ -586,35 +584,35 @@ export function TypingGameContent({
                   hideBaseLines={hideBaseLines}
                 />
               </div>
-              <div className="py-8 px-6 bg-gray-100 dark:bg-gray-800 rounded-lg h-16 flex items-center select-none">
+              <div className="py-8 px-6 bg-muted/50 rounded-lg h-16 flex items-center select-none border border-border">
                 {hasDisplayText && (
                   <p className="text-2xl leading-relaxed tracking-wide break-all flex items-center whitespace-pre">
                     {prefixEllipsis && (
-                      <span className="text-gray-400 dark:text-gray-500 mr-1">…</span>
+                      <span className="text-muted-foreground mr-1">…</span>
                     )}
-                    <span className="text-gray-400 dark:text-gray-500">
+                    <span className="text-muted-foreground">
                       {visibleCorrect}
                     </span>
-                    <span className="text-black dark:text-white">
+                    <span className="text-foreground">
                       {visibleRemaining}
                     </span>
                     {suffixEllipsis && (
-                      <span className="text-gray-400 dark:text-gray-500 ml-1">…</span>
+                      <span className="text-muted-foreground ml-1">…</span>
                     )}
                   </p>
                 )}
               </div>
 
               {/* ページ表示時間ゲージ */}
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 my-4">
+              <div className="w-full bg-muted rounded-full h-2.5 my-4">
                 <div
-                  className="bg-blue-500 h-2.5 rounded-full transition-all"
+                  className="bg-primary h-2.5 rounded-full transition-all"
                   style={{ width: `${calculatePageTimeProgress()}%` }}
                 />
               </div>
 
-              <div className="mt-2 mb-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="h-40 pl-4 overflow-hidden flex flex-col justify-center space-y-1 text-2xl leading-snug text-gray-800 dark:text-gray-100 text-left select-none">
+              <div className="mt-2 mb-2 p-3 bg-muted/30 rounded-lg border border-border">
+                <div className="h-40 pl-4 overflow-hidden flex flex-col justify-center space-y-1 text-2xl leading-snug text-foreground/80 text-left select-none">
                   {nextPageDisplayLines.map((line, index) => (
                     <p key={index} className="truncate">
                       {line || '\u00A0'}
@@ -626,24 +624,24 @@ export function TypingGameContent({
 
               {/* ショートカットキー説明 */}
               <div className="mt-4">
-                <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                <div className="text-sm text-muted-foreground text-center">
                   <span className="ml-3">
-                    <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+                    <kbd className="px-2 py-1 bg-background border border-border rounded shadow-sm">
                       Esc
                     </kbd>{' '}
                     一時停止 / 再生
                   </span>
                   <span className="ml-3">
-                    <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+                    <kbd className="px-2 py-1 bg-background border border-border rounded shadow-sm">
                       ←
                     </kbd>{' '}
-                    <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+                    <kbd className="px-2 py-1 bg-background border border-border rounded shadow-sm">
                       →
                     </kbd>{' '}
                     前 / 次のページ
                   </span>
                   <span className="ml-3">
-                    <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded">
+                    <kbd className="px-2 py-1 bg-background border border-border rounded shadow-sm">
                       F4
                     </kbd>{' '}
                     最初から
@@ -654,9 +652,9 @@ export function TypingGameContent({
           </div>
 
           {/* 右側: ページ一覧 */}
-              {showPageList && (
-                <div className="w-full max-w-md lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
-                <ScoreManagementSection
+          {showPageList && (
+            <div className="w-full max-w-md lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+              <ScoreManagementSection
                 scoreEntries={normalizedScoreEntries}
                 duration={effectiveDuration}
                 player={player}

@@ -22,7 +22,7 @@ export function SongPlayer({ song }: SongPlayerProps) {
   const router = useRouter()
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+    <div className="min-h-screen page-shell">
       <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref="/" />
 
       <div className={cn("pb-10")}>

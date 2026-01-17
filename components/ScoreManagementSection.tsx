@@ -25,7 +25,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
         return (
           <div key={lineIndex} className="flex justify-between items-center">
             <div className="flex-1 min-w-0">
-              <div className={`select-text ${line ? "" : "text-muted-foreground"}`}>
+              <div className={`select-text ${line ? "text-foreground" : "text-muted-foreground"}`}>
                 {line || "!"}
               </div>
             </div>
@@ -38,7 +38,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
         )
       })}
       {kpmData && (
-        <div className="text-xs text-muted-foreground border-t pt-1 mt-1 text-right leading-tight select-none">
+        <div className="text-xs font-mono text-muted-foreground border-t pt-1 mt-1 text-right leading-tight select-none">
           {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
         </div>
       )}
@@ -193,7 +193,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   }
 
   return (
-    <Card className="bg-white dark:bg-slate-900 border shadow-lg h-full flex flex-col">
+    <Card className="bg-card text-card-foreground border shadow-lg h-full flex flex-col">
       <CardHeader className="pb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
@@ -232,18 +232,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setKpmMode('roma')}
-                  className={`px-2 py-1 rounded border text-xs font-mono ${
-                    kpmMode === 'roma' ? 'border-primary text-primary bg-primary/10' : 'border-muted-foreground/30'
-                  }`}
+                  className={`px-2 py-1 rounded border text-xs font-mono ${kpmMode === 'roma' ? 'border-primary text-primary bg-primary/10' : 'border-muted-foreground/30'
+                    }`}
                 >
                   roma
                 </button>
                 <button
                   type="button"
                   onClick={() => setKpmMode('kana')}
-                  className={`px-2 py-1 rounded border text-xs font-mono ${
-                    kpmMode === 'kana' ? 'border-primary text-primary bg-primary/10' : 'border-muted-foreground/30'
-                  }`}
+                  className={`px-2 py-1 rounded border text-xs font-mono ${kpmMode === 'kana' ? 'border-primary text-primary bg-primary/10' : 'border-muted-foreground/30'
+                    }`}
                 >
                   kana
                 </button>
@@ -276,29 +274,27 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
           </p>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
-            <div ref={scrollContainerRef} className="space-y-3 flex-1 overflow-y-auto pr-2 min-h-0">
-            {scoreEntries.map((entry, index) => {
-              const isCurrentlyPlaying = getCurrentLyricsIndex() === index
-              const isEditing = editingId === entry.id
-              const kpmData = kpmDataMap.get(entry.id) || null
-              const isClickable = readOnly && Boolean(player)
-              const displayPageNumber = Math.max(0, index + 1 - pageNumberOffset)
+            <div ref={scrollContainerRef} className="space-y-4 flex-1 overflow-y-auto pr-2 min-h-0">
+              {scoreEntries.map((entry, index) => {
+                const isCurrentlyPlaying = getCurrentLyricsIndex() === index
+                const isEditing = editingId === entry.id
+                const kpmData = kpmDataMap.get(entry.id) || null
+                const isClickable = readOnly && Boolean(player)
+                const displayPageNumber = Math.max(0, index + 1 - pageNumberOffset)
 
-              return (
-                <div
-                  key={entry.id}
-                  ref={(el) => { entryRefs.current[index] = el }}
-                  className={`relative group p-3 border rounded-lg hover:bg-muted/50 ${
-                    isCurrentlyPlaying ? "bg-primary/10 border-primary" : ""
-                  } ${isEditing ? "bg-blue-50 border-blue-200" : ""} ${
-                    isClickable ? "cursor-pointer" : ""
-                  }`}
-                  onClick={
-                    isClickable
-                      ? () => {
+                return (
+                  <div
+                    key={entry.id}
+                    ref={(el) => { entryRefs.current[index] = el }}
+                    className={`relative group p-3 border rounded-lg bg-card hover:bg-secondary dark:bg-[hsl(220,14%,18%)] dark:border-[hsl(220,12%,28%)] dark:hover:bg-[hsl(220,14%,22%)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] ${isCurrentlyPlaying ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/40 dark:border-primary/50" : ""
+                      } ${isEditing ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/30 dark:border-primary/40" : ""} ${isClickable ? "cursor-pointer" : ""
+                      }`}
+                    onClick={
+                      isClickable
+                        ? () => {
                           seekToAndPlay(entry.timestamp)
                         }
-                      : (event) => {
+                        : (event) => {
                           if (!event.ctrlKey && !event.metaKey) return
                           const target = event.target
                           if (target instanceof HTMLElement && target.closest('button')) {
@@ -306,109 +302,114 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                           }
                           startEditScoreEntry(entry)
                         }
-                  }
-                  role={isClickable ? 'button' : undefined}
-                  tabIndex={isClickable ? 0 : undefined}
-                  onKeyDown={
-                    isClickable
-                      ? (event) => {
+                    }
+                    role={isClickable ? 'button' : undefined}
+                    tabIndex={isClickable ? 0 : undefined}
+                    onKeyDown={
+                      isClickable
+                        ? (event) => {
                           if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault()
                             seekToAndPlay(entry.timestamp)
                           }
                         }
-                      : undefined
-                  }
-                >
-                  {!readOnly && (
-                    <span className="pointer-events-none absolute right-2 -top-2 rounded-full bg-slate-900 px-2 py-1 text-[10px] font-medium text-white opacity-0 shadow-sm transition duration-150 ease-out group-hover:opacity-100 dark:bg-slate-100 dark:text-slate-900">
-                      Ctrl+クリックで編集
-                    </span>
-                  )}
-                  <div className="flex items-start gap-4">
-                    <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
-                      <div className="text-sm font-mono text-muted-foreground flex items-center justify-between">
-                        <span>#{displayPageNumber}</span>
-                        {!readOnly && scoreEntries[index + 1] && (
-                          <span className="text-xs">
-                            {(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s
-                          </span>
+                        : undefined
+                    }
+                  >
+                    {!readOnly && (
+                      <span className="pointer-events-none absolute right-2 -top-2 rounded-full bg-foreground px-2 py-1 text-[10px] font-medium text-background opacity-0 shadow-sm transition duration-150 ease-out group-hover:opacity-100">
+                        Ctrl+クリックで編集
+                      </span>
+                    )}
+                    <div className="flex items-start gap-4">
+                      <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
+                        <div className="text-sm font-mono text-muted-foreground  flex items-center justify-between">
+                          <span>#{displayPageNumber}</span>
+                          {!readOnly && scoreEntries[index + 1] && (
+                            <span className="text-xs">
+                              {(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s
+                            </span>
+                          )}
+                        </div>
+                        {!readOnly && (
+                          <div className="mt-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => seekToAndPlay(entry.timestamp)}
+                              disabled={!player}
+                              className="text-xs font-mono h-6 px-2 "
+                            >
+                              <Play className="h-3 w-3 mr-1" />
+                              {entry.timestamp.toFixed(2)}s
+                            </Button>
+                          </div>
                         )}
                       </div>
+                      <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
+                        <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} />
+                      </div>
                       {!readOnly && (
-                        <div className="mt-auto">
+                        <div className="flex flex-col gap-1 min-w-fit self-center">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => seekToAndPlay(entry.timestamp)}
-                            disabled={!player}
-                            className="text-xs font-mono h-6 px-2"
+                            onClick={() => copyLyricsToClipboard(entry.lyrics)}
+                            className={`text-xs hover:bg-muted/60 hover:text-foreground ${copyStatus === 'success' ? 'bg-success/10 border-success/20 text-success' : copyStatus === 'error' ? 'bg-destructive/10 border-destructive/20 text-destructive' : ''}`}
                           >
-                            <Play className="h-3 w-3 mr-1" />
-                            {entry.timestamp.toFixed(2)}s
+                            <Copy className="h-3 w-3 mr-1" />
+                            コピー
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startEditScoreEntry(entry)}
+                            className={`text-xs hover:bg-muted/60 hover:text-foreground ${isEditing ? 'bg-primary/10 border-primary/30' : ''}`}
+                            disabled={isEditing}
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            {isEditing ? '編集中' : '編集'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => deleteScoreEntry(entry.id)}
+                            className="text-xs hover:bg-muted/60 hover:text-foreground"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            削除
                           </Button>
                         </div>
                       )}
                     </div>
-                  <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                    <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} />
-                  </div>
-                    {!readOnly && (
-                      <div className="flex flex-col gap-1 min-w-fit self-center">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyLyricsToClipboard(entry.lyrics)}
-                          className={`text-xs ${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
-                        >
-                          <Copy className="h-3 w-3 mr-1" />
-                          コピー
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => startEditScoreEntry(entry)}
-                          className={`text-xs ${isEditing ? 'bg-blue-100 border-blue-300' : ''}`}
-                          disabled={isEditing}
-                        >
-                          <Edit className="h-3 w-3 mr-1" />
-                          {isEditing ? '編集中' : '編集'}
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => deleteScoreEntry(entry.id)} className="text-xs">
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          削除
-                        </Button>
+                    {canInlineEdit && isEditing && (
+                      <div className="mt-4">
+                        <LyricsEditCard
+                          lyrics={editingLyrics ?? ["", "", "", ""]}
+                          setLyrics={(nextLyrics) => setEditingLyrics?.(nextLyrics)}
+                          timestamp={editingTimestamp ?? "0.00"}
+                          setTimestamp={(nextTimestamp) => setEditingTimestamp?.(nextTimestamp)}
+                          player={player}
+                          seekToInput={(inputValue) => {
+                            if (!inputValue) return
+                            const parsedTimestamp = Number.parseFloat(inputValue)
+                            if (Number.isFinite(parsedTimestamp)) {
+                              seekToAndPlay(parsedTimestamp)
+                            }
+                          }}
+                          mode="edit"
+                          editingEntryIndex={index}
+                          onSave={handleInlineSave}
+                          onCancel={() => cancelEditScoreEntry?.()}
+                          lyricsInputRefs={editingLyricsInputRefs}
+                          timestampInputRef={editingTimestampInputRef}
+                          saveCurrentState={saveCurrentState}
+                        />
                       </div>
                     )}
                   </div>
-                  {canInlineEdit && isEditing && (
-                    <div className="mt-4">
-                      <LyricsEditCard
-                        lyrics={editingLyrics ?? ["", "", "", ""]}
-                        setLyrics={(nextLyrics) => setEditingLyrics?.(nextLyrics)}
-                        timestamp={editingTimestamp ?? "0.00"}
-                        setTimestamp={(nextTimestamp) => setEditingTimestamp?.(nextTimestamp)}
-                        player={player}
-                        seekToInput={(inputValue) => {
-                          if (!inputValue) return
-                          const parsedTimestamp = Number.parseFloat(inputValue)
-                          if (Number.isFinite(parsedTimestamp)) {
-                            seekToAndPlay(parsedTimestamp)
-                          }
-                        }}
-                        mode="edit"
-                        editingEntryIndex={index}
-                        onSave={handleInlineSave}
-                        onCancel={() => cancelEditScoreEntry?.()}
-                        lyricsInputRefs={editingLyricsInputRefs}
-                        timestampInputRef={editingTimestampInputRef}
-                        saveCurrentState={saveCurrentState}
-                      />
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                )
+              })}
             </div>
 
             {/* 編集モード: タイム調整 + 自動スクロール + 全ページ削除 */}
@@ -442,7 +443,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={() => setAutoScroll(!autoScroll)}
-                    className={`text-xs ${autoScroll ? 'bg-blue-50 border-blue-200' : ''}`}
+                    className={`text-xs ${autoScroll ? 'bg-primary/10 border-primary/30 text-primary' : ''}`}
                   >
                     {autoScroll ? <ScrollText className="h-3 w-3 mr-1" /> : <Scroll className="h-3 w-3 mr-1" />}
                     自動スクロール
@@ -451,7 +452,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                     variant="outline"
                     size="sm"
                     onClick={clearAllScoreEntries}
-                    className="text-black hover:bg-gray-50 text-xs"
+                    className="text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-muted text-xs"
                   >
                     <Trash2 className="h-3 w-3 mr-1" />
                     全ページ削除
@@ -465,7 +466,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
               <div className="mt-3 pt-3 border-t flex flex-wrap items-center gap-3 justify-between">
                 {timeOffsetControl && (
                   <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="font-medium text-gray-700 dark:text-gray-200">タイム調整</span>
+                    <span className="font-medium text-foreground">タイム調整</span>
                     <div className="flex items-center gap-2">
                       <Input
                         type="number"
@@ -494,7 +495,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                   variant="outline"
                   size="sm"
                   onClick={() => setAutoScroll(!autoScroll)}
-                  className={`text-xs px-2 ${autoScroll ? 'bg-blue-50 border-blue-200' : ''}`}
+                  className={`text-xs px-2 ${autoScroll ? 'bg-primary/10 border-primary/30 text-primary' : ''}`}
                   aria-label="自動スクロール"
                 >
                   {autoScroll ? <ScrollText className="h-4 w-4" /> : <Scroll className="h-4 w-4" />}

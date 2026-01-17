@@ -61,7 +61,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
   seekTo
 }) => {
   return (
-    <Card className="mb-6 bg-white dark:bg-slate-900 border shadow-lg">
+    <Card className="mb-6 bg-card text-card-foreground border shadow-lg">
       <CardHeader className="pb-4">
         <CardTitle className="text-xl font-semibold flex items-center gap-2">
           <div className="p-2 rounded-lg bg-red-500 text-white">
@@ -93,7 +93,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
               <div id="youtube-player" className="rounded-lg overflow-hidden"></div>
             </div>
 
-            <div className="space-y-3 p-4 bg-muted rounded-lg">
+            <div className="space-y-3 p-4 control-panel">
               {/* 1段目: 再生コントロールボタン + 時間表示 */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -121,7 +121,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
                   </Button>
                 </div>
 
-                <span className="text-sm font-mono">
+                <span className="text-sm font-mono text-muted-foreground/80">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </span>
               </div>
@@ -129,12 +129,12 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
               {/* 2段目: 再生速度 + 音量コントロール */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
                     <Label className="text-sm">速度:</Label>
                     <select
                       value={playbackRate}
                       onChange={(e) => changePlaybackRate(Number(e.target.value))}
-                      className="text-sm border rounded px-2 py-1"
+                      className="text-sm border rounded px-2 py-1 bg-background text-foreground"
                     >
                       <option value={0.25}>0.25x</option>
                       <option value={0.5}>0.5x</option>
@@ -147,7 +147,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Button
                     onClick={toggleMute}
                     variant="outline"
@@ -164,10 +164,10 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
                     max="100"
                     value={isMuted ? 0 : volume}
                     onChange={(e) => setPlayerVolume(Number(e.target.value))}
-                    className="w-20 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    className="volume-slider"
                     disabled={!player}
                   />
-                  <span className="text-sm text-gray-600 min-w-[3rem]">
+                  <span className="text-sm min-w-[3rem]">
                     {isMuted ? 0 : Math.round(volume)}%
                   </span>
                 </div>

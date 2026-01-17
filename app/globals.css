@@ -3,48 +3,93 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Typography - variables are set by Next.js font system */
+
+    /* Core Colors - Bright & Friendly Light Mode */
+    --background: 210 40% 99%;
+    --foreground: 215 25% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --popover-foreground: 215 25% 20%;
+
+    /* Vibrant Blue Palette - Popular & Energetic */
+    --primary: 215 90% 58%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --secondary-foreground: 215 30% 30%;
+    --muted: 210 30% 94%;
+    --muted-foreground: 215 15% 45%;
+    --accent: 195 85% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Status Colors - Bright & Clear */
+    --destructive: 0 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 70% 42%;
+    --success-foreground: 150 90% 98%;
+    --warning: 40 95% 52%;
+    --warning-foreground: 40 100% 15%;
+
+    /* UI Elements - Clean & Light */
+    --border: 215 25% 90%;
+    --input: 210 40% 99%;
+    --ring: 215 90% 58%;
     --radius: 0.75rem;
+
+    /* Glass Effect - Soft & Airy */
+    --glass: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(147, 197, 253, 0.25);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 94.1%;
+    /* Dark Mode - High Contrast Text */
+    --background: 220 15% 13%;
+    --foreground: 210 20% 95%;
+    --card: 220 14% 16%;
+    --card-foreground: 210 20% 95%;
+    --popover: 220 14% 18%;
+    --popover-foreground: 210 20% 95%;
+
+    /* Blue Theme Dark - Vivid & Clear */
+    --primary: 200 100% 80%;
+    --primary-foreground: 220 20% 7%;
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 210 15% 88%;
+    --muted: 220 12% 16%;
+    --muted-foreground: 215 12% 70%;
+    --accent: 200 85% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Status Colors - Clear & Distinct */
+    --destructive: 0 72% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 60% 45%;
+    --success-foreground: 150 50% 98%;
+    --warning: 40 85% 55%;
+    --warning-foreground: 40 100% 10%;
+
+    /* UI Elements - Defined Boundaries */
+    --border: 220 15% 25%;
+    --input: 220 15% 14%;
+    --ring: 200 90% 60%;
+
+    /* Text Hierarchy - Clear Contrast */
+    --text-secondary: 215 15% 70%;
+    --text-tertiary: 215 12% 55%;
+    --text-disabled: 215 10% 40%;
+
+    /* Interactive States */
+    --accent-hover: 200 80% 52%;
+    --accent-active: 200 85% 45%;
+    --playing-bg: 220 15% 14%;
+
+    /* Glass Effect Dark - Clear Transparency */
+    --glass: rgba(25, 35, 50, 0.75);
+    --glass-border: rgba(100, 140, 180, 0.2);
+
+    /* Header - Slightly lighter than background */
+    --header: 220 15% 15%;
   }
 }
 
@@ -52,36 +97,153 @@
   * {
     border-color: hsl(var(--border));
   }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    position: relative;
   }
+  
+  /* Display Typography */
+  h1, h2, h3 {
+    font-family: var(--font-display), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  
+  /* Code Typography */
+  code, pre, .font-mono {
+    font-family: var(--font-mono), "Courier New", monospace;
+  }
+
+  /* Light mode subtle gradient */
+  body {
+    background-image:
+      radial-gradient(ellipse at top right, hsl(210 60% 96%), transparent 50%),
+      radial-gradient(ellipse at bottom left, hsl(200 50% 97%), transparent 50%),
+      linear-gradient(180deg, hsl(210 40% 99%) 0%, hsl(215 35% 98%) 100%);
+  }
+
+  .page-shell {
+    background-color: hsl(210 40% 99%);
+    color: hsl(215 25% 20%);
+  }
+
+  .dark .page-shell {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+  .dark body {
+    background-image:
+      radial-gradient(ellipse at top, hsl(220 18% 16%), transparent 60%),
+      radial-gradient(ellipse at bottom, hsl(215 15% 12%), transparent 60%),
+      linear-gradient(180deg, hsl(220 15% 13%) 0%, hsl(218 14% 14%) 100%);
+    background-attachment: fixed;
+  }
+  
+  /* Noise Texture Overlay - Subtle */
+  .dark body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.018;
+    z-index: -1;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
 }
 
-/* Sonner Toast Customization */
+/* Shared Component Styles */
+.control-panel {
+  background-color: hsl(var(--muted));
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+}
+
+.dark .control-panel {
+  background-color: hsl(var(--card) / 0.6);
+  border-color: rgba(255, 255, 255, 0.1);
+  background-image: linear-gradient(to top, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+}
+
+/* Volume slider */
+.volume-slider {
+  width: 5rem;
+  height: 0.5rem;
+  background-color: #d1d5db;
+  border-radius: var(--radius);
+  appearance: none;
+  cursor: pointer;
+}
+
+.dark .volume-slider {
+  background-color: hsl(var(--border));
+}
+
+/* Slider track */
+.slider-track {
+  background-color: hsl(var(--muted));
+}
+
+.dark .slider-track {
+  background-color: hsl(220 15% 32%);
+}
+
+/* Sonner Toast Customization - Glass Morphism Style */
 @layer components {
   [data-sonner-toaster] {
-    --normal-bg: hsl(var(--background));
-    --normal-border: hsl(var(--border));
+    --normal-bg: var(--glass);
+    --normal-border: var(--glass-border);
     --normal-text: hsl(var(--foreground));
 
-    --success-bg: hsl(142 76% 36%);
-    --success-border: hsl(142 76% 40%);
-    --success-text: hsl(142 85% 96%);
+    --success-bg: hsl(var(--success) / 0.15);
+    --success-border: hsl(var(--success) / 0.4);
+    --success-text: hsl(var(--success));
 
-    --error-bg: hsl(var(--destructive));
-    --error-border: hsl(var(--destructive));
-    --error-text: hsl(var(--destructive-foreground));
+    --error-bg: hsl(var(--destructive) / 0.15);
+    --error-border: hsl(var(--destructive) / 0.4);
+    --error-text: hsl(var(--destructive));
 
-    --warning-bg: hsl(38 92% 50%);
-    --warning-border: hsl(38 92% 54%);
-    --warning-text: hsl(48 96% 89%);
+    --warning-bg: hsl(var(--warning) / 0.15);
+    --warning-border: hsl(var(--warning) / 0.4);
+    --warning-text: hsl(var(--warning));
 
-    --info-bg: hsl(var(--primary));
-    --info-border: hsl(var(--primary));
-    --info-text: hsl(var(--primary-foreground));
+    --info-bg: hsl(var(--primary) / 0.15);
+    --info-border: hsl(var(--primary) / 0.4);
+    --info-text: hsl(var(--primary));
+  }
+
+  /* Dark mode toast - enhanced contrast with glass effect */
+  .dark [data-sonner-toaster] {
+    --success-bg: hsl(var(--success) / 0.2);
+    --success-border: hsl(var(--success) / 0.5);
+    --success-text: hsl(150 70% 70%);
+
+    --error-bg: hsl(var(--destructive) / 0.2);
+    --error-border: hsl(var(--destructive) / 0.5);
+    --error-text: hsl(0 80% 75%);
+
+    --warning-bg: hsl(var(--warning) / 0.2);
+    --warning-border: hsl(var(--warning) / 0.5);
+    --warning-text: hsl(40 95% 70%);
+
+    --info-bg: hsl(var(--primary) / 0.2);
+    --info-border: hsl(var(--primary) / 0.5);
+    --info-text: hsl(200 90% 75%);
+  }
+
+  [data-sonner-toast] {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: slide-up 0.3s ease-out;
   }
 
   [data-sonner-toast][data-type="success"] {
@@ -114,7 +276,22 @@
   }
 
   [data-sonner-toast] [data-description] {
-    opacity: 0.9;
+    opacity: 0.85;
     font-size: 0.8rem;
+  }
+
+}
+
+/* Animation Keyframes */
+@layer utilities {
+  @keyframes slide-up {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
   }
 }

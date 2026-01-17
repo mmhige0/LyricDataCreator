@@ -52,13 +52,13 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+      <div className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-semibold">履歴</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-5 h-5" />
           </button>
@@ -67,7 +67,7 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {drafts.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>保存された履歴はありません</p>
             </div>
@@ -85,13 +85,13 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
                       handleRestore(draft.sessionId)
                     }
                   }}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted transition-colors cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium truncate">
                       {draft.songTitle || '(無題)'}
                     </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       {draft.pageCount}ページ · {formatDate(draft.lastModified)}
                     </p>
                   </div>
@@ -101,7 +101,7 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
                         e.stopPropagation()
                         handleDelete(draft.sessionId)
                       }}
-                      className="p-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                      className="p-3 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                       title="削除"
                     >
                       <Trash2 className="w-6 h-6" />
@@ -117,7 +117,7 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
         <div className="p-6 border-t">
           <button
             onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"
+            className="w-full px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted/80 transition-colors"
           >
             閉じる
           </button>

@@ -117,7 +117,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
 
   return (
     <Card
-      className={`bg-white dark:bg-slate-900 border shadow-lg ${isDisabled ? 'bg-slate-100 text-slate-500' : ''}`}
+      className={`bg-card text-card-foreground border shadow-lg ${isDisabled ? 'bg-muted/50 text-muted-foreground' : ''}`}
     >
       {!isEditMode && (
         <CardHeader className={`pb-4 ${isDisabled ? 'opacity-60 grayscale' : ''}`}>
@@ -127,7 +127,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
             </div>
             {getTitle()}
             {isDisabled && (
-              <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-1">
+              <span className="text-xs font-medium text-warning-foreground bg-warning/20 border border-warning/30 rounded-full px-2 py-1">
                 {disabledReason}
               </span>
             )}
@@ -160,7 +160,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
               size="sm"
               onClick={handleConvertToHiragana}
               disabled={isConverting || lyrics.every(line => line.trim() === '')}
-              className={`${conversionError ? 'bg-red-50 border-red-200' : ''}`}
+              className={`${conversionError ? 'bg-destructive/10 border-destructive/20 text-destructive' : ''}`}
             >
               <Languages className="h-4 w-4 mr-2" />
               {isConverting ? '変換中...' : 'ひらがな'}
@@ -169,7 +169,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
               variant="outline"
               size="sm"
               onClick={handlePasteLyrics}
-              className={`${copyStatus === 'success' ? 'bg-green-50 border-green-200' : copyStatus === 'error' ? 'bg-red-50 border-red-200' : ''}`}
+              className={`${copyStatus === 'success' ? 'bg-success/10 border-success/20 text-success' : copyStatus === 'error' ? 'bg-destructive/10 border-destructive/20 text-destructive' : ''}`}
             >
               <ClipboardPaste className="h-4 w-4 mr-2" />
               貼り付け
@@ -178,7 +178,7 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
         </div>
 
         {conversionError && !isDisabled && (
-          <div className="text-sm text-red-600 mb-2 p-2 bg-red-50 border border-red-200 rounded">
+          <div className="text-sm text-destructive mb-2 p-2 bg-destructive/10 border border-destructive/20 rounded">
             {conversionError}
           </div>
         )}
@@ -204,16 +204,16 @@ export const LyricsEditCard: React.FC<LyricsEditCardProps> = ({
           </div>
 
           <div className="flex gap-2">
-          {mode === 'add' ? (
-            <Button
-              onClick={onAdd}
-              disabled={!timestamp}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              ページ追加 ( Ctrl + Enter )
-            </Button>
-          ) : (
+            {mode === 'add' ? (
+              <Button
+                onClick={onAdd}
+                disabled={!timestamp}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                ページ追加 ( Ctrl + Enter )
+              </Button>
+            ) : (
               <>
                 <Button
                   variant="outline"

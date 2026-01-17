@@ -13,7 +13,7 @@ const formatTime = (seconds: number): string => {
 
 export const TypingStats = ({ currentTime, duration, combo, totalMiss }: TypingStatsProps) => {
   return (
-    <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 px-1">
+    <div className="flex justify-between items-center text-sm text-muted-foreground px-1">
       <div className="flex items-center space-x-4">
         <span className="font-semibold">
           {formatTime(currentTime)} / {formatTime(duration)}

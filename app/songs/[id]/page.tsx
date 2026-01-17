@@ -5,8 +5,8 @@ import { parseScoreEntries } from "@/lib/scoreSerialization"
 
 const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPlayer), {
   loading: () => (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white flex items-center justify-center">
-      <div className="text-sm text-slate-600 dark:text-slate-200">プレイヤーを読み込み中...</div>
+    <div className="min-h-screen page-shell flex items-center justify-center">
+      <div className="text-sm text-muted-foreground">プレイヤーを読み込み中...</div>
     </div>
   ),
 })
