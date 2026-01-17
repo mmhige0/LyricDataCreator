@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import type { ScoreEntry } from "@/lib/types"
 import { useTypingGame } from "@/hooks/useTypingGame"
 import { useYouTube } from "@/hooks/useYouTube"
@@ -152,6 +152,11 @@ export function TypingGameContent({
   })
 
   const showStartHint = !isPlaying && currentTime === 0
+  const playbackRateRef = useRef(playbackRate)
+
+  useEffect(() => {
+    playbackRateRef.current = playbackRate
+  }, [playbackRate])
 
   const normalizedScoreEntries = useMemo(() => ensureIntroPage(scoreEntries), [scoreEntries])
 
@@ -243,16 +248,17 @@ export function TypingGameContent({
       event.preventDefault()
 
       const direction = event.key === "F9" ? "slower" : "faster"
-      const nextRate = getNextPlaybackRate(playbackRate, direction)
+      const currentRate = playbackRateRef.current
+      const nextRate = getNextPlaybackRate(currentRate, direction)
 
-      if (nextRate !== playbackRate) {
+      if (nextRate !== currentRate) {
         changePlaybackRate(nextRate)
       }
     }
 
     window.addEventListener("keydown", handleSpeedKeyDown)
     return () => window.removeEventListener("keydown", handleSpeedKeyDown)
-  }, [playbackRate, changePlaybackRate])
+  }, [changePlaybackRate])
 
   // Toggle whether Tab switches the input mode
   useEffect(() => {
