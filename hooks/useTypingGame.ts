@@ -55,6 +55,7 @@ export const useTypingGame = ({
   const correctSoundRef = useRef<HTMLAudioElement | null>(null)
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
   const pendingNextPageIndexRef = useRef<number | null>(null)
+  const typingWordRef = useRef<TypingWord | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -133,6 +134,10 @@ export const useTypingGame = ({
     setInputModeWithStorage((prev) => (prev === 'roma' ? 'kana' : 'roma'))
   }, [setInputModeWithStorage])
 
+  useEffect(() => {
+    typingWordRef.current = pageState.typingWord
+  }, [pageState.typingWord])
+
   // 動画の再生位置に応じてページを追従
   useEffect(() => {
     if (
@@ -154,11 +159,13 @@ export const useTypingGame = ({
     if (targetPageIndex !== pageState.pageIndex && targetPageIndex !== -1) {
       // ページを進めるときに、打ち切り状態ならコンボを切る
       if (targetPageIndex > pageState.pageIndex) {
-        const currentTypingWord = pageState.typingWord
+        const currentTypingWord = typingWordRef.current
         const isIncomplete =
-          !!currentTypingWord.nextChunk.kana ||
-          currentTypingWord.wordChunksIndex < currentTypingWord.wordChunks.length
-        if (isIncomplete) {
+          !!currentTypingWord?.nextChunk.kana ||
+          (currentTypingWord
+            ? currentTypingWord.wordChunksIndex < currentTypingWord.wordChunks.length
+            : false)
+        if (currentTypingWord && isIncomplete) {
           setCombo(0)
         }
       }
@@ -171,7 +178,6 @@ export const useTypingGame = ({
     scoreEntries,
     builtMapLines.length,
     pageState.pageIndex,
-    pageState.typingWord,
     initializePage,
   ])
 

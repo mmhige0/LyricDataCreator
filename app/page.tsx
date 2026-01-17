@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Edit3, Keyboard, Sparkles } from "lucide-react"
+import { Edit3, Keyboard } from "lucide-react"
 import { AppHeader } from "@/components/AppHeader"
 
 export default function LandingPage() {
