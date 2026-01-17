@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react"
+import { useState, useEffect, useCallback, useRef, type MouseEvent, type KeyboardEvent } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Edit3, Keyboard } from "lucide-react"
@@ -269,12 +269,36 @@ export default function LyricsTypingApp() {
     setSongTitle,
   })
 
+  const editorTabRef = useRef<HTMLButtonElement>(null)
+  const playTabRef = useRef<HTMLButtonElement>(null)
+  const canPlay = scoreEntries.length > 0 && Boolean(youtubeUrl)
+
   const handleExport = useCallback((event?: MouseEvent<HTMLButtonElement>) => {
     const format = event?.shiftKey ? 'lrc' : 'txt'
     exportScoreData(format, () => {
       toast.success(`${format.toUpperCase()}を書き出しました`)
     })
   }, [exportScoreData])
+
+  const handleTabKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return
+    }
+
+    event.preventDefault()
+    const nextView = event.key === 'ArrowRight' ? 'play' : 'editor'
+    if (nextView === 'play' && !canPlay) {
+      return
+    }
+
+    setActiveView(nextView)
+    if (nextView === 'play') {
+      playTabRef.current?.focus()
+      return
+    }
+
+    editorTabRef.current?.focus()
+  }, [canPlay])
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-16">
@@ -295,13 +319,18 @@ export default function LyricsTypingApp() {
             className="inline-flex items-center gap-1 rounded-full bg-slate-100 p-1 text-sm shadow-inner dark:bg-slate-900"
             role="tablist"
             aria-label="画面モード切り替え"
+            onKeyDown={handleTabKeyDown}
           >
             <Button
+              ref={editorTabRef}
               variant="ghost"
               size="sm"
               onClick={() => setActiveView("editor")}
               role="tab"
+              id="editor-tab"
+              aria-controls="editor-panel"
               aria-selected={activeView === "editor"}
+              tabIndex={activeView === "editor" ? 0 : -1}
               className={cn(
                 "rounded-full px-4 font-medium transition-colors",
                 activeView === "editor"
@@ -313,19 +342,23 @@ export default function LyricsTypingApp() {
               編集
             </Button>
             <Button
+              ref={playTabRef}
               variant="ghost"
               size="sm"
               onClick={handlePlay}
-              disabled={scoreEntries.length === 0 || !youtubeUrl}
+              disabled={!canPlay}
               role="tab"
+              id="play-tab"
+              aria-controls="play-panel"
               aria-selected={activeView === "play"}
-            className={cn(
-              "rounded-full px-4 font-medium transition-colors",
-              activeView === "play"
-                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-100"
-                : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white",
-            )}
-          >
+              tabIndex={activeView === "play" ? 0 : -1}
+              className={cn(
+                "rounded-full px-4 font-medium transition-colors",
+                activeView === "play"
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-100"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white",
+              )}
+            >
               <Keyboard className="h-5 w-5 mr-2" />
               プレイ
             </Button>
@@ -335,100 +368,102 @@ export default function LyricsTypingApp() {
 
       <main className="max-w-[1600px] mx-auto p-4 lg:p-8">
         {activeView === "play" ? (
-          <TypingGameContent
-            onClose={() => setActiveView("editor")}
-            showHeader={false}
-            scoreEntries={scoreEntries}
-            songTitle={songTitle || "無題"}
-            youtubeUrl={youtubeUrl}
-            totalDuration={duration}
-          />
+          <div id="play-panel" role="tabpanel" aria-labelledby="play-tab">
+            <TypingGameContent
+              onClose={() => setActiveView("editor")}
+              showHeader={false}
+              scoreEntries={scoreEntries}
+              songTitle={songTitle || "無題"}
+              youtubeUrl={youtubeUrl}
+              totalDuration={duration}
+            />
+          </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
-            <div className="space-y-6" id="left-column">
-              <YouTubeVideoSection
-                youtubeUrl={youtubeUrl}
-                setYoutubeUrl={setYoutubeUrl}
-                videoId={videoId}
-                player={player}
-                isPlaying={isPlaying}
-                currentTime={currentTime}
-                duration={duration}
-                playbackRate={playbackRate}
-                volume={volume}
-                isMuted={isMuted}
-                isLoadingVideo={isLoadingVideo}
-                isYouTubeAPIReady={isYouTubeAPIReady}
-                loadYouTubeVideo={handleLoadYouTubeVideo}
-                togglePlayPause={togglePlayPause}
-                seekBackward={seekBackward}
-                seekForward={seekForward}
-                seekBackward1Second={seekBackward1Second}
-                seekForward1Second={seekForward1Second}
-                seekToBeginning={seekToBeginning}
-                changePlaybackRate={changePlaybackRate}
-                setPlayerVolume={setPlayerVolume}
-                adjustVolume={adjustVolume}
-                toggleMute={toggleMute}
-                seekTo={seekTo}
-              />
+          <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
+              <div className="space-y-6" id="left-column">
+                <YouTubeVideoSection
+                  youtubeUrl={youtubeUrl}
+                  setYoutubeUrl={setYoutubeUrl}
+                  videoId={videoId}
+                  player={player}
+                  isPlaying={isPlaying}
+                  currentTime={currentTime}
+                  duration={duration}
+                  playbackRate={playbackRate}
+                  volume={volume}
+                  isMuted={isMuted}
+                  isLoadingVideo={isLoadingVideo}
+                  isYouTubeAPIReady={isYouTubeAPIReady}
+                  loadYouTubeVideo={handleLoadYouTubeVideo}
+                  togglePlayPause={togglePlayPause}
+                  seekBackward={seekBackward}
+                  seekForward={seekForward}
+                  seekBackward1Second={seekBackward1Second}
+                  seekForward1Second={seekForward1Second}
+                  seekToBeginning={seekToBeginning}
+                  changePlaybackRate={changePlaybackRate}
+                  setPlayerVolume={setPlayerVolume}
+                  adjustVolume={adjustVolume}
+                  toggleMute={toggleMute}
+                  seekTo={seekTo}
+                />
 
-              <LyricsEditCard
-                lyrics={lyrics}
-                setLyrics={setLyrics}
-                timestamp={timestamp}
-                setTimestamp={setTimestamp}
-                player={player}
-                seekToInput={seekToInput}
-                mode="add"
-                isDisabled={Boolean(editingId)}
-                disabledReason="ページ編集中"
-                onAdd={addScoreEntry}
-                lyricsInputRefs={lyricsInputRefs}
-                timestampInputRef={timestampInputRef}
-                timestampOffset={timestampOffset}
-                setTimestampOffset={setTimestampOffset}
-                getCurrentTimestamp={getCurrentTimestamp}
-                saveCurrentState={saveCurrentState}
-              />
+                <LyricsEditCard
+                  lyrics={lyrics}
+                  setLyrics={setLyrics}
+                  timestamp={timestamp}
+                  setTimestamp={setTimestamp}
+                  player={player}
+                  seekToInput={seekToInput}
+                  mode="add"
+                  isDisabled={Boolean(editingId)}
+                  disabledReason="ページ編集中"
+                  onAdd={addScoreEntry}
+                  lyricsInputRefs={lyricsInputRefs}
+                  timestampInputRef={timestampInputRef}
+                  timestampOffset={timestampOffset}
+                  setTimestampOffset={setTimestampOffset}
+                  getCurrentTimestamp={getCurrentTimestamp}
+                  saveCurrentState={saveCurrentState}
+                />
+              </div>
+
+              <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+                <ScoreManagementSection
+                  scoreEntries={scoreEntries}
+                  duration={duration}
+                  player={player}
+                  editingId={editingId}
+                  editingLyrics={editingLyrics}
+                  setEditingLyrics={setEditingLyrics}
+                  editingTimestamp={editingTimestamp}
+                  setEditingTimestamp={setEditingTimestamp}
+                  saveEditScoreEntry={saveEditScoreEntry}
+                  cancelEditScoreEntry={cancelEditScoreEntry}
+                  saveCurrentState={saveCurrentState}
+                  getCurrentLyricsIndex={getCurrentLyricsIndex}
+                  importScoreData={importScoreData}
+                  exportScoreData={handleExport}
+                  deleteScoreEntry={deleteScoreEntry}
+                  startEditScoreEntry={startEditScoreEntry}
+                  clearAllScoreEntries={clearAllScoreEntries}
+                  seekToAndPlay={seekToAndPlay}
+                  bulkAdjustTimings={handleBulkTimingAdjust}
+                  undoLastOperation={undoLastOperation}
+                  redoLastOperation={redoLastOperation}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                />
+              </div>
             </div>
 
-            <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
-              <ScoreManagementSection
-                scoreEntries={scoreEntries}
-                duration={duration}
-                player={player}
-                editingId={editingId}
-                editingLyrics={editingLyrics}
-                setEditingLyrics={setEditingLyrics}
-                editingTimestamp={editingTimestamp}
-                setEditingTimestamp={setEditingTimestamp}
-                saveEditScoreEntry={saveEditScoreEntry}
-                cancelEditScoreEntry={cancelEditScoreEntry}
-                saveCurrentState={saveCurrentState}
-                getCurrentLyricsIndex={getCurrentLyricsIndex}
-                importScoreData={importScoreData}
-                exportScoreData={handleExport}
-                deleteScoreEntry={deleteScoreEntry}
-                startEditScoreEntry={startEditScoreEntry}
-                clearAllScoreEntries={clearAllScoreEntries}
-                seekToAndPlay={seekToAndPlay}
-                bulkAdjustTimings={handleBulkTimingAdjust}
-                undoLastOperation={undoLastOperation}
-                redoLastOperation={redoLastOperation}
-                canUndo={canUndo}
-                canRedo={canRedo}
-              />
-            </div>
+            <section className="mt-8">
+              <HelpSection />
+            </section>
           </div>
         )}
       </main>
-
-      {activeView === "editor" && (
-        <section className="mt-8">
-          <HelpSection />
-        </section>
-      )}
 
       <CreditsSection />
 
