@@ -241,9 +241,15 @@ export default function LyricsTypingApp() {
         setScoreEntries(draft.scoreEntries)
         setSongTitle(draft.songTitle)
         toast.success("下書きを復元しました")
+        // DOM要素の準備を待ってからロード
+        if (draft.youtubeUrl) {
+          setTimeout(() => {
+            loadYouTubeVideo(draft.youtubeUrl)
+          }, 200)
+        }
       }
     },
-    [setYoutubeUrl, setScoreEntries, setSongTitle],
+    [setYoutubeUrl, setScoreEntries, setSongTitle, loadYouTubeVideo],
   )
 
   const handleCloseRestoreDialog = useCallback(() => {
@@ -280,25 +286,32 @@ export default function LyricsTypingApp() {
     })
   }, [exportScoreData])
 
+  const handleBackToEditor = useCallback(() => {
+    if (activeView === "editor") return
+    setActiveView("editor")
+    // DOM要素の準備を待ってからロード
+    if (youtubeUrl) {
+      setTimeout(() => {
+        loadYouTubeVideo()
+      }, 200)
+    }
+  }, [activeView, youtubeUrl, loadYouTubeVideo])
+
   const handleTabKeyDown = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
       return
     }
 
     event.preventDefault()
-    const nextView = event.key === 'ArrowRight' ? 'play' : 'editor'
-    if (nextView === 'play' && !canPlay) {
-      return
-    }
-
-    setActiveView(nextView)
-    if (nextView === 'play') {
+    if (event.key === 'ArrowRight') {
+      if (!canPlay) return
+      handlePlay()
       playTabRef.current?.focus()
-      return
+    } else {
+      handleBackToEditor()
+      editorTabRef.current?.focus()
     }
-
-    editorTabRef.current?.focus()
-  }, [canPlay])
+  }, [canPlay, handlePlay, handleBackToEditor])
 
   return (
     <div className="min-h-screen page-shell pb-16">
@@ -325,7 +338,7 @@ export default function LyricsTypingApp() {
               ref={editorTabRef}
               variant="ghost"
               size="sm"
-              onClick={() => setActiveView("editor")}
+              onClick={handleBackToEditor}
               role="tab"
               id="editor-tab"
               aria-controls="editor-panel"
@@ -370,7 +383,7 @@ export default function LyricsTypingApp() {
         {activeView === "play" ? (
           <div id="play-panel" role="tabpanel" aria-labelledby="play-tab">
             <TypingGameContent
-              onClose={() => setActiveView("editor")}
+              onClose={handleBackToEditor}
               showHeader={false}
               scoreEntries={scoreEntries}
               songTitle={songTitle || "無題"}

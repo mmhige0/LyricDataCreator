@@ -135,10 +135,11 @@ export function TypingGameContent({
     toggleMute,
     seekTo,
     seekToAndPlay: seekToAndPlayRaw,
+    loadYouTubeVideo,
+    isYouTubeAPIReady,
   } = useYouTube({
     elementId: "typing-youtube-player",
     initialYoutubeUrl: youtubeUrl,
-    autoLoadInitialVideo: true,
     onPlayerStateChange: () => {
       if (typeof window === "undefined") return
 
@@ -150,6 +151,17 @@ export function TypingGameContent({
       }
     },
   })
+
+  // マウント時に自動でロード
+  useEffect(() => {
+    if (!youtubeUrl) return
+    if (!isYouTubeAPIReady) return
+    // DOM要素の準備を待つ
+    const timer = setTimeout(() => {
+      loadYouTubeVideo()
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [isYouTubeAPIReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const showStartHint = !isPlaying && currentTime === 0
   const playbackRateRef = useRef(playbackRate)

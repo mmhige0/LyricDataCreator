@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { extractVideoId } from '@/lib/youtubeUtils'
 import { youtubeErrors, handleError } from '@/lib/errorUtils'
 import type { YouTubePlayer } from '@/lib/types'
@@ -28,10 +28,6 @@ interface UseYouTubeProps {
    * 初期読み込み時に設定する YouTube URL
    */
   initialYoutubeUrl?: string
-  /**
-   * 初期URLを自動でロードするか
-   */
-  autoLoadInitialVideo?: boolean
 }
 
 const VOLUME_STORAGE_KEY = 'youtube-player-volume'
@@ -52,7 +48,6 @@ export const useYouTube = ({
   onDurationChange,
   elementId = 'youtube-player',
   initialYoutubeUrl = '',
-  autoLoadInitialVideo = false,
 }: UseYouTubeProps = {}) => {
   const [isYouTubeAPIReady, setIsYouTubeAPIReady] = useState<boolean>(false)
   const [youtubeUrl, setYoutubeUrl] = useState<string>(initialYoutubeUrl)
@@ -67,7 +62,6 @@ export const useYouTube = ({
   const [playbackRate, setPlaybackRate] = useState<number>(1)
   const [volume, setVolume] = useState<number>(100)
   const [isMuted, setIsMuted] = useState<boolean>(false)
-  const hasAutoLoadedInitialVideo = useRef(false)
 
   useEffect(() => {
     const setupYouTubeAPI = () => {
@@ -143,8 +137,9 @@ export const useYouTube = ({
     setChannelName(data?.author ?? "")
   }, [])
 
-  const loadYouTubeVideo = useCallback(() => {
-    const id = extractVideoId(youtubeUrl)
+  const loadYouTubeVideo = useCallback((urlOverride?: string) => {
+    const urlToLoad = urlOverride ?? youtubeUrl
+    const id = extractVideoId(urlToLoad)
     if (!id) {
       youtubeErrors.invalidUrl()
       return
@@ -243,16 +238,6 @@ export const useYouTube = ({
     updateVideoMetadata,
     youtubeUrl,
   ])
-
-  useEffect(() => {
-    if (!autoLoadInitialVideo) return
-    if (hasAutoLoadedInitialVideo.current) return
-    if (!isYouTubeAPIReady) return
-    if (!youtubeUrl) return
-
-    hasAutoLoadedInitialVideo.current = true
-    loadYouTubeVideo()
-  }, [autoLoadInitialVideo, isYouTubeAPIReady, loadYouTubeVideo, youtubeUrl])
 
   const togglePlayPause = () => {
     if (player) {
