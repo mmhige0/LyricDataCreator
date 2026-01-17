@@ -463,7 +463,7 @@ export function SongsTable({
                   onPointerUp={handleSliderPointerUp}
                 >
                   <div
-                    className="absolute h-full rounded-full bg-primary/70"
+                    className="absolute h-full rounded-full bg-primary"
                     style={{
                       left: `${percentRange.min}%`,
                       width: `${Math.max(0, percentRange.max - percentRange.min)}%`,
@@ -474,7 +474,7 @@ export function SongsTable({
                     onPointerDown={(event) => handleThumbPointerDown(event, "min")}
                     onPointerMove={handleSliderPointerMove}
                     onPointerUp={handleSliderPointerUp}
-                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-border bg-card shadow-sm outline-none ring-2 ring-transparent transition hover:ring-primary/30 focus-visible:ring-primary"
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border-2 border-primary/50 bg-background shadow-md outline-none ring-2 ring-transparent transition hover:ring-primary/30 focus-visible:ring-primary"
                     style={{ left: `${percentRange.min}%` }}
                     aria-label="Lv.下限を変更"
                   />
@@ -483,7 +483,7 @@ export function SongsTable({
                     onPointerDown={(event) => handleThumbPointerDown(event, "max")}
                     onPointerMove={handleSliderPointerMove}
                     onPointerUp={handleSliderPointerUp}
-                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border border-border bg-card shadow-sm outline-none ring-2 ring-transparent transition hover:ring-primary/30 focus-visible:ring-primary"
+                    className="absolute -top-1.5 h-5 w-5 -translate-x-1/2 cursor-pointer rounded-full border-2 border-primary/50 bg-background shadow-md outline-none ring-2 ring-transparent transition hover:ring-primary/30 focus-visible:ring-primary"
                     style={{ left: `${percentRange.max}%` }}
                     aria-label="Lv.上限を変更"
                   />

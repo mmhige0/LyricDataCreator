@@ -188,6 +188,15 @@
   background-color: hsl(var(--border));
 }
 
+/* Playback slider (seek bar) */
+.playback-slider {
+  accent-color: hsl(var(--primary));
+}
+
+.dark .playback-slider {
+  accent-color: hsl(var(--primary));
+}
+
 /* Slider track */
 .slider-track {
   background-color: hsl(var(--muted));

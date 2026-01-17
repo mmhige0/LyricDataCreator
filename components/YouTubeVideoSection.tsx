@@ -181,7 +181,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
                 max={duration}
                 value={currentTime}
                 onChange={(e) => seekTo(Number(e.target.value))}
-                className="w-full"
+                className="w-full playback-slider"
               />
             </div>
           </div>
