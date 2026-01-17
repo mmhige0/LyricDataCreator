@@ -197,7 +197,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
       <CardHeader className="pb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-purple-500 text-white">
+            <div className="p-2 rounded-lg bg-amber-500 text-white">
               <Clock className="h-5 w-5" />
             </div>
             ページ一覧

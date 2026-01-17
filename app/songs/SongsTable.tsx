@@ -437,7 +437,7 @@ export function SongsTable({
                 placeholder="曲番・曲名・アーティスト名で検索"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
-                className="w-full bg-white pr-10 shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 dark:bg-slate-950"
+                className="w-full bg-white pr-10 shadow-sm focus-visible:ring-2 focus-visible:ring-primary dark:bg-slate-950"
               />
               {searchInput && (
                 <button
@@ -542,7 +542,7 @@ export function SongsTable({
               disabled={randomLoading}
               className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
                 isRandomMode
-                  ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  ? "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-amber-50/60 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
                   : "invisible"
               }`}
             >
