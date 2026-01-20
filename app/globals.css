@@ -5,41 +5,53 @@
   :root {
     /* Typography - variables are set by Next.js font system */
 
-    /* Core Colors - Bright & Friendly Light Mode */
-    --background: 210 40% 99%;
-    --foreground: 215 25% 20%;
+    /* Core Colors - Refined Light Mode with Clear Elevation */
+    --background: 215 30% 97%;
+    --foreground: 215 30% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 215 25% 20%;
+    --card-foreground: 215 30% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 25% 20%;
+    --popover-foreground: 215 30% 15%;
 
-    /* Vibrant Blue Palette - Popular & Energetic */
-    --primary: 215 90% 58%;
+    /* Blue Palette - Deep & Refined */
+    --primary: 215 85% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 215 30% 30%;
-    --muted: 210 30% 94%;
-    --muted-foreground: 215 15% 45%;
-    --accent: 195 85% 50%;
+    --secondary: 215 25% 94%;
+    --secondary-foreground: 215 30% 25%;
+    --muted: 215 20% 92%;
+    --muted-foreground: 215 15% 40%;
+    --accent: 195 80% 46%;
     --accent-foreground: 0 0% 100%;
 
-    /* Status Colors - Bright & Clear */
-    --destructive: 0 80% 60%;
+    /* Status Colors - Clear & Balanced */
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
-    --success: 150 70% 42%;
+    --success: 150 65% 38%;
     --success-foreground: 150 90% 98%;
-    --warning: 40 95% 52%;
+    --warning: 40 90% 48%;
     --warning-foreground: 40 100% 15%;
 
-    /* UI Elements - Clean & Light */
-    --border: 215 25% 90%;
-    --input: 210 40% 99%;
-    --ring: 215 90% 58%;
+    /* UI Elements - Layered Boundaries */
+    --border: 215 20% 88%;
+    --border-subtle: 215 15% 92%;
+    --border-strong: 215 25% 82%;
+    --input: 215 25% 98%;
+    --ring: 215 80% 55%;
     --radius: 0.75rem;
 
+    /* Text Hierarchy */
+    --text-secondary: 215 15% 45%;
+    --text-tertiary: 215 12% 55%;
+    --text-disabled: 215 10% 70%;
+
+    /* Shadow Colors for Light Mode */
+    --shadow-ambient: rgba(0, 0, 0, 0.03);
+    --shadow-direct: rgba(0, 0, 0, 0.06);
+    --glow-subtle: rgba(255, 255, 255, 0.9);
+
     /* Glass Effect - Soft & Airy */
-    --glass: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(147, 197, 253, 0.25);
+    --glass: rgba(255, 255, 255, 0.88);
+    --glass-border: rgba(147, 197, 253, 0.2);
   }
 
   .dark {
@@ -144,17 +156,17 @@
     font-family: var(--font-mono), "Courier New", monospace;
   }
 
-  /* Light mode subtle gradient */
+  /* Light mode refined gradient */
   body {
     background-image:
-      radial-gradient(ellipse at top right, hsl(210 60% 96%), transparent 50%),
-      radial-gradient(ellipse at bottom left, hsl(200 50% 97%), transparent 50%),
-      linear-gradient(180deg, hsl(210 40% 99%) 0%, hsl(215 35% 98%) 100%);
+      radial-gradient(ellipse 80% 50% at 50% -20%, hsl(210 40% 95%), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 100%, hsl(200 35% 96%), transparent),
+      linear-gradient(180deg, hsl(215 30% 97%) 0%, hsl(210 25% 95%) 100%);
   }
 
   .page-shell {
-    background-color: hsl(210 40% 99%);
-    color: hsl(215 25% 20%);
+    background-color: hsl(215 30% 97%);
+    color: hsl(215 30% 15%);
   }
 
   .dark .page-shell {
@@ -187,9 +199,12 @@
 
 /* Shared Component Styles */
 .control-panel {
-  background-color: hsl(var(--muted));
+  background-color: hsl(var(--card));
   border-radius: var(--radius);
-  border: 1px solid hsl(var(--border));
+  border: 1px solid hsl(var(--border-subtle));
+  box-shadow:
+    0 1px 2px var(--shadow-ambient),
+    0 4px 12px var(--shadow-direct);
 }
 
 .dark .control-panel {
@@ -334,6 +349,34 @@
       transform: translateY(0);
       opacity: 1;
     }
+  }
+}
+
+/* Light Mode Refinements */
+@layer components {
+  /* Scrollbar - Light Mode */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border-strong));
+  }
+
+  /* Selection - Light Mode */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
   }
 }
 
