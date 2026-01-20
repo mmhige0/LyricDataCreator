@@ -43,59 +43,83 @@
   }
 
   .dark {
-    /* Dark Mode - High Contrast Text */
-    --background: 220 15% 13%;
+    /* Dark Mode - Refined Elevation System */
+    --background: 220 16% 9%;
     --foreground: 210 20% 95%;
-    --card: 220 14% 16%;
+    --card: 220 15% 13%;
     --card-foreground: 210 20% 95%;
-    --popover: 220 14% 18%;
+    --popover: 220 14% 17%;
     --popover-foreground: 210 20% 95%;
 
-    /* Blue Theme Dark - Vivid & Clear */
-    --primary: 200 100% 80%;
+    /* Blue Theme Dark - Refined & Readable */
+    --primary: 195 95% 78%;
     --primary-foreground: 220 20% 7%;
-    --secondary: 220 15% 18%;
+    --secondary: 220 14% 15%;
     --secondary-foreground: 210 15% 88%;
-    --muted: 220 12% 16%;
-    --muted-foreground: 215 12% 70%;
-    --accent: 200 85% 58%;
+    --muted: 220 12% 12%;
+    --muted-foreground: 215 12% 65%;
+    --accent: 200 65% 52%;
     --accent-foreground: 0 0% 100%;
 
-    /* Status Colors - Clear & Distinct */
-    --destructive: 0 72% 58%;
+    /* Status Colors - Refined */
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
-    --success: 150 60% 45%;
+    --success: 150 55% 42%;
     --success-foreground: 150 50% 98%;
-    --warning: 40 85% 55%;
+    --warning: 40 75% 52%;
     --warning-foreground: 40 100% 10%;
 
-    /* UI Elements - Defined Boundaries */
-    --border: 220 15% 25%;
-    --input: 220 15% 14%;
-    --ring: 200 90% 60%;
+    /* UI Elements - Layered Boundaries */
+    --border: 220 18% 20%;
+    --border-subtle: 220 15% 16%;
+    --border-strong: 220 20% 28%;
+    --input: 220 15% 11%;
+    --ring: 200 65% 50%;
 
-    /* Text Hierarchy - Clear Contrast */
-    --text-secondary: 215 15% 70%;
-    --text-tertiary: 215 12% 55%;
-    --text-disabled: 215 10% 40%;
+    /* Text Hierarchy - Refined Contrast */
+    --text-secondary: 215 12% 65%;
+    --text-tertiary: 215 10% 50%;
+    --text-disabled: 215 8% 38%;
 
-    /* Interactive States */
-    --accent-hover: 200 80% 52%;
-    --accent-active: 200 85% 45%;
-    --playing-bg: 220 15% 14%;
+    /* Interactive States - Subtle */
+    --accent-hover: 200 70% 48%;
+    --accent-active: 200 75% 42%;
+    --playing-bg: 220 15% 11%;
 
-    /* Glass Effect Dark - Clear Transparency */
-    --glass: rgba(25, 35, 50, 0.75);
-    --glass-border: rgba(100, 140, 180, 0.2);
+    /* Glass Effect Dark - Refined Transparency */
+    --glass: rgba(20, 28, 42, 0.8);
+    --glass-border: rgba(120, 160, 200, 0.12);
 
-    /* Header - Slightly lighter than background */
-    --header: 220 15% 15%;
+    /* Header - Clear Elevation */
+    --header: 220 15% 11%;
+
+    /* Shadow Colors for Dark Mode */
+    --shadow-ambient: rgba(0, 0, 0, 0.5);
+    --shadow-direct: rgba(0, 0, 0, 0.7);
+    --glow-subtle: rgba(200, 220, 255, 0.03);
   }
 }
 
 @layer base {
   * {
     border-color: hsl(var(--border));
+  }
+
+  /* Theme Transition - Smooth color changes */
+  body,
+  .card,
+  .btn,
+  button,
+  input,
+  textarea,
+  select,
+  [class*="bg-"],
+  [class*="border-"] {
+    transition:
+      background-color 0.25s ease,
+      border-color 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.25s ease;
   }
 
   body {
@@ -139,13 +163,13 @@
   }
   .dark body {
     background-image:
-      radial-gradient(ellipse at top, hsl(220 18% 16%), transparent 60%),
-      radial-gradient(ellipse at bottom, hsl(215 15% 12%), transparent 60%),
-      linear-gradient(180deg, hsl(220 15% 13%) 0%, hsl(218 14% 14%) 100%);
+      radial-gradient(ellipse 80% 50% at 50% -10%, hsl(220 20% 14%), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 100%, hsl(200 15% 10%), transparent),
+      linear-gradient(180deg, hsl(220 16% 9%) 0%, hsl(218 14% 8%) 100%);
     background-attachment: fixed;
   }
-  
-  /* Noise Texture Overlay - Subtle */
+
+  /* Noise Texture Overlay - Refined */
   .dark body::before {
     content: '';
     position: fixed;
@@ -153,9 +177,9 @@
     left: 0;
     width: 100%;
     height: 100%;
-    opacity: 0.018;
+    opacity: 0.025;
     z-index: -1;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E");
     pointer-events: none;
   }
 
@@ -169,9 +193,17 @@
 }
 
 .dark .control-panel {
-  background-color: hsl(var(--card) / 0.6);
-  border-color: rgba(255, 255, 255, 0.1);
-  background-image: linear-gradient(to top, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0));
+  background-color: hsl(var(--card) / 0.7);
+  border-color: hsl(var(--border-subtle));
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0)
+  );
+  box-shadow:
+    0 0 0 1px var(--glow-subtle),
+    0 2px 8px var(--shadow-ambient),
+    0 8px 24px var(--shadow-direct);
 }
 
 /* Volume slider */
@@ -302,5 +334,33 @@
       transform: translateY(0);
       opacity: 1;
     }
+  }
+}
+
+/* Dark Mode Refinements */
+@layer components {
+  /* Scrollbar - Dark Mode */
+  .dark ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .dark ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border-strong));
+  }
+
+  /* Selection - Dark Mode */
+  .dark ::selection {
+    background-color: hsl(var(--primary) / 0.3);
+    color: hsl(var(--foreground));
   }
 }

@@ -47,7 +47,7 @@ export const HelpSection: React.FC = () => {
                       <span className="font-mono text-sm bg-accent/10 text-accent px-2 py-1 rounded">.lrc</span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      ※ LRCファイル：1行目に歌詞が読み込まれ、2〜4行目は空行になります
+                      ※ LRCファイル：<code className="bg-muted px-1 rounded">/</code>区切りで最大4行に分割されます（例：<code className="bg-muted px-1 rounded">歌詞1/歌詞2</code> → 1行目と2行目に分割）
                     </div>
                   </td>
                 </tr>

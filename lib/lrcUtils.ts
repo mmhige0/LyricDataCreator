@@ -39,7 +39,6 @@ const parseLrcContent = (content: string): LrcEntry[] => {
       const [, minutes, seconds, centiseconds, lyrics] = match
       const timestamp = parseInt(minutes) * 60 + parseInt(seconds) + parseInt(centiseconds) / 100
 
-      // 空行も含めてすべてのエントリを追加
       entries.push({
         timestamp,
         lyrics: lyrics.trim()
@@ -52,13 +51,23 @@ const parseLrcContent = (content: string): LrcEntry[] => {
 
 /**
  * LrcEntryの配列をScoreEntryの配列に変換（基本的なテキスト変換付き）
+ * `/`で区切られた歌詞は同一エントリ内の複数行に分割
  */
 const convertLrcToScoreEntries = (lrcEntries: LrcEntry[]): ScoreEntry[] => {
-  return lrcEntries.map((entry, index) => ({
-    id: `lrc-${Date.now()}-${index}`,
-    timestamp: entry.timestamp,
-    lyrics: [preprocessAndConvertLyrics(entry.lyrics), '', '', ''] as LyricsArray
-  }))
+  return lrcEntries.map((entry, index) => {
+    const parts = entry.lyrics.split('/').map(part => preprocessAndConvertLyrics(part.trim()))
+    const lyrics: LyricsArray = [
+      parts[0] ?? '',
+      parts[1] ?? '',
+      parts[2] ?? '',
+      parts[3] ?? ''
+    ]
+    return {
+      id: `lrc-${Date.now()}-${index}`,
+      timestamp: entry.timestamp,
+      lyrics
+    }
+  })
 }
 
 /**
