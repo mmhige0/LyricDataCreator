@@ -37,7 +37,9 @@ const convertKatakanaToHiragana = (text: string): string => {
  * @returns 前処理とカタカナ変換が完了したテキスト
  */
 export const preprocessAndConvertLyrics = (text: string): string => {
-  return convertKatakanaToHiragana(halfWidthToFullWidth(removeSymbols(text || "").trim())).replace(/ゔ/g, 'ヴ')
+  return convertKatakanaToHiragana(halfWidthToFullWidth(removeSymbols(text || "").trim()))
+    .replace(/ゔ/g, 'ヴ')
+    .replace(/\s{2,}/g, '　')
 }
 
 /**
