@@ -9,9 +9,6 @@ interface AppState {
   scoreEntries: ScoreEntry[]
   lyrics: LyricsArray
   timestamp: string
-  editingId: string | null
-  editingLyrics: LyricsArray
-  editingTimestamp: string
 }
 
 interface UseScoreManagementProps {
@@ -59,10 +56,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     const currentState: AppState = {
       scoreEntries: [...scoreEntries],
       lyrics: [...lyrics],
-      timestamp,
-      editingId,
-      editingLyrics: [...editingLyrics],
-      editingTimestamp
+      timestamp
     }
     setUndoHistory((prev) => {
       const newHistory = [currentState, ...prev]
@@ -84,24 +78,23 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     const currentState: AppState = {
       scoreEntries: [...scoreEntries],
       lyrics: [...lyrics],
-      timestamp,
-      editingId,
-      editingLyrics: [...editingLyrics],
-      editingTimestamp
+      timestamp
     }
     setRedoHistory((prev) => {
       const newHistory = [currentState, ...prev]
       return newHistory.slice(0, MAX_HISTORY)
     })
 
+    // Cancel any ongoing edit
+    setEditingId(null)
+    setEditingLyrics(["", "", "", ""])
+    setEditingTimestamp("0.00")
+
     // Restore previous state
     setUndoHistory(restUndo)
     setScoreEntries(previousState.scoreEntries)
     setLyrics(previousState.lyrics)
     setTimestamp(previousState.timestamp)
-    setEditingId(previousState.editingId)
-    setEditingLyrics(previousState.editingLyrics)
-    setEditingTimestamp(previousState.editingTimestamp)
     toast.success('操作を元に戻しました')
   }
 
@@ -118,24 +111,23 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     const currentState: AppState = {
       scoreEntries: [...scoreEntries],
       lyrics: [...lyrics],
-      timestamp,
-      editingId,
-      editingLyrics: [...editingLyrics],
-      editingTimestamp
+      timestamp
     }
     setUndoHistory((prev) => {
       const newHistory = [currentState, ...prev]
       return newHistory.slice(0, MAX_HISTORY)
     })
 
+    // Cancel any ongoing edit
+    setEditingId(null)
+    setEditingLyrics(["", "", "", ""])
+    setEditingTimestamp("0.00")
+
     // Restore next state
     setRedoHistory(restRedo)
     setScoreEntries(nextState.scoreEntries)
     setLyrics(nextState.lyrics)
     setTimestamp(nextState.timestamp)
-    setEditingId(nextState.editingId)
-    setEditingLyrics(nextState.editingLyrics)
-    setEditingTimestamp(nextState.editingTimestamp)
     toast.success('操作をやり直しました')
   }
 
@@ -154,7 +146,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const saveEditScoreEntry = () => {
     if (!editingId) return
 
+    // Save the state before editing so that Undo restores to pre-edit state
     saveCurrentState()
+
     const convertedLyrics = processLyricsForSave(editingLyrics)
 
     setScoreEntries((prev) => {
