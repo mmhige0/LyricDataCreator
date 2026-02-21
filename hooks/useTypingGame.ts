@@ -280,6 +280,10 @@ export const useTypingGame = ({
       const currentEntry = scoreEntries[pageState.pageIndex]
       if (!currentEntry || !currentTypingWord) return
 
+      // ページ切り替え中（動画時間とpageStateが不整合）なら入力を無視
+      const expectedPageIndex = findTargetPageIndexByTime(scoreEntries, currentVideoTime)
+      if (expectedPageIndex !== pageState.pageIndex) return
+
       if (!isTypingKey(event)) return
 
       const hasRemainingChars =
