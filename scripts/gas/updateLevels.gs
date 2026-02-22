@@ -13,13 +13,20 @@
 
 const UPDATE_LEVELS_CONFIG = {
   endpoint: 'https://lyric-data-creator.vercel.app/api/songs',
-  maxSongsPerRequest: 100, // APIへ送る際の1リクエストあたり曲数上限
+  maxSongsPerRequest: 1000, // APIへ送る際の1リクエストあたり曲数上限
 }
 
 const UPDATE_LEVELS_COLUMN_MAP = {
   '曲番': 'id',
   '曲名': 'title',
   '難易度': 'level',
+}
+
+// 有効なレベルフォーマット: 数字 + オプションで+/- (例: "1", "5+", "3-")
+const LEVEL_FORMAT_REGEX = /^[0-9]+[+-]?$/
+
+function isValidLevelFormat(level) {
+  return typeof level === 'string' && LEVEL_FORMAT_REGEX.test(level.trim())
 }
 
 /**
@@ -50,11 +57,19 @@ function updateAllLevels(spreadsheetId, sheetName) {
     return
   }
 
-  const songsToUpdate = sheetInfo.entries
-    .filter(entry => entry.meta.id && entry.meta.level)
+  const entriesWithIdAndLevel = sheetInfo.entries.filter(entry => entry.meta.id && entry.meta.level)
+
+  // 無効なレベルフォーマットの件数をログ出力
+  const invalidCount = entriesWithIdAndLevel.filter(entry => !isValidLevelFormat(entry.meta.level)).length
+  if (invalidCount > 0) {
+    Logger.log('無効なレベルフォーマット（スキップ）: %s件', invalidCount)
+  }
+
+  const songsToUpdate = entriesWithIdAndLevel
+    .filter(entry => isValidLevelFormat(entry.meta.level))
     .map(entry => ({
       id: Number(entry.meta.id),
-      level: entry.meta.level,
+      level: entry.meta.level.trim(),
       rowIndex: entry.rowIndex,
     }))
     .filter(item => Number.isInteger(item.id))
