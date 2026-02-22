@@ -1,22 +1,14 @@
 // ========================================
 // 難易度一括更新スクリプト
 // ========================================
-// importSongs.gs と同じプロジェクトで使用する場合:
-//   - importSongs.gs の main() 実行時に自動で難易度更新が呼ばれる
-//   - スプレッドシートID は importSongs.gs の CONFIG から取得
-//
-// 単独で使用する場合:
-//   - updateAllLevels(spreadsheetId, sheetName) を直接呼び出す
-//   - スプレッドシートには列（順不同）: ID, 曲名, 難易度 が必要
-//   - スクリプト プロパティに IMPORT_SECRET を設定
+// common.gs と同じプロジェクトで使用
+// importSongs.gs の main() 実行時に自動で難易度更新が呼ばれる
+// 単独実行: updateAllLevels() をメニューから実行
 // ========================================
 
-const UPDATE_LEVELS_CONFIG = {
-  endpoint: 'https://lyric-data-creator.vercel.app/api/songs',
-  maxSongsPerRequest: 1000, // APIへ送る際の1リクエストあたり曲数上限
-}
+const LEVELS_ENDPOINT = '/api/songs'
 
-const UPDATE_LEVELS_COLUMN_MAP = {
+const LEVELS_COLUMN_MAP = {
   '曲番': 'id',
   '曲名': 'title',
   '難易度': 'level',
@@ -32,26 +24,26 @@ function isValidLevelFormat(level) {
 /**
  * 全曲の難易度を一括更新する
  * importSongs.gs から呼び出される、または手動でメニューから実行
- * @param {string} spreadsheetId - スプレッドシートID（省略時は importSongs の CONFIG を使用）
- * @param {string} sheetName - シート名（省略時は先頭シート）
+ * @param {string} spreadsheetId - スプレッドシートID（省略時は CONFIG を使用）
+ * @param {string} sheetName - シート名（省略時は CONFIG を使用）
  */
 function updateAllLevels(spreadsheetId, sheetName) {
-  const ssId = spreadsheetId || (typeof CONFIG !== 'undefined' ? CONFIG.spreadsheetId : '')
-  const sheet = sheetName || ''
+  const ssId = spreadsheetId || CONFIG.spreadsheetId
+  const sheet = sheetName || CONFIG.sheetName || ''
 
   if (!ssId) {
     Logger.log('スプレッドシートIDが指定されていません')
     return
   }
 
-  const sheetInfo = loadSheetDataForLevels(ssId, sheet)
+  const sheetInfo = loadLevelsSheetData(ssId, sheet)
 
   if (!sheetInfo.entries.length) {
     Logger.log('難易度更新: 有効な行がありません（IDが空、またはシートが空です）')
     return
   }
 
-  const importSecret = PropertiesService.getScriptProperties().getProperty('IMPORT_SECRET')
+  const importSecret = getImportSecret()
   if (!importSecret) {
     Logger.log('IMPORT_SECRETが未設定です')
     return
@@ -79,9 +71,10 @@ function updateAllLevels(spreadsheetId, sheetName) {
     return
   }
 
-  const chunks = chunkArray(songsToUpdate, UPDATE_LEVELS_CONFIG.maxSongsPerRequest || 100)
+  const chunks = chunkArray(songsToUpdate, CONFIG.maxSongsPerLevelUpdate || 1000)
   Logger.log('更新対象: %s 曲 / リクエスト分割数: %s', songsToUpdate.length, chunks.length)
 
+  const endpoint = CONFIG.baseUrl + LEVELS_ENDPOINT
   let totalUpdated = 0
   let totalErrors = 0
 
@@ -90,7 +83,7 @@ function updateAllLevels(spreadsheetId, sheetName) {
     const payload = {
       songs: chunk.map(item => ({ id: item.id, level: item.level })),
     }
-    const result = updateLevelsBatch(payload, importSecret)
+    const result = updateLevelsBatch(endpoint, payload, importSecret)
 
     const updated = result.updated || []
     const errors = result.errors || []
@@ -111,16 +104,7 @@ function updateAllLevels(spreadsheetId, sheetName) {
   Logger.log('完了: %s件更新, %s件エラー', totalUpdated, totalErrors)
 }
 
-function chunkArray(array, size) {
-  if (!size || size <= 0) return [array]
-  const result = []
-  for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size))
-  }
-  return result
-}
-
-function loadSheetDataForLevels(spreadsheetId, sheetName) {
+function loadLevelsSheetData(spreadsheetId, sheetName) {
   if (!spreadsheetId) return { entries: [], sheet: null }
 
   const ss = SpreadsheetApp.openById(spreadsheetId)
@@ -132,16 +116,16 @@ function loadSheetDataForLevels(spreadsheetId, sheetName) {
   }
 
   const [headers, ...rows] = sheet.getDataRange().getValues()
-  const colMap = headers.map(h => UPDATE_LEVELS_COLUMN_MAP[String(h).trim()] || '')
+  const colMap = headers.map(h => LEVELS_COLUMN_MAP[String(h).trim()] || '')
 
   const entries = rows
-    .map((row, idx) => parseRowForLevels(row, colMap, idx + 2))
+    .map((row, idx) => parseLevelsRow(row, colMap, idx + 2))
     .filter(Boolean)
 
   return { entries, sheet }
 }
 
-function parseRowForLevels(row, colMap, rowIndex) {
+function parseLevelsRow(row, colMap, rowIndex) {
   const meta = {}
   colMap.forEach((key, idx) => {
     if (key) meta[key] = String(row[idx] || '').trim()
@@ -155,9 +139,9 @@ function parseRowForLevels(row, colMap, rowIndex) {
   }
 }
 
-function updateLevelsBatch(payload, importSecret) {
+function updateLevelsBatch(endpoint, payload, importSecret) {
   try {
-    const res = patchJsonWithRedirect(UPDATE_LEVELS_CONFIG.endpoint, payload, importSecret)
+    const res = fetchJsonWithRedirect('patch', endpoint, payload, importSecret)
     const statusCode = res.getResponseCode()
     const content = res.getContentText() || ''
     let body
@@ -184,38 +168,6 @@ function updateLevelsBatch(payload, importSecret) {
   }
 
   return { updated: [], errors: [] }
-}
-
-function patchJsonWithRedirect(url, body, importSecret) {
-  const options = {
-    method: 'patch',
-    contentType: 'application/json',
-    payload: JSON.stringify(body),
-    muteHttpExceptions: true,
-    followRedirects: false,
-    headers: { 'x-import-secret': importSecret },
-  }
-  const res = UrlFetchApp.fetch(url, options)
-  const status = res.getResponseCode()
-  if ([301, 302, 303, 307, 308].indexOf(status) === -1) return res
-
-  const headers = res.getAllHeaders()
-  const location = headers.Location || headers.location
-  if (!location) return res
-
-  const followUrl = buildAbsoluteUrl(url, location)
-  const followOptions = Object.assign({}, options, { followRedirects: true })
-  return UrlFetchApp.fetch(followUrl, followOptions)
-}
-
-function buildAbsoluteUrl(baseUrl, location) {
-  if (!location) return baseUrl
-  if (/^https?:\/\//i.test(location)) return location
-  const match = String(baseUrl || '').match(/^(https?:\/\/[^/]+)/i)
-  const origin = match ? match[1] : ''
-  if (!origin) return location
-  if (location.startsWith('/')) return `${origin}${location}`
-  return `${origin}/${location}`
 }
 
 function onOpen() {
