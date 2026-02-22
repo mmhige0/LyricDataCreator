@@ -17,7 +17,7 @@ const UPDATE_LEVELS_CONFIG = {
 }
 
 const UPDATE_LEVELS_COLUMN_MAP = {
-  'ID': 'id',
+  '曲番': 'id',
   '曲名': 'title',
   '難易度': 'level',
 }
