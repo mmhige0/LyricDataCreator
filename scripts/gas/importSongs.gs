@@ -99,6 +99,10 @@ function main() {
   })
 
   setLastScanAt(latestFileUpdatedAt)
+
+  // インポート後に全曲の難易度を更新
+  Logger.log('--- 難易度更新を開始 ---')
+  updateAllLevels(CONFIG.spreadsheetId, CONFIG.sheetName)
 }
 
 function buildFileMap(folder) {
