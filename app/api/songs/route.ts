@@ -150,7 +150,7 @@ export async function PATCH(request: Request) {
     UPDATE "song"
     SET
       "level" = CASE "id" ${Prisma.join(levelCases, " ")} END,
-      "levelValue" = CASE "id" ${Prisma.join(levelValueCases, " ")} END
+      "levelValue" = (CASE "id" ${Prisma.join(levelValueCases, " ")} END)::smallint
     WHERE "id" IN (${Prisma.join(idList)})
     RETURNING "id", "title", "artist", "youtubeUrl", "level"
   `
