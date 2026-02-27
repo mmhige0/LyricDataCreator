@@ -569,7 +569,7 @@ export function SongsTable({
                       src={thumbnailUrl}
                       alt={`${song.title}のYouTubeサムネイル`}
                       fill
-                      sizes="(min-width: 768px) 240px, 100vw"
+                      unoptimized
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                   ) : (
