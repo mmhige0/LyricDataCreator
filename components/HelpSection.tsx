@@ -1,13 +1,15 @@
 import React from 'react'
-import { HelpCircle } from 'lucide-react'
+import { HelpCircle, ChevronDown } from 'lucide-react'
 
 export const HelpSection: React.FC = () => {
   return (
-    <div className="mt-8 max-w-[1600px] mx-auto px-8">
-      <div className="text-2xl font-semibold text-foreground mb-6 flex items-center gap-3">
+    <details className="mt-8 max-w-[1600px] mx-auto px-8 group">
+      <summary className="text-2xl font-semibold text-foreground flex items-center gap-3 cursor-pointer list-none select-none">
         <HelpCircle className="h-7 w-7 text-primary" />
         操作ガイド
-      </div>
+        <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
+      </summary>
+      <div className="mt-6">
 
       {/* 1. Basic Usage */}
       <div className="mb-8">
@@ -171,6 +173,7 @@ export const HelpSection: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </details>
   )
 }
