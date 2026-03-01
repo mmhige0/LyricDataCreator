@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation"
 import type { ScoreEntry } from "@/lib/types"
 import { AppHeader } from "@/components/AppHeader"
 import { TypingGameContent } from "@/components/TypingGameContent"
-import { CreditsSection } from "@/components/CreditsSection"
 import { cn } from "@/lib/utils"
 
 interface SongPlayerProps {
@@ -35,7 +34,6 @@ export function SongPlayer({ song }: SongPlayerProps) {
         />
       </div>
 
-      <CreditsSection />
     </div>
   )
 }

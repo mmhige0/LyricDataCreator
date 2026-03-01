@@ -17,7 +17,6 @@ import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
 import { TypingGameContent } from "@/components/TypingGameContent"
-import { CreditsSection } from "@/components/CreditsSection"
 import { cn } from "@/lib/utils"
 import { createNewSessionId, getOrCreateSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
@@ -477,8 +476,6 @@ export default function LyricsTypingApp() {
           </div>
         )}
       </main>
-
-      <CreditsSection />
 
       <DraftRestoreDialog
         isOpen={isRestoreDialogOpen}
