@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { Edit3, Keyboard } from "lucide-react"
 import { AppHeader } from "@/components/AppHeader"
+import { CreditsSection } from "@/components/CreditsSection"
 
 export default function LandingPage() {
   return (
@@ -40,6 +41,8 @@ export default function LandingPage() {
             </div>
           </Link>
         </div>
+
+        <CreditsSection />
       </main>
     </div>
   )
