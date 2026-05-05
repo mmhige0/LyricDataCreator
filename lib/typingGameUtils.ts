@@ -4,6 +4,7 @@ import type { TypingWord } from 'lyrics-typing-engine'
 export interface PageState {
   pageIndex: number
   typingWord: TypingWord
+  targetLineIndexes: number[]
   pageStartTime: number | null
   pageLastInputTime: number | null
 }
@@ -18,6 +19,7 @@ export const createEmptyTypingWord = (): TypingWord => ({
 export const createBeforeFirstPageState = (): PageState => ({
   pageIndex: -1,
   typingWord: createEmptyTypingWord(),
+  targetLineIndexes: [],
   pageStartTime: null,
   pageLastInputTime: null,
 })

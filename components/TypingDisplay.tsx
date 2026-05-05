@@ -3,6 +3,7 @@ import type { TypingWord } from 'lyrics-typing-engine'
 interface TypingDisplayProps {
   lines: string[]
   typingWord: TypingWord | null
+  targetLineIndexes?: number[]
   overlayText?: string
   overlayLines?: string[]
   hideBaseLines?: boolean
@@ -11,23 +12,29 @@ interface TypingDisplayProps {
 export const TypingDisplay = ({
   lines,
   typingWord,
+  targetLineIndexes,
   overlayText,
   overlayLines,
   hideBaseLines = false,
 }: TypingDisplayProps) => {
   const typedKanaLength = typingWord?.correct.kana.length ?? 0
-  const joinedLines = lines.join(' ')
-  const leadingWhitespaceLength = joinedLines.length - joinedLines.trimStart().length
-  const trailingWhitespaceLength = joinedLines.length - joinedLines.trimEnd().length
-  const trimmedLength = Math.max(0, joinedLines.length - leadingWhitespaceLength - trailingWhitespaceLength)
+  const effectiveTargetLineIndexes = targetLineIndexes ?? lines
+    .map((line, lineIndex) => line.trim().length > 0 ? lineIndex : -1)
+    .filter((lineIndex) => lineIndex >= 0)
+  const targetLineIndexSet = new Set(effectiveTargetLineIndexes)
+  const targetLines = effectiveTargetLineIndexes.map((lineIndex) => lines[lineIndex] ?? '')
+  const joinedTargetLines = targetLines.join(' ')
+  const leadingWhitespaceLength = joinedTargetLines.length - joinedTargetLines.trimStart().length
+  const trailingWhitespaceLength = joinedTargetLines.length - joinedTargetLines.trimEnd().length
+  const trimmedLength = Math.max(0, joinedTargetLines.length - leadingWhitespaceLength - trailingWhitespaceLength)
   const hasTypedAll = trimmedLength === 0 ? true : typedKanaLength >= trimmedLength
   const adjustedTypedLength = Math.min(
     typedKanaLength + leadingWhitespaceLength + (hasTypedAll ? trailingWhitespaceLength : 0),
-    joinedLines.length
+    joinedTargetLines.length
   )
   const clampedTypedLength = adjustedTypedLength
 
-  let cursor = 0
+  let targetCursor = 0
   const shouldShowOverlayLines = hideBaseLines && overlayLines && overlayLines.length > 0
 
   return (
@@ -42,14 +49,17 @@ export const TypingDisplay = ({
           </p>
         ))
         : lines.map((line, lineIndex) => {
-          const lineStart = cursor
-          const lineEnd = cursor + line.length
+          const isTargetLine = targetLineIndexSet.has(lineIndex)
+          const lineStart = targetCursor
+          const lineEnd = targetCursor + line.length
           const typedWithinLine = Math.max(0, Math.min(clampedTypedLength - lineStart, line.length))
 
-          const isCompletedLine = clampedTypedLength > lineEnd
-          const isCurrentLine = clampedTypedLength >= lineStart && clampedTypedLength <= lineEnd
+          const isCompletedLine = isTargetLine && clampedTypedLength > lineEnd
+          const isCurrentLine = isTargetLine && clampedTypedLength >= lineStart && clampedTypedLength <= lineEnd
 
-          cursor = lineEnd + 1 // 次の行の先頭（行間スペース1文字分を想定）
+          if (isTargetLine) {
+            targetCursor = lineEnd + 1 // 次の対象行の先頭（行間スペース1文字分を想定）
+          }
 
           const typedPart = line.slice(0, typedWithinLine)
           const remainingPart = line.slice(typedWithinLine)
@@ -59,7 +69,9 @@ export const TypingDisplay = ({
               key={lineIndex}
               className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 whitespace-pre"
             >
-              {isCompletedLine ? (
+              {!isTargetLine ? (
+                <span className="text-muted-foreground/40">{line || '\u00A0'}</span>
+              ) : isCompletedLine ? (
                 <span className="text-muted-foreground/60">{line || '\u00A0'}</span>
               ) : isCurrentLine ? (
                 <>

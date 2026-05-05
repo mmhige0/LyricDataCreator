@@ -109,6 +109,26 @@ const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) =>
 const clampPageSize = (pageSize: number) => Math.min(Math.max(pageSize, 1), SONGS_PAGE_SIZE_MAX)
 
 const isDatabaseConfigured = Boolean(process.env.DATABASE_URL)
+const DATABASE_CONNECTION_ERROR_CODES = new Set(["P1001", "P1002", "P1003", "P1017"])
+
+const isDatabaseConnectionError = (error: unknown): boolean => {
+  if (typeof error !== "object" || error === null) return false
+  const code = "code" in error ? error.code : undefined
+  return typeof code === "string" && DATABASE_CONNECTION_ERROR_CODES.has(code)
+}
+
+const createEmptySongsResponse = (pageSize: number): SongsResponse => ({
+  data: [],
+  page: 1,
+  pageSize,
+  hasNext: false,
+})
+
+const logDatabaseConnectionFallback = (operation: string, error: unknown) => {
+  console.warn(`Database is unavailable while loading ${operation}; returning empty data`, {
+    error,
+  })
+}
 
 const buildSongDetailKey = (id: number) => [SONG_DETAIL_TAG_PREFIX, `id:${id}`]
 const buildSongDetailTag = (id: number) => `${SONG_DETAIL_TAG_PREFIX}:${id}`
@@ -116,14 +136,20 @@ const buildSongDetailTag = (id: number) => `${SONG_DETAIL_TAG_PREFIX}:${id}`
 export const getSongById = async (id: number) => {
   if (!isDatabaseConfigured) return null
 
-  return unstable_cache(
-    async () => prisma.song.findUnique({ where: { id } }),
-    buildSongDetailKey(id),
-    {
-      tags: [buildSongDetailTag(id)],
-      revalidate: false,
-    }
-  )()
+  try {
+    return await unstable_cache(
+      async () => prisma.song.findUnique({ where: { id } }),
+      buildSongDetailKey(id),
+      {
+        tags: [buildSongDetailTag(id)],
+        revalidate: false,
+      }
+    )()
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error
+    logDatabaseConnectionFallback("song detail", error)
+    return null
+  }
 }
 
 export const getSongsPage = async ({
@@ -142,12 +168,7 @@ export const getSongsPage = async ({
 
   // GitHub ActionsなどでDATABASE_URLが未設定の場合は空データで返してビルドを継続する
   if (!isDatabaseConfigured) {
-    return {
-      data: [],
-      page: 1,
-      pageSize: normalizedPageSize,
-      hasNext: false,
-    }
+    return createEmptySongsResponse(normalizedPageSize)
   }
 
   const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
@@ -174,27 +195,34 @@ export const getSongsPage = async ({
     levelMax: normalizedLevelRange?.max,
   })
 
-  const data = await unstable_cache(
-    async () =>
-      prisma.song.findMany({
-        select: {
-          id: true,
-          title: true,
-          artist: true,
-          youtubeUrl: true,
-          level: true,
-        },
-        where,
-        orderBy,
-        skip: (safePage - 1) * normalizedPageSize,
-        take: normalizedPageSize + 1,
-      }),
-    listKey,
-    {
-      tags: [SONGS_TAG],
-      revalidate: false,
-    }
-  )()
+  let data: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+  try {
+    data = await unstable_cache(
+      async () =>
+        prisma.song.findMany({
+          select: {
+            id: true,
+            title: true,
+            artist: true,
+            youtubeUrl: true,
+            level: true,
+          },
+          where,
+          orderBy,
+          skip: (safePage - 1) * normalizedPageSize,
+          take: normalizedPageSize + 1,
+        }),
+      listKey,
+      {
+        tags: [SONGS_TAG],
+        revalidate: false,
+      }
+    )()
+  } catch (error) {
+    if (!isDatabaseConnectionError(error)) throw error
+    logDatabaseConnectionFallback("song list", error)
+    return createEmptySongsResponse(normalizedPageSize)
+  }
   const hasNext = data.length > normalizedPageSize
   const pageData = hasNext ? data.slice(0, normalizedPageSize) : data
 
@@ -220,12 +248,7 @@ export const getRandomSongs = async ({
   const searchId = parseSearchId(normalizedSearch)
 
   if (!isDatabaseConfigured) {
-    return {
-      data: [],
-      page: 1,
-      pageSize: normalizedLimit,
-      hasNext: false,
-    }
+    return createEmptySongsResponse(normalizedLimit)
   }
 
   const where: Prisma.SongWhereInput = {
@@ -279,6 +302,11 @@ export const getRandomSongs = async ({
       LIMIT ${normalizedLimit}
     `)
   } catch (error) {
+    if (isDatabaseConnectionError(error)) {
+      logDatabaseConnectionFallback("random songs", error)
+      return createEmptySongsResponse(normalizedLimit)
+    }
+
     // Fallback to in-memory shuffle if raw query fails for any reason.
     console.error("Random songs query failed, falling back to in-memory shuffle", {
       error,
@@ -286,16 +314,23 @@ export const getRandomSongs = async ({
       searchVariants,
       levelValueRange,
     })
-    const candidates = await prisma.song.findMany({
-      select: {
-        id: true,
-        title: true,
-        artist: true,
-        youtubeUrl: true,
-        level: true,
-      },
-      where,
-    })
+    let candidates: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+    try {
+      candidates = await prisma.song.findMany({
+        select: {
+          id: true,
+          title: true,
+          artist: true,
+          youtubeUrl: true,
+          level: true,
+        },
+        where,
+      })
+    } catch (fallbackError) {
+      if (!isDatabaseConnectionError(fallbackError)) throw fallbackError
+      logDatabaseConnectionFallback("random songs fallback", fallbackError)
+      return createEmptySongsResponse(normalizedLimit)
+    }
     for (let i = candidates.length - 1; i > 0; i -= 1) {
       const j = Math.floor(Math.random() * (i + 1))
       ;[candidates[i], candidates[j]] = [candidates[j], candidates[i]]

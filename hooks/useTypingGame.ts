@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import type { ScoreEntry } from '@/lib/types'
+import type { PracticeLineSettings, ScoreEntry } from '@/lib/types'
 import type { BuiltMapLine, TypingWord, InputMode } from 'lyrics-typing-engine'
 import { evaluateKanaInput, evaluateRomaInput, isTypingKey } from 'lyrics-typing-engine'
-import { createTypingWordForPage, skipSpaces } from '@/lib/typingEngineAdapter'
+import { createTypingWordForPageLines, skipSpaces } from '@/lib/typingEngineAdapter'
+import { DEFAULT_PRACTICE_LINE_SETTINGS, getPracticeLineIndexes } from '@/lib/practiceLineSettings'
 import {
   createBeforeFirstPageState,
   createEmptyTypingWord,
@@ -21,6 +22,8 @@ interface GameStats {
 interface UseTypingGameProps {
   scoreEntries: ScoreEntry[]
   builtMapLines: BuiltMapLine[]
+  totalDuration: number
+  practiceLineSettings?: PracticeLineSettings
   currentVideoTime: number
   onGameEnd?: () => void
   onRestartVideo?: () => void
@@ -33,6 +36,8 @@ interface UseTypingGameProps {
 export const useTypingGame = ({
   scoreEntries,
   builtMapLines,
+  totalDuration,
+  practiceLineSettings = DEFAULT_PRACTICE_LINE_SETTINGS,
   currentVideoTime,
   onGameEnd,
   onRestartVideo,
@@ -56,6 +61,11 @@ export const useTypingGame = ({
   const missSoundRef = useRef<HTMLAudioElement | null>(null)
   const pendingNextPageIndexRef = useRef<number | null>(null)
   const typingWordRef = useRef<TypingWord | null>(null)
+  const currentVideoTimeRef = useRef(currentVideoTime)
+
+  useEffect(() => {
+    currentVideoTimeRef.current = currentVideoTime
+  }, [currentVideoTime])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -86,16 +96,28 @@ export const useTypingGame = ({
         return
       }
 
-      const typingWord = skipSpaces(createTypingWordForPage(builtMapLines, pageIndex) ?? createEmptyTypingWord())
+      const targetLineIndexes = getPracticeLineIndexes(
+        scoreEntries[pageIndex]?.lyrics ?? [],
+        practiceLineSettings
+      )
+      const typingWord = skipSpaces(
+        createTypingWordForPageLines({
+          scoreEntries,
+          totalDuration,
+          pageIndex,
+          targetLineIndexes,
+        }) ?? createEmptyTypingWord()
+      )
 
       setPageState({
         pageIndex,
         typingWord,
-        pageStartTime: currentVideoTime,
+        targetLineIndexes,
+        pageStartTime: currentVideoTimeRef.current,
         pageLastInputTime: null,
       })
     },
-    [builtMapLines, currentVideoTime, onGameEnd]
+    [builtMapLines.length, onGameEnd, practiceLineSettings, scoreEntries, totalDuration]
   )
 
   const startGame = useCallback(() => {
@@ -404,6 +426,12 @@ export const useTypingGame = ({
     [pageState.pageIndex, scoreEntries, initializePage]
   )
 
+  const reinitializeCurrentPage = useCallback(() => {
+    if (pageState.pageIndex < 0) return
+    setCombo(0)
+    initializePage(pageState.pageIndex)
+  }, [initializePage, pageState.pageIndex])
+
   return {
     gameStatus,
     inputMode,
@@ -417,5 +445,6 @@ export const useTypingGame = ({
     restartGame,
     toggleInputMode,
     changePageManually,
+    reinitializeCurrentPage,
   }
 }

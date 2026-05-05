@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import type { ScoreEntry } from "@/lib/types"
+import type { PracticeLineSettings, ScoreEntry } from "@/lib/types"
 import { useTypingGame } from "@/hooks/useTypingGame"
 import { useYouTube } from "@/hooks/useYouTube"
 import { TypingDisplay } from "@/components/TypingDisplay"
@@ -10,6 +10,11 @@ import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { AppHeader } from "@/components/AppHeader"
 import { Button } from "@/components/ui/button"
 import { buildPageTypingData, ensureIntroPage } from '@/lib/typingEngineAdapter'
+import {
+  ALL_LINE_INDEXES,
+  DEFAULT_PRACTICE_LINE_SETTINGS,
+  normalizePracticeLineSettings,
+} from "@/lib/practiceLineSettings"
 import {
   Play,
   Pause,
@@ -22,6 +27,7 @@ import {
   VolumeX,
   PanelRightClose,
   PanelRightOpen,
+  Shuffle,
 } from "lucide-react"
 import { createDisplayWord } from "lyrics-typing-engine"
 
@@ -80,6 +86,9 @@ export function TypingGameContent({
   const [isTabEnabled, setIsTabEnabledState] = useState(true)
   const [timeOffset, setTimeOffset] = useState(0)
   const [timeOffsetInput, setTimeOffsetInput] = useState('0')
+  const [practiceLineSettings, setPracticeLineSettingsState] = useState<PracticeLineSettings>(
+    DEFAULT_PRACTICE_LINE_SETTINGS
+  )
 
   const setIsTabEnabled = (value: boolean | ((prev: boolean) => boolean)) => {
     setIsTabEnabledState((prev) => {
@@ -88,6 +97,13 @@ export function TypingGameContent({
         localStorage.setItem('typingTabEnabled', String(resolved))
       }
       return resolved
+    })
+  }
+
+  const setPracticeLineSettings = (value: PracticeLineSettings | ((prev: PracticeLineSettings) => PracticeLineSettings)) => {
+    setPracticeLineSettingsState((prev) => {
+      const next = typeof value === 'function' ? value(prev) : value
+      return normalizePracticeLineSettings(next)
     })
   }
 
@@ -165,6 +181,7 @@ export function TypingGameContent({
 
   const showStartHint = !isPlaying && currentTime === 0
   const playbackRateRef = useRef(playbackRate)
+  const previousPracticeLineSettingsRef = useRef(practiceLineSettings)
 
   useEffect(() => {
     playbackRateRef.current = playbackRate
@@ -236,9 +253,12 @@ export function TypingGameContent({
     totalMiss,
     combo,
     toggleInputMode,
+    reinitializeCurrentPage,
   } = useTypingGame({
     scoreEntries: adjustedScoreEntries,
     builtMapLines,
+    totalDuration: totalDurationForBuild,
+    practiceLineSettings,
     currentVideoTime: currentTime,
     onRestartVideo: () => {
       seekToAndPlayRaw(0)
@@ -249,7 +269,44 @@ export function TypingGameContent({
     isPlaying: isPlaying,
   })
 
+  const togglePracticeLineIndex = (lineIndex: number) => {
+    setPracticeLineSettings((prev) => {
+      const hasLineIndex = prev.selectedLineIndexes.includes(lineIndex)
+      const selectedLineIndexes = hasLineIndex
+        ? prev.selectedLineIndexes.filter((currentLineIndex) => currentLineIndex !== lineIndex)
+        : [...prev.selectedLineIndexes, lineIndex]
+
+      return {
+        mode: selectedLineIndexes.length === ALL_LINE_INDEXES.length ? 'all' : 'selected',
+        selectedLineIndexes: selectedLineIndexes.length > 0 ? selectedLineIndexes : [lineIndex],
+      }
+    })
+  }
+
+  const toggleRandomPracticeLines = () => {
+    setPracticeLineSettings((prev) => {
+      if (prev.mode !== 'random') {
+        return {
+          ...prev,
+          mode: 'random',
+        }
+      }
+
+      return {
+        ...prev,
+        mode: prev.selectedLineIndexes.length === ALL_LINE_INDEXES.length ? 'all' : 'selected',
+      }
+    })
+  }
+
+  useEffect(() => {
+    if (previousPracticeLineSettingsRef.current === practiceLineSettings) return
+    previousPracticeLineSettingsRef.current = practiceLineSettings
+    reinitializeCurrentPage()
+  }, [practiceLineSettings, reinitializeCurrentPage])
+
   const kpmModeOverride = inputMode === 'roma' || inputMode === 'kana' ? inputMode : undefined
+  const isRandomPracticeLines = practiceLineSettings.mode === 'random'
 
   // YouTube 動画をロード（URL 設定完了後、一度だけ）
   // F9 / F10 で再生速度を変更
@@ -587,10 +644,45 @@ export function TypingGameContent({
                 </div>
               </div>
               {/* 歌詞表示エリア */}
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 px-4 py-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">行</span>
+                  {ALL_LINE_INDEXES.map((lineIndex) => {
+                    const isSelected = practiceLineSettings.selectedLineIndexes.includes(lineIndex)
+
+                    return (
+                      <Button
+                        key={lineIndex}
+                        type="button"
+                        variant={!isRandomPracticeLines && isSelected ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        aria-pressed={!isRandomPracticeLines && isSelected}
+                        aria-label={`${lineIndex + 1}行目を練習`}
+                        disabled={isRandomPracticeLines}
+                        onClick={() => togglePracticeLineIndex(lineIndex)}
+                      >
+                        {lineIndex + 1}
+                      </Button>
+                    )
+                  })}
+                  <Button
+                    type="button"
+                    variant={isRandomPracticeLines ? 'default' : 'outline'}
+                    size="sm"
+                    aria-pressed={isRandomPracticeLines}
+                    onClick={toggleRandomPracticeLines}
+                  >
+                    <Shuffle className="h-4 w-4" aria-hidden="true" />
+                    ランダム
+                  </Button>
+                </div>
+              </div>
               <div className="mb-3">
                 <TypingDisplay
                   lines={currentPageLines}
                   typingWord={currentTypingWord}
+                  targetLineIndexes={pageState.targetLineIndexes}
                   overlayText={showStartHint ? "Escキー/動画をクリックして開始" : undefined}
                   overlayLines={overlayLines}
                   hideBaseLines={hideBaseLines}

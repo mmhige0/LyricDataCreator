@@ -34,13 +34,23 @@ export interface PageTypingData {
  */
 const normalizeVuToHiragana = (line: string): string => line.replace(/ヴ/g, 'ゔ')
 
+export const normalizeTypingLine = (line: string): string =>
+  normalizeVuToHiragana(preprocessAndConvertLyrics(line))
+
+const buildTypingWord = (rawMapLines: RawMapLine[]): TypingWord | null => {
+  const builtMapLines = applyNEndingPatch(buildTypingMap({ rawMapLines, charPoint: 0 }))
+  const targetLine = builtMapLines[0]
+  if (!targetLine || targetLine.lyrics === 'end') return null
+  return createTypingWord(targetLine)
+}
+
 export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTypingDataParams): PageTypingData => {
   const normalizedEntries = ensureIntroPage(scoreEntries)
   const pageLyrics: string[][] = []
   const rawMapLines: RawMapLine[] = []
 
   for (const entry of normalizedEntries) {
-    const processedLines = entry.lyrics.map((line) => normalizeVuToHiragana(preprocessAndConvertLyrics(line)))
+    const processedLines = entry.lyrics.map((line) => normalizeTypingLine(line))
     const hasLyrics = processedLines.some((line) => line.length > 0)
     const word = hasLyrics ? processedLines.join('　').trim() : ''
 
@@ -70,10 +80,42 @@ export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTy
   }
 }
 
-export const createTypingWordForPage = (builtMapLines: BuiltMapLine[], pageIndex: number): TypingWord | null => {
-  const targetLine = builtMapLines[pageIndex]
-  if (!targetLine || targetLine.lyrics === 'end') return null
-  return createTypingWord(targetLine)
+export const createTypingWordForPageLines = ({
+  scoreEntries,
+  totalDuration,
+  pageIndex,
+  targetLineIndexes,
+}: {
+  scoreEntries: ScoreEntry[]
+  totalDuration: number
+  pageIndex: number
+  targetLineIndexes: number[]
+}): TypingWord | null => {
+  const entry = scoreEntries[pageIndex]
+  if (!entry) return null
+
+  const processedLines = entry.lyrics.map((line) => normalizeTypingLine(line))
+  const word = targetLineIndexes
+    .map((lineIndex) => processedLines[lineIndex] ?? '')
+    .filter((line) => line.length > 0)
+    .join('　')
+    .trim()
+
+  const nextEntryTimestamp = scoreEntries[pageIndex + 1]?.timestamp
+  const endTime = Math.max(totalDuration, entry.timestamp, nextEntryTimestamp ?? 0)
+
+  return buildTypingWord([
+    {
+      time: entry.timestamp,
+      lyrics: word,
+      word,
+    },
+    {
+      time: endTime,
+      lyrics: 'end',
+      word: '',
+    },
+  ])
 }
 
 export const skipSpaces = (typingWord: TypingWord): TypingWord => {

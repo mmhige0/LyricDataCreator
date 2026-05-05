@@ -25,6 +25,10 @@
 - Unit tests run via Vitest (`npm run unit`), and `npm run test` is the guardrail (lint + types + unit + build).
 - When adding non-trivial logic (e.g., parsing, timing calculations), include targeted tests or lightweight validation scripts and wire them into `npm run test` if possible.
 
+## Collaboration Guidelines
+- When the user asks a question or requests an explanation/design proposal, answer first and do not modify files unless they explicitly ask for implementation or changes.
+- If the user's intent is ambiguous, clarify whether they want code changes before editing.
+
 ## Commit & Pull Request Guidelines
 - Write concise, imperative commit messages in `type: Title` format (e.g., `feat: Add timing export controls`); group related changes.
 - For PRs, include: summary of behavior change, linked issue/feature, and manual test notes. Add screenshots or clips for UI-facing updates.

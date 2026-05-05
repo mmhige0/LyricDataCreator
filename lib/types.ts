@@ -25,6 +25,13 @@ export interface YouTubePlayer {
 
 export type LyricsArray = [string, string, string, string]
 
+export type PracticeLineMode = 'all' | 'random' | 'selected'
+
+export interface PracticeLineSettings {
+  mode: PracticeLineMode
+  selectedLineIndexes: number[]
+}
+
 // Draft management types
 export interface SessionInfo {
   sessionId: string
