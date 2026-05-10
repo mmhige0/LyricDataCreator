@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { extractVideoId } from '@/lib/youtubeUtils'
 
-const DEFAULT_GEMINI_MODEL = 'gemma-3-27b-it'
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite'
 
 const getGeminiEndpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
