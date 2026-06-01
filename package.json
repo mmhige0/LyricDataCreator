@@ -43,7 +43,7 @@
     "eslint-config-next": "^16.2.6",
     "prisma": "^7.8.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   },
   "overrides": {
     "@next/eslint-plugin-next": {
