@@ -149,3 +149,42 @@ it('captures IME-shaped Ctrl+Shift+Space before the input blocks propagation and
   }))
   expect(headStart).toHaveBeenCalledTimes(3)
 })
+
+it('blocks shortcut whitespace at beforeinput and restores non-cancelable IME input before onChange', async () => {
+  const playback = vi.fn((event: KeyboardEvent) => event.preventDefault())
+  const unregister = registerEditorKeyboardShortcuts(playback)
+  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
+  try {
+    for (const space of [' ', '　']) {
+      input.setSelectionRange(1, 2)
+      await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Process', code: 'Space', keyCode: 229, ctrlKey: true, shiftKey: true,
+        bubbles: true, cancelable: true,
+      })))
+      const before = new InputEvent('beforeinput', { inputType: 'insertText', data: space, bubbles: true, cancelable: true })
+      input.dispatchEvent(before)
+      expect(before.defaultPrevented).toBe(true)
+      await act(async () => {
+        input.dispatchEvent(new InputEvent('beforeinput', { inputType: 'insertCompositionText', data: space, bubbles: true, cancelable: false }))
+        setValue.call(input, `あ${space}う`)
+        input.dispatchEvent(new InputEvent('input', { inputType: 'insertCompositionText', data: space, bubbles: true }))
+      })
+      expect(input.value).toBe('あいう')
+      expect(input.selectionStart).toBe(1)
+      expect(input.selectionEnd).toBe(2)
+      expect(actions.onChange).not.toHaveBeenCalled()
+    }
+    // A separate ordinary Space press must still insert text.
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }))
+    const ordinary = new InputEvent('beforeinput', { inputType: 'insertText', data: ' ', bubbles: true, cancelable: true })
+    input.dispatchEvent(ordinary)
+    expect(ordinary.defaultPrevented).toBe(false)
+    await act(async () => {
+      setValue.call(input, 'あ う')
+      input.dispatchEvent(new InputEvent('input', { inputType: 'insertText', data: ' ', bubbles: true }))
+    })
+    expect(actions.onChange).toHaveBeenCalledWith('one', 0, 'あ う')
+  } finally {
+    unregister()
+  }
+})

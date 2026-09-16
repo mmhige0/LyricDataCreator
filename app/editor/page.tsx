@@ -191,10 +191,12 @@ export default function LyricsTypingApp() {
     redoLastOperation,
   })
 
+  const keyboardHandlerRef = useRef(handleKeyDown)
+  useEffect(() => { keyboardHandlerRef.current = handleKeyDown }, [handleKeyDown])
   useEffect(() => {
     if (activeView !== "editor" || isRestoreDialogOpen) return
-    return registerEditorKeyboardShortcuts(handleKeyDown)
-  }, [handleKeyDown, activeView, isRestoreDialogOpen])
+    return registerEditorKeyboardShortcuts(event => keyboardHandlerRef.current(event))
+  }, [activeView, isRestoreDialogOpen])
 
   useEffect(() => {
     cleanupExpiredDrafts()

@@ -90,6 +90,8 @@ export const HelpSection: React.FC = () => {
             { keys: ['Ctrl', '→'], description: '1秒早送り' },
           ] },
           { title: 'ページ操作', shortcuts: [
+            { keys: ['Alt', '↑'], description: '前のページへ移動' },
+            { keys: ['Alt', '↓'], description: '次のページへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
             { keys: ['Ctrl', 'Enter'], description: 'ページ追加／編集終了' },
             { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },

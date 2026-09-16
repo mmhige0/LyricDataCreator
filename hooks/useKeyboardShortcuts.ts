@@ -152,15 +152,70 @@ function isPlaybackShortcut(event: KeyboardEvent) {
 }
 
 export function registerEditorKeyboardShortcuts(handler: (event: KeyboardEvent) => void) {
-  // Only playback runs in capture: local Enter/Esc and navigation handlers
-  // must retain priority over the other document shortcuts.
+  type TextField = HTMLInputElement | HTMLTextAreaElement
+  let pending: { field: TextField; value: string; start: number; end: number } | null = null
+  let releaseTimer: ReturnType<typeof setTimeout> | undefined
+  const clearPending = () => {
+    pending = null
+    clearTimeout(releaseTimer)
+  }
+  // Some IMEs deliver text input separately from the canceled keydown.
+  // Limit protection to the same field and this physical shortcut gesture.
   const capturePlayback = (event: KeyboardEvent) => {
-    if (isPlaybackShortcut(event)) handler(event)
+    if (!isPlaybackShortcut(event)) {
+      clearPending()
+      return
+    }
+    clearTimeout(releaseTimer)
+    const field = event.target
+    if (!event.isComposing && (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)
+      && field.selectionStart !== null && field.selectionEnd !== null) {
+      pending = { field, value: field.value, start: field.selectionStart, end: field.selectionEnd }
+    }
+    handler(event)
+  }
+  const beforeInput = (event: Event) => {
+    const input = event as InputEvent
+    if (pending && input.target === pending.field && /^insert(Text|CompositionText|FromComposition)$/.test(input.inputType)
+      && /^[ \u3000]+$/.test(input.data ?? '')) input.preventDefault()
+  }
+  const onInput = (event: Event) => {
+    if (!pending || event.target !== pending.field) return
+    const { field, value, start, end } = pending
+    const prefix = value.slice(0, start)
+    const suffix = value.slice(end)
+    const insertedLength = field.value.length - prefix.length - suffix.length
+    if (insertedLength <= 0 || !field.value.startsWith(prefix) || !field.value.endsWith(suffix)
+      || !/^[ \u3000]+$/.test(field.value.slice(start, start + insertedLength))) return
+    // Non-cancelable IME input: restore before React onChange/autosave sees it.
+    field.value = value
+    field.setSelectionRange(start, end)
+    event.stopImmediatePropagation()
+  }
+  const keypress = (event: KeyboardEvent) => {
+    if (pending && event.target === pending.field && (event.code === 'Space' || /^[ \u3000]$/.test(event.key))) event.preventDefault()
+  }
+  const keyup = () => {
+    // Allow an input event queued with keyup, then stop guarding ordinary input.
+    releaseTimer = setTimeout(clearPending, 0)
   }
   document.addEventListener('keydown', capturePlayback, true)
   document.addEventListener('keydown', handler)
+  document.addEventListener('keypress', keypress, true)
+  document.addEventListener('beforeinput', beforeInput, true)
+  document.addEventListener('input', onInput, true)
+  document.addEventListener('keyup', keyup, true)
+  document.addEventListener('focusout', clearPending, true)
+  window.addEventListener('blur', clearPending)
   return () => {
+    clearPending()
     document.removeEventListener('keydown', capturePlayback, true)
     document.removeEventListener('keydown', handler)
+    document.removeEventListener('keypress', keypress, true)
+    document.removeEventListener('beforeinput', beforeInput, true)
+    document.removeEventListener('input', onInput, true)
+    document.removeEventListener('keyup', keyup, true)
+    document.removeEventListener('focusout', clearPending, true)
+    window.removeEventListener('blur', clearPending)
   }
 }
