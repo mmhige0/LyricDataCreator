@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { ScoreEntry, LyricsArray, YouTubePlayer } from '@/lib/types'
 import { processLyricsForSave } from '@/lib/textUtils'
 import { toast } from 'sonner'
+import { updateLyricsLine, finishLyricsLine } from '@/lib/inlineLyrics'
 
 const MAX_HISTORY = 15
 
@@ -26,6 +27,10 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [timestampOffset, setTimestampOffsetState] = useState<number>(0)
   const [undoHistory, setUndoHistory] = useState<AppState[]>([])
   const [redoHistory, setRedoHistory] = useState<AppState[]>([])
+
+  const [inlineEditing, setInlineEditing] = useState<{ id: string; line: number } | null>(null)
+  const inlineHistorySaved = useRef(false)
+  const inlineChangedLines = useRef(new Set<number>())
 
   const lyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const timestampInputRef = useRef<HTMLInputElement>(null)
@@ -65,6 +70,61 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     setRedoHistory([])
   }
 
+  const startInlineEdit = (id: string, line: number) => {
+    inlineChangedLines.current.clear()
+    inlineHistorySaved.current = false
+    setInlineEditing({ id, line })
+  }
+
+  const checkpointInlineEdit = () => {
+    if (!inlineHistorySaved.current) {
+      saveCurrentState()
+      inlineHistorySaved.current = true
+    }
+  }
+
+  const changeInlineLyrics = (id: string, line: number, value: string) => {
+    inlineChangedLines.current.add(line)
+    checkpointInlineEdit()
+    setScoreEntries(prev => updateLyricsLine(prev, id, line, value))
+  }
+
+  const replaceInlineLyrics = (id: string, next: LyricsArray) => {
+    const entry = scoreEntries.find(item => item.id === id)
+    next.forEach((value, line) => {
+      if (entry?.lyrics[line] !== value) inlineChangedLines.current.add(line)
+    })
+    checkpointInlineEdit()
+    setScoreEntries(prev => prev.map(entry => entry.id === id ? { ...entry, lyrics: next } : entry))
+  }
+
+  const finishInlineEdit = (id: string, line: number, value: string) => {
+    const entry = scoreEntries.find(item => item.id === id)
+    const normalized = processLyricsForSave([value, '', '', ''])[0]
+    if (entry && entry.lyrics[line] !== normalized) checkpointInlineEdit()
+    const changedLines = new Set([...inlineChangedLines.current, line])
+    setScoreEntries(prev => {
+      let updated = prev
+      for (const changedLine of changedLines) {
+        const text = changedLine === line ? value : prev.find(item => item.id === id)?.lyrics[changedLine]
+        if (text !== undefined) updated = finishLyricsLine(updated, id, changedLine, text)
+      }
+      return updated
+    })
+    inlineChangedLines.current.clear()
+    setInlineEditing(null)
+    inlineHistorySaved.current = false
+  }
+
+  const updateInlineTimestamp = (value: string) => {
+    if (!inlineEditing) return
+    const time = Number(value)
+    if (!Number.isFinite(time) || time < 0) return
+    checkpointInlineEdit()
+    // Keep the focused input mounted in place; sort when the line is finished.
+    setScoreEntries(prev => prev.map(entry => entry.id === inlineEditing.id ? { ...entry, timestamp: time } : entry))
+  }
+
   // Undo last operation
   const undoLastOperation = () => {
     if (undoHistory.length === 0) {
@@ -84,6 +144,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
       const newHistory = [currentState, ...prev]
       return newHistory.slice(0, MAX_HISTORY)
     })
+
+    setInlineEditing(null)
+    inlineHistorySaved.current = false
 
     // Cancel any ongoing edit
     setEditingId(null)
@@ -117,6 +180,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
       const newHistory = [currentState, ...prev]
       return newHistory.slice(0, MAX_HISTORY)
     })
+
+    setInlineEditing(null)
+    inlineHistorySaved.current = false
 
     // Cancel any ongoing edit
     setEditingId(null)
@@ -211,6 +277,12 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   return {
+    inlineEditing,
+    startInlineEdit,
+    changeInlineLyrics,
+    replaceInlineLyrics,
+    finishInlineEdit,
+    updateInlineTimestamp,
     // State
     scoreEntries,
     setScoreEntries,
@@ -243,3 +315,4 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveCurrentState
   }
 }
+

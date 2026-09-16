@@ -7,17 +7,20 @@ import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, Redo, ScrollTe
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
+import { InlineLyricsInput, type InlineLyricsActions } from '@/components/InlineLyricsInput'
 import { LyricsEditCard } from '@/components/LyricsEditCard'
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
 
 interface EntryDisplayProps {
+  inlineActions?: InlineLyricsActions
+  pageNumber: number
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
   kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber }) => {
   return (
     <div className="space-y-1">
       {entry.lyrics.map((line, lineIndex) => {
@@ -25,9 +28,13 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
         return (
           <div key={lineIndex} className="flex justify-between items-center">
             <div className="flex-1 min-w-0">
-              <div className={`select-text ${line ? "text-foreground" : "text-muted-foreground"}`}>
-                {line || "!"}
-              </div>
+              {inlineActions ? (
+                <InlineLyricsInput entry={entry} line={lineIndex} pageNumber={pageNumber} actions={inlineActions} />
+              ) : (
+                <div className={`select-text ${line ? "text-foreground" : "text-muted-foreground"}`}>
+                  {line || "!"}
+                </div>
+              )}
             </div>
             {lineKpm && lineKpm.charCount[kpmMode] > 0 && (
               <div className="text-xs font-mono text-muted-foreground ml-2 select-none">
@@ -49,6 +56,8 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode }) =
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
+  inlineActions?: InlineLyricsActions
+  isInlineEditing?: boolean
   scoreEntries: ScoreEntry[]
   duration: number
   player: YouTubePlayer | null
@@ -85,6 +94,8 @@ interface ScoreManagementSectionProps {
 }
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
+  inlineActions,
+  isInlineEditing = false,
   scoreEntries,
   duration,
   player,
@@ -134,7 +145,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
     scoreEntries,
-    enabled: autoScroll,
+    enabled: autoScroll && !isInlineEditing && !editingId,
     onUserScroll: () => setAutoScroll(false)
   })
 
@@ -142,7 +153,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     if (readOnly || !editingId || !cancelEditScoreEntry) return
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return
+      if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229) return
       event.preventDefault()
       cancelEditScoreEntry()
     }
@@ -297,7 +308,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         : (event) => {
                           if (!event.ctrlKey && !event.metaKey) return
                           const target = event.target
-                          if (target instanceof HTMLElement && target.closest('button')) {
+                          if (target instanceof HTMLElement && target.closest('button, input, textarea')) {
                             return
                           }
                           startEditScoreEntry(entry)
@@ -347,7 +358,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         )}
                       </div>
                       <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                        <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} />
+                        <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly && !editingId ? inlineActions : undefined} />
                       </div>
                       {!readOnly && (
                         <div className="flex flex-col gap-1 min-w-fit self-center">
@@ -509,3 +520,4 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     </Card>
   )
 }
+

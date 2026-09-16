@@ -24,6 +24,7 @@ import { extractVideoId } from "@/lib/youtubeUtils"
 import type { DraftListEntry } from "@/lib/types"
 
 export default function LyricsTypingApp() {
+  const [isComposing, setIsComposing] = useState(false)
   const [songTitle, setSongTitle] = useState<string>("")
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -66,6 +67,12 @@ export default function LyricsTypingApp() {
   } = useYouTube()
 
   const {
+    inlineEditing,
+    startInlineEdit,
+    changeInlineLyrics,
+    replaceInlineLyrics,
+    finishInlineEdit,
+    updateInlineTimestamp,
     scoreEntries,
     setScoreEntries,
     lyrics,
@@ -97,25 +104,29 @@ export default function LyricsTypingApp() {
 
   const handleGetCurrentTimestamp = useCallback(() => {
     const timestampValue = getCurrentTimestamp(timestampOffset)
-    if (editingId) {
+    if (inlineEditing) {
+      updateInlineTimestamp(timestampValue)
+    } else if (editingId) {
       setEditingTimestamp(timestampValue)
     } else {
       setTimestamp(timestampValue)
     }
-  }, [getCurrentTimestamp, timestampOffset, editingId, setTimestamp, setEditingTimestamp])
+  }, [getCurrentTimestamp, timestampOffset, inlineEditing, updateInlineTimestamp, editingId, setTimestamp, setEditingTimestamp])
 
   const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
 
   const handlePasteLyrics = useCallback(async () => {
     const pastedLyrics = await pasteLyricsFromClipboard()
     if (pastedLyrics) {
-      if (editingId) {
+      if (inlineEditing) {
+        replaceInlineLyrics(inlineEditing.id, pastedLyrics)
+      } else if (editingId) {
         setEditingLyrics(pastedLyrics)
       } else {
         setLyrics(pastedLyrics)
       }
     }
-  }, [pasteLyricsFromClipboard, editingId, setEditingLyrics, setLyrics])
+  }, [pasteLyricsFromClipboard, inlineEditing, replaceInlineLyrics, editingId, setEditingLyrics, setLyrics])
 
   const handleBulkTimingAdjust = useCallback(
     (offsetSeconds: number) => {
@@ -168,11 +179,12 @@ export default function LyricsTypingApp() {
   })
 
   useEffect(() => {
+    if (activeView !== "editor" || isRestoreDialogOpen) return
     document.addEventListener("keydown", handleKeyDown)
     return () => {
       document.removeEventListener("keydown", handleKeyDown)
     }
-  }, [handleKeyDown])
+  }, [handleKeyDown, activeView, isRestoreDialogOpen])
 
   useEffect(() => {
     cleanupExpiredDrafts()
@@ -258,11 +270,12 @@ export default function LyricsTypingApp() {
     }
   }, [])
 
-  useDraftAutoSave({
+  const { status: draftStatus, flush: flushDraft } = useDraftAutoSave({
     youtubeUrl,
     scoreEntries,
     songTitle,
-    enabled: isInitialized,
+    enabled: isInitialized && !isRestoreDialogOpen,
+    isComposing,
   })
 
   const { fileInputRef, exportScoreData, importScoreData, handleFileImport } = useFileOperations({
@@ -442,7 +455,19 @@ export default function LyricsTypingApp() {
               </div>
 
               <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+                <div className="flex items-center justify-end gap-2 pb-2 text-xs" role="status" aria-live="polite">
+                  <span>{draftStatus === 'saved' ? 'このブラウザに保存済み' : draftStatus === 'error' ? '保存失敗（編集内容は保持しています）' : draftStatus === 'pending' ? '未保存' : ''}</span>
+                  {draftStatus === 'error' && <Button size="sm" variant="outline" onClick={() => flushDraft()}>再試行</Button>}
+                </div>
                 <ScoreManagementSection
+                  inlineActions={{
+                    onStart: startInlineEdit,
+                    onChange: changeInlineLyrics,
+                    onReplace: replaceInlineLyrics,
+                    onFinish: finishInlineEdit,
+                    onCompositionChange: setIsComposing,
+                  }}
+                  isInlineEditing={Boolean(inlineEditing)}
                   scoreEntries={scoreEntries}
                   duration={duration}
                   player={player}
@@ -487,3 +512,4 @@ export default function LyricsTypingApp() {
     </div>
   )
 }
+
