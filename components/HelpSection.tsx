@@ -86,6 +86,16 @@ export const HelpSection: React.FC = () => {
         <div className="mb-6">
           <div className="text-lg text-muted-foreground">
             <div className="grid grid-cols-1 gap-3">
+              {[
+                ['↑ / ↓', '歌詞欄で前後の行へ移動（ページをまたぐ）'],
+                ['Alt + ↑ / ↓', '歌詞欄で前後のページへ移動'],
+                ['Ctrl + Shift + Space', '選択・編集中のページを頭出し再生'],
+              ].map(([keys, description]) => (
+                <div key={keys} className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
+                  <kbd className="w-[180px] shrink-0 rounded border border-border bg-muted px-2 py-1.5 text-center text-sm font-mono text-foreground">{keys}</kbd>
+                  <span className="text-base text-foreground">{description}</span>
+                </div>
+              ))}
               <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
                 <div className="flex items-center gap-1 w-[180px]">
                   <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">F2</kbd>

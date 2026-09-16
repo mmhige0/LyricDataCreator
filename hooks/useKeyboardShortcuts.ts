@@ -2,6 +2,7 @@ import type { YouTubePlayer } from '@/lib/types'
 
 interface KeyboardShortcutsProps {
   player: YouTubePlayer | null
+  playSelectedPage?: () => void
   getCurrentTimestamp: () => void
   addScoreEntry: () => void
   saveScoreEntry?: () => void
@@ -24,6 +25,7 @@ interface KeyboardShortcutsProps {
  */
 export const useKeyboardShortcuts = ({
   player,
+  playSelectedPage,
   getCurrentTimestamp,
   addScoreEntry,
   saveScoreEntry,
@@ -69,7 +71,14 @@ export const useKeyboardShortcuts = ({
       return
     }
 
-    if (event.ctrlKey && (event.key === " " || event.code === "Space")) {
+    // Consume head-start playback first; never also toggle play/pause.
+    if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && (event.key === " " || event.code === "Space")) {
+      event.preventDefault()
+      playSelectedPage?.()
+      return
+    }
+
+    if (event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && (event.key === " " || event.code === "Space")) {
       event.preventDefault()
       if (player) {
         const playerState = player.getPlayerState()

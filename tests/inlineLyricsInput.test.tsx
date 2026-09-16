@@ -78,3 +78,35 @@ it('ignores composing keyboard events in the shared shortcut handler', async () 
   handle(new KeyboardEvent('keydown', { key: 'F2' }))
   expect(timestamp).toHaveBeenCalledOnce()
 })
+
+it('prioritizes Ctrl+Shift+Space without also toggling playback, including no target', async () => {
+  const headStart = vi.fn()
+  const play = vi.fn()
+  const pause = vi.fn()
+  const state = vi.fn(() => 1)
+  vi.stubGlobal('YT', { PlayerState: { PLAYING: 1 } })
+  let handle!: ReturnType<typeof useKeyboardShortcuts>
+  function PlaybackHarness() {
+    const handler = useKeyboardShortcuts({
+      player: { getPlayerState: state, playVideo: play, pauseVideo: pause } as unknown as import('../lib/types').YouTubePlayer,
+      playSelectedPage: headStart,
+      getCurrentTimestamp: vi.fn(), addScoreEntry: vi.fn(), seekBackward1Second: vi.fn(), seekForward1Second: vi.fn(),
+      lyricsInputRefs: { current: [] }, timestampInputRef: { current: null },
+    })
+    useLayoutEffect(() => { handle = handler })
+    return null
+  }
+  await act(async () => root.render(<PlaybackHarness />))
+  handle(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true, shiftKey: true }))
+  expect(headStart).toHaveBeenCalledOnce()
+  expect(state).not.toHaveBeenCalled()
+  expect(play).not.toHaveBeenCalled()
+  expect(pause).not.toHaveBeenCalled()
+  handle(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true }))
+  expect(pause).toHaveBeenCalledOnce()
+  state.mockReturnValue(2)
+  handle(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true }))
+  expect(play).toHaveBeenCalledOnce()
+  handle(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true, shiftKey: true, isComposing: true }))
+  expect(headStart).toHaveBeenCalledOnce()
+})
