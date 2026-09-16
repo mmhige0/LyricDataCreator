@@ -82,87 +82,40 @@ export const HelpSection: React.FC = () => {
       <div className="mb-8">
         <div className="text-xl font-semibold text-foreground mb-4 border-b border-border pb-2">ショートカットキー</div>
 
-        {/* Keyboard Shortcuts Help */}
-        <div className="mb-6">
-          <div className="text-lg text-muted-foreground">
+        {[
+          { title: '動画再生', shortcuts: [
+            { keys: ['Ctrl', 'Space'], description: '再生/一時停止' },
+            { keys: ['Ctrl', 'Shift', 'Space'], description: '選択・編集中のページを頭出し再生' },
+            { keys: ['Ctrl', '←'], description: '1秒巻き戻し' },
+            { keys: ['Ctrl', '→'], description: '1秒早送り' },
+          ] },
+          { title: 'ページ操作', shortcuts: [
+            { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
+            { keys: ['Ctrl', 'Enter'], description: 'ページ追加／編集終了' },
+            { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
+            { keys: ['Ctrl', 'Z'], description: '元に戻す' },
+            { keys: ['Ctrl', 'Y'], description: 'やり直す' },
+          ] },
+        ].map(group => (
+          <div key={group.title} className="mb-6">
+            <div className="text-lg font-medium text-foreground mb-3">{group.title}</div>
             <div className="grid grid-cols-1 gap-3">
-              {[
-                ['↑ / ↓', '歌詞欄で前後の行へ移動（ページをまたぐ）'],
-                ['Alt + ↑ / ↓', '歌詞欄で前後のページへ移動'],
-                ['Ctrl + Shift + Space', '選択・編集中のページを頭出し再生'],
-              ].map(([keys, description]) => (
-                <div key={keys} className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                  <kbd className="w-[180px] shrink-0 rounded border border-border bg-muted px-2 py-1.5 text-center text-sm font-mono text-foreground">{keys}</kbd>
+              {group.shortcuts.map(({ keys, description }) => (
+                <div key={keys.join('+')} className="flex flex-wrap items-center gap-3 p-2 rounded hover:bg-muted/50">
+                  <div className="flex items-center gap-1 w-[220px] shrink-0">
+                    {keys.map((key, index) => (
+                      <React.Fragment key={key}>
+                        {index > 0 && <span className="text-sm text-muted-foreground">+</span>}
+                        <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">{key}</kbd>
+                      </React.Fragment>
+                    ))}
+                  </div>
                   <span className="text-base text-foreground">{description}</span>
                 </div>
               ))}
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">F2</kbd>
-                </div>
-                <span className="text-base text-foreground">タイムスタンプ入力</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Ctrl</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Enter</kbd>
-                </div>
-                <span className="text-base text-foreground">ページ追加</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Ctrl</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Space</kbd>
-                </div>
-                <span className="text-base text-foreground">再生/一時停止</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Ctrl</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">←</kbd>
-                </div>
-                <span className="text-base text-foreground">1秒巻き戻し</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Ctrl</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">→</kbd>
-                </div>
-                <span className="text-base text-foreground">1秒早送り</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Ctrl</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Shift</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">V</kbd>
-                </div>
-                <span className="text-base text-foreground">歌詞貼り付け</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Ctrl</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Z</kbd>
-                </div>
-                <span className="text-base text-foreground">元に戻す</span>
-              </div>
-              <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                <div className="flex items-center gap-1 w-[180px]">
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Ctrl</kbd>
-                  <span className="text-sm text-muted-foreground">+</span>
-                  <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">Y</kbd>
-                </div>
-                <span className="text-base text-foreground">やり直す</span>
-              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* 4. Other Features */}

@@ -42,7 +42,21 @@ export const useKeyboardShortcuts = ({
   redoLastOperation
 }: KeyboardShortcutsProps) => {
   return (event: KeyboardEvent) => {
-    if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return
+    if (event.defaultPrevented) return
+    // Handle physical Space before the generic IME guard. IME-enabled browsers
+    // may report key="Process" / keyCode=229 even outside active composition.
+    if (isPlaybackShortcut(event)) {
+      event.preventDefault()
+      if (event.isComposing) return
+      if (event.shiftKey) {
+        playSelectedPage?.()
+      } else if (player) {
+        if (player.getPlayerState() === window.YT.PlayerState.PLAYING) player.pauseVideo()
+        else player.playVideo()
+      }
+      return
+    }
+    if (event.isComposing || event.keyCode === 229) return
     const activeElement = document.activeElement
     const isInputFocused = activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA"
 
@@ -67,26 +81,6 @@ export const useKeyboardShortcuts = ({
         saveScoreEntry()
       } else {
         addScoreEntry()
-      }
-      return
-    }
-
-    // Consume head-start playback first; never also toggle play/pause.
-    if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && (event.key === " " || event.code === "Space")) {
-      event.preventDefault()
-      playSelectedPage?.()
-      return
-    }
-
-    if (event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && (event.key === " " || event.code === "Space")) {
-      event.preventDefault()
-      if (player) {
-        const playerState = player.getPlayerState()
-        if (playerState === window.YT.PlayerState.PLAYING) {
-          player.pauseVideo()
-        } else {
-          player.playVideo()
-        }
       }
       return
     }
@@ -152,3 +146,21 @@ export const useKeyboardShortcuts = ({
   }
 }
 
+
+function isPlaybackShortcut(event: KeyboardEvent) {
+  return event.ctrlKey && !event.altKey && !event.metaKey && (event.code === 'Space' || event.key === ' ')
+}
+
+export function registerEditorKeyboardShortcuts(handler: (event: KeyboardEvent) => void) {
+  // Only playback runs in capture: local Enter/Esc and navigation handlers
+  // must retain priority over the other document shortcuts.
+  const capturePlayback = (event: KeyboardEvent) => {
+    if (isPlaybackShortcut(event)) handler(event)
+  }
+  document.addEventListener('keydown', capturePlayback, true)
+  document.addEventListener('keydown', handler)
+  return () => {
+    document.removeEventListener('keydown', capturePlayback, true)
+    document.removeEventListener('keydown', handler)
+  }
+}

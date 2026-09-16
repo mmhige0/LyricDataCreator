@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Edit3, Keyboard } from "lucide-react"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
-import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
+import { useKeyboardShortcuts, registerEditorKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
@@ -193,10 +193,7 @@ export default function LyricsTypingApp() {
 
   useEffect(() => {
     if (activeView !== "editor" || isRestoreDialogOpen) return
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown)
-    }
+    return registerEditorKeyboardShortcuts(handleKeyDown)
   }, [handleKeyDown, activeView, isRestoreDialogOpen])
 
   useEffect(() => {

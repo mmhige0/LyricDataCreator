@@ -3,7 +3,7 @@ import { act, useLayoutEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { InlineLyricsInput, type InlineLyricsActions } from '../components/InlineLyricsInput'
-import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useKeyboardShortcuts, registerEditorKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 
 let root: Root
 let host: HTMLDivElement
@@ -109,4 +109,43 @@ it('prioritizes Ctrl+Shift+Space without also toggling playback, including no ta
   expect(play).toHaveBeenCalledOnce()
   handle(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true, shiftKey: true, isComposing: true }))
   expect(headStart).toHaveBeenCalledOnce()
+})
+
+it('captures IME-shaped Ctrl+Shift+Space before the input blocks propagation and cancels text insertion', async () => {
+  const headStart = vi.fn()
+  function Harness() {
+    const handler = useKeyboardShortcuts({
+      player: null, playSelectedPage: headStart,
+      getCurrentTimestamp: vi.fn(), addScoreEntry: vi.fn(),
+      seekBackward1Second: vi.fn(), seekForward1Second: vi.fn(),
+      lyricsInputRefs: { current: [] }, timestampInputRef: { current: null },
+    })
+    useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
+    return <InlineLyricsInput entry={entry} line={0} pageNumber={1} actions={actions} />
+  }
+  await act(async () => root.render(<Harness />))
+  input = host.querySelector('input')!
+  await act(async () => input.focus())
+  for (const key of [' ', 'Process', '　']) {
+    const event = new KeyboardEvent('keydown', {
+      key, code: 'Space', keyCode: key === ' ' ? 32 : 229,
+      ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true,
+    })
+    await act(async () => input.dispatchEvent(event))
+    expect(event.defaultPrevented).toBe(true)
+  }
+  expect(headStart).toHaveBeenCalledTimes(3)
+  const composing = new KeyboardEvent('keydown', {
+    key: 'Process', code: 'Space', keyCode: 229, isComposing: true,
+    ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true,
+  })
+  await act(async () => input.dispatchEvent(composing))
+  expect(composing.defaultPrevented).toBe(true)
+  expect(headStart).toHaveBeenCalledTimes(3)
+  expect(actions.onChange).not.toHaveBeenCalled()
+  await act(async () => root.render(<div />))
+  document.dispatchEvent(new KeyboardEvent('keydown', {
+    key: ' ', code: 'Space', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true,
+  }))
+  expect(headStart).toHaveBeenCalledTimes(3)
 })
