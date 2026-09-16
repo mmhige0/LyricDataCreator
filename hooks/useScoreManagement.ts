@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import type { ScoreEntry, LyricsArray, YouTubePlayer } from '@/lib/types'
 import { processLyricsForSave } from '@/lib/textUtils'
 import { toast } from 'sonner'
+import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import { updateLyricsLine, finishLyricsLine } from '@/lib/inlineLyrics'
 
 const MAX_HISTORY = 15
@@ -28,6 +29,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [undoHistory, setUndoHistory] = useState<AppState[]>([])
   const [redoHistory, setRedoHistory] = useState<AppState[]>([])
 
+  const [selectedLyricsPosition, selectLyricsPosition] = useState<LyricsPosition | null>(null)
+  const selectedLyrics = selectedLyricsPosition && scoreEntries.some(entry => entry.id === selectedLyricsPosition.id) ? selectedLyricsPosition : null
   const [inlineEditing, setInlineEditing] = useState<{ id: string; line: number } | null>(null)
   const inlineHistorySaved = useRef(false)
   const inlineChangedLines = useRef(new Set<number>())
@@ -73,6 +76,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const startInlineEdit = (id: string, line: number) => {
     inlineChangedLines.current.clear()
     inlineHistorySaved.current = false
+    selectLyricsPosition({ id, line })
     setInlineEditing({ id, line })
   }
 
@@ -116,13 +120,18 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     inlineHistorySaved.current = false
   }
 
-  const updateInlineTimestamp = (value: string) => {
-    if (!inlineEditing) return
+  const updateInlineTimestamp = (value: string, selectedId?: string) => {
+    const id = inlineEditing?.id ?? selectedId
+    if (!id || !scoreEntries.some(entry => entry.id === id)) return
     const time = Number(value)
     if (!Number.isFinite(time) || time < 0) return
-    checkpointInlineEdit()
+    if (inlineEditing) checkpointInlineEdit()
+    else saveCurrentState()
     // Keep the focused input mounted in place; sort when the line is finished.
-    setScoreEntries(prev => prev.map(entry => entry.id === inlineEditing.id ? { ...entry, timestamp: time } : entry))
+    setScoreEntries(prev => {
+      const updated = prev.map(entry => entry.id === id ? { ...entry, timestamp: time } : entry)
+      return inlineEditing ? updated : updated.sort((a, b) => a.timestamp - b.timestamp)
+    })
   }
 
   // Undo last operation
@@ -198,6 +207,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const deleteScoreEntry = (id: string) => {
+    if (selectedLyrics?.id === id) selectLyricsPosition(null)
     saveCurrentState()
     setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
     toast.success('ページを削除しました (Ctrl+Zで元に戻せます)')
@@ -270,6 +280,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const clearAllScoreEntries = () => {
+    selectLyricsPosition(null)
     saveCurrentState()
     const count = scoreEntries.length
     setScoreEntries([])
@@ -277,6 +288,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   return {
+    selectedLyrics,
+    selectLyricsPosition,
     inlineEditing,
     startInlineEdit,
     changeInlineLyrics,

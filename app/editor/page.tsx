@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Edit3, Keyboard } from "lucide-react"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
-import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
+import { useKeyboardShortcuts, registerEditorKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
 import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
@@ -20,6 +20,7 @@ import { TypingGameContent } from "@/components/TypingGameContent"
 import { cn } from "@/lib/utils"
 import { createNewSessionId, getOrCreateSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
+import { adjacentLyricsPosition, pagePlaybackTimestamp } from '@/lib/lyricsNavigation'
 import { extractVideoId } from "@/lib/youtubeUtils"
 import type { DraftListEntry } from "@/lib/types"
 
@@ -67,6 +68,8 @@ export default function LyricsTypingApp() {
   } = useYouTube()
 
   const {
+    selectedLyrics,
+    selectLyricsPosition,
     inlineEditing,
     startInlineEdit,
     changeInlineLyrics,
@@ -106,12 +109,15 @@ export default function LyricsTypingApp() {
     const timestampValue = getCurrentTimestamp(timestampOffset)
     if (inlineEditing) {
       updateInlineTimestamp(timestampValue)
+    } else if (selectedLyrics && document.activeElement?.closest('[data-lyrics-navigation]')) {
+      updateInlineTimestamp(timestampValue, selectedLyrics.id)
+      requestAnimationFrame(() => document.getElementById(`lyrics-selection-${selectedLyrics.id}-${selectedLyrics.line}`)?.focus({ preventScroll: true }))
     } else if (editingId) {
       setEditingTimestamp(timestampValue)
     } else {
       setTimestamp(timestampValue)
     }
-  }, [getCurrentTimestamp, timestampOffset, inlineEditing, updateInlineTimestamp, editingId, setTimestamp, setEditingTimestamp])
+  }, [getCurrentTimestamp, timestampOffset, inlineEditing, selectedLyrics, updateInlineTimestamp, editingId, setTimestamp, setEditingTimestamp])
 
   const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
 
@@ -164,6 +170,13 @@ export default function LyricsTypingApp() {
 
   const handleKeyDown = useKeyboardShortcuts({
     player,
+    playSelectedPage: () => {
+      const focused = document.activeElement
+      if (!player || !(focused instanceof Element) || !focused.closest('[data-lyrics-navigation], [data-lyrics-edit-form]')) return
+      const focusedEditingId = focused.closest('[data-lyrics-edit-form]') ? editingId : null
+      const time = pagePlaybackTimestamp(scoreEntries, selectedLyrics?.id ?? null, focusedEditingId, editingTimestamp)
+      if (time !== null) seekToAndPlay(time)
+    },
     getCurrentTimestamp: handleGetCurrentTimestamp,
     addScoreEntry,
     saveScoreEntry: saveEditScoreEntry,
@@ -178,13 +191,12 @@ export default function LyricsTypingApp() {
     redoLastOperation,
   })
 
+  const keyboardHandlerRef = useRef(handleKeyDown)
+  useEffect(() => { keyboardHandlerRef.current = handleKeyDown }, [handleKeyDown])
   useEffect(() => {
     if (activeView !== "editor" || isRestoreDialogOpen) return
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown)
-    }
-  }, [handleKeyDown, activeView, isRestoreDialogOpen])
+    return registerEditorKeyboardShortcuts(event => keyboardHandlerRef.current(event))
+  }, [activeView, isRestoreDialogOpen])
 
   useEffect(() => {
     cleanupExpiredDrafts()
@@ -456,7 +468,10 @@ export default function LyricsTypingApp() {
 
               <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
                 <ScoreManagementSection
+                  selectedLyrics={selectedLyrics}
                   inlineActions={{
+                    onSelect: selectLyricsPosition,
+                    onNavigate: (position, direction, unit) => adjacentLyricsPosition(scoreEntries, position, direction, unit),
                     onStart: startInlineEdit,
                     onChange: changeInlineLyrics,
                     onReplace: replaceInlineLyrics,
@@ -508,4 +523,3 @@ export default function LyricsTypingApp() {
     </div>
   )
 }
-

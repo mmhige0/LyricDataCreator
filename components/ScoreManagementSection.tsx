@@ -10,9 +10,11 @@ import { useAutoScroll } from '@/hooks/useAutoScroll'
 import { InlineLyricsInput, type InlineLyricsActions } from '@/components/InlineLyricsInput'
 import { LyricsEditCard } from '@/components/LyricsEditCard'
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
+import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
 
 interface EntryDisplayProps {
+  selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
   pageNumber: number
   entry: ScoreEntry
@@ -20,7 +22,7 @@ interface EntryDisplayProps {
   kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics }) => {
   return (
     <div className="space-y-1">
       {entry.lyrics.map((line, lineIndex) => {
@@ -29,7 +31,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
           <div key={lineIndex} className="flex justify-between items-center">
             <div className="flex-1 min-w-0">
               {inlineActions ? (
-                <InlineLyricsInput entry={entry} line={lineIndex} pageNumber={pageNumber} actions={inlineActions} />
+                <InlineLyricsInput entry={entry} line={lineIndex} pageNumber={pageNumber} actions={inlineActions} selected={selectedLyrics?.id === entry.id && selectedLyrics.line === lineIndex} />
               ) : (
                 <div className={`select-text ${line ? "text-foreground" : "text-muted-foreground"}`}>
                   {line || "!"}
@@ -56,6 +58,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
+  selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
   isInlineEditing?: boolean
   scoreEntries: ScoreEntry[]
@@ -94,6 +97,7 @@ interface ScoreManagementSectionProps {
 }
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
+  selectedLyrics,
   inlineActions,
   isInlineEditing = false,
   scoreEntries,
@@ -127,6 +131,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries, duration)
   const [adjustValue, setAdjustValue] = useState<string>('0')
+  const [isLyricsFocused, setIsLyricsFocused] = useState(false)
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
   const [kpmMode, setKpmMode] = useState<'roma' | 'kana'>('roma')
   const effectiveKpmMode = kpmModeOverride ?? kpmMode
@@ -145,7 +150,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
     scoreEntries,
-    enabled: autoScroll && !isInlineEditing && !editingId,
+    enabled: autoScroll && !isInlineEditing && !editingId && !isLyricsFocused,
     onUserScroll: () => setAutoScroll(false)
   })
 
@@ -285,7 +290,18 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
           </p>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
-            <div ref={scrollContainerRef} className="space-y-4 flex-1 overflow-y-auto pr-2 min-h-0">
+            <div
+              ref={scrollContainerRef}
+              className="space-y-4 flex-1 overflow-y-auto pr-2 min-h-0"
+              onFocusCapture={event => {
+                const focused = event.target instanceof Element && Boolean(event.target.closest('[data-lyrics-navigation]'))
+                setIsLyricsFocused(focused)
+                if (focused) setAutoScroll(false)
+              }}
+              onBlurCapture={event => {
+                if (!(event.relatedTarget instanceof Element) || !event.relatedTarget.closest('[data-lyrics-navigation]')) setIsLyricsFocused(false)
+              }}
+            >
               {scoreEntries.map((entry, index) => {
                 const isCurrentlyPlaying = getCurrentLyricsIndex() === index
                 const isEditing = editingId === entry.id
@@ -358,7 +374,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         )}
                       </div>
                       <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                        <EntryDisplay entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly && !editingId ? inlineActions : undefined} />
+                        <EntryDisplay selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly && !editingId ? inlineActions : undefined} />
                       </div>
                       {!readOnly && (
                         <div className="flex flex-col gap-1 min-w-fit self-center">
@@ -394,7 +410,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       )}
                     </div>
                     {canInlineEdit && isEditing && (
-                      <div className="mt-4">
+                      <div className="mt-4" data-lyrics-edit-form>
                         <LyricsEditCard
                           lyrics={editingLyrics ?? ["", "", "", ""]}
                           setLyrics={(nextLyrics) => setEditingLyrics?.(nextLyrics)}
