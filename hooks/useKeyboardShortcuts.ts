@@ -40,6 +40,7 @@ export const useKeyboardShortcuts = ({
   redoLastOperation
 }: KeyboardShortcutsProps) => {
   return (event: KeyboardEvent) => {
+    if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return
     const activeElement = document.activeElement
     const isInputFocused = activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA"
 
@@ -141,3 +142,4 @@ export const useKeyboardShortcuts = ({
     }
   }
 }
+

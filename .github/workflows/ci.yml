@@ -33,6 +33,9 @@ jobs:
         env:
           DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
 
+      - name: Run unit tests
+        run: npm run unit
+
       - name: Build test
         run: npm run build
         env:
@@ -49,3 +52,4 @@ jobs:
             exit 1
           fi
           echo "✅ Next.js build artifacts verified"
+

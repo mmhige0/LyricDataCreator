@@ -60,8 +60,8 @@ export function saveDraft(
   youtubeUrl: string,
   scoreEntries: ScoreEntry[],
   songTitle: string
-): void {
-  if (typeof window === 'undefined') return
+): boolean {
+  if (typeof window === 'undefined') return false
 
   const draft: LyricDraft = {
     sessionId,
@@ -95,8 +95,10 @@ export function saveDraft(
       pageCount: scoreEntries.length,
       lastModified: draft.lastModified
     })
+    return true
   } catch (error) {
     console.error('Error saving draft:', error)
+    return false
   }
 }
 
@@ -145,3 +147,4 @@ export function cleanupExpiredDrafts(): void {
     }
   })
 }
+
