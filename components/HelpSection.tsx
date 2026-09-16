@@ -82,14 +82,6 @@ export const HelpSection: React.FC = () => {
       <div className="mb-8">
         <div className="text-xl font-semibold text-foreground mb-4 border-b border-border pb-2">ショートカットキー</div>
 
-        <div className="mb-6 rounded border border-border p-4 text-sm text-muted-foreground">
-          一覧の歌詞はクリックして直接編集できます。入力停止から1秒後にこのブラウザへ下書き保存し、行を離れると文字を整形して保存します。
-          直接編集中のEsc／Ctrl＋Enterは変更を残して編集終了、F2はそのページの時刻更新です。
-          取り消しは入力欄内ではCtrl＋Z、編集終了後は一覧の「元に戻す」を使います。
-          時刻の手入力やひらがな変換は従来の編集フォームを利用できます（フォーム内のEscはキャンセル）。
-          下書きの保存期間は最終更新から7日です。ファイルとして残す場合はエクスポートしてください。
-        </div>
-
         {/* Keyboard Shortcuts Help */}
         <div className="mb-6">
           <div className="text-lg text-muted-foreground">

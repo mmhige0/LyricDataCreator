@@ -270,7 +270,7 @@ export default function LyricsTypingApp() {
     }
   }, [])
 
-  const { status: draftStatus, flush: flushDraft } = useDraftAutoSave({
+  useDraftAutoSave({
     youtubeUrl,
     scoreEntries,
     songTitle,
@@ -455,10 +455,6 @@ export default function LyricsTypingApp() {
               </div>
 
               <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
-                <div className="flex items-center justify-end gap-2 pb-2 text-xs" role="status" aria-live="polite">
-                  <span>{draftStatus === 'saved' ? 'このブラウザに保存済み' : draftStatus === 'error' ? '保存失敗（編集内容は保持しています）' : draftStatus === 'pending' ? '未保存' : ''}</span>
-                  {draftStatus === 'error' && <Button size="sm" variant="outline" onClick={() => flushDraft()}>再試行</Button>}
-                </div>
                 <ScoreManagementSection
                   inlineActions={{
                     onStart: startInlineEdit,

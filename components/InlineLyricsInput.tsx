@@ -32,7 +32,6 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions }: InlineLy
       id={`lyrics-${entry.id}-${line}`}
       data-inline-lyrics
       aria-label={`ページ${pageNumber} ${line + 1}行目`}
-      title="クリックして編集・自動保存／F2で時刻更新／Escで編集終了"
       className="w-full min-w-0 rounded border border-transparent bg-transparent px-1 text-inherit hover:border-border focus:border-primary focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary"
       value={entry.lyrics[line]}
       placeholder="!"

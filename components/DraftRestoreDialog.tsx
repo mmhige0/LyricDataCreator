@@ -115,6 +115,9 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
 
         {/* Footer */}
         <div className="p-6 border-t">
+          <p className="mb-4 text-sm text-muted-foreground">
+            履歴の保存期間は最終更新から7日です。ファイルとして残す場合はエクスポートしてください。
+          </p>
           <button
             onClick={onClose}
             className="w-full px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted/80 transition-colors"
