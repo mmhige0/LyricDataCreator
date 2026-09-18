@@ -222,6 +222,12 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const saveEditScoreEntry = () => {
     if (!editingId) return
 
+    const parsedTimestamp = Number(editingTimestamp)
+    if (editingTimestamp.trim() === '' || !Number.isFinite(parsedTimestamp)) {
+      toast.error('タイムスタンプは数値で入力してください。')
+      return
+    }
+
     // Save the state before editing so that Undo restores to pre-edit state
     saveCurrentState()
 
@@ -230,7 +236,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     setScoreEntries((prev) => {
       const updatedEntries = prev.map((entry) =>
         entry.id === editingId
-          ? { ...entry, lyrics: convertedLyrics, timestamp: Number.parseFloat(editingTimestamp) }
+          ? { ...entry, lyrics: convertedLyrics, timestamp: parsedTimestamp }
           : entry,
       )
       return updatedEntries.sort((a, b) => a.timestamp - b.timestamp)

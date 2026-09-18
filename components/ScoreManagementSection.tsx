@@ -198,16 +198,6 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     bulkAdjustTimings(value)
   }
 
-  const handleInlineSave = () => {
-    if (!saveEditScoreEntry || typeof editingTimestamp !== 'string') return
-    const parsedTimestamp = Number.parseFloat(editingTimestamp)
-    if (!Number.isFinite(parsedTimestamp)) {
-      toast.error('タイムスタンプは数値で入力してください。')
-      return
-    }
-    saveEditScoreEntry()
-  }
-
   return (
     <Card className="bg-card text-card-foreground border shadow-lg h-full flex flex-col">
       <CardHeader className="pb-4 flex-shrink-0">
@@ -426,7 +416,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                           }}
                           mode="edit"
                           editingEntryIndex={index}
-                          onSave={handleInlineSave}
+                          onSave={saveEditScoreEntry}
                           onCancel={() => cancelEditScoreEntry?.()}
                           lyricsInputRefs={editingLyricsInputRefs}
                           timestampInputRef={editingTimestampInputRef}

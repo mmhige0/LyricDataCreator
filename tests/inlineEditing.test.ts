@@ -4,17 +4,20 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useScoreManagement } from '../hooks/useScoreManagement'
 import { useDraftAutoSave } from '../hooks/useDraftAutoSave'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { toast } from 'sonner'
 import { loadDraft, saveDraft } from '../lib/draftStorage'
 import { setSessionId } from '../lib/sessionStorage'
 import { splitLyricsLine } from '../lib/inlineLyrics'
 import type { ScoreEntry } from '../lib/types'
 
-vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn() } }))
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
 
 let root: Root
 let host: HTMLDivElement
 let score: ReturnType<typeof useScoreManagement>
 let persistence: ReturnType<typeof useDraftAutoSave>
+let shortcut: ReturnType<typeof useKeyboardShortcuts>
 let composing = false
 let enabled = true
 const entries: ScoreEntry[] = [
@@ -25,7 +28,18 @@ const entries: ScoreEntry[] = [
 function Harness() {
   const state = useScoreManagement({ currentTime: 0, currentPlayer: null })
   const autoSave = useDraftAutoSave({ youtubeUrl: '', scoreEntries: state.scoreEntries, songTitle: 'テスト', isComposing: composing, enabled })
-  useLayoutEffect(() => { score = state; persistence = autoSave })
+  const keyboardHandler = useKeyboardShortcuts({
+    player: null,
+    editingId: state.editingId,
+    saveScoreEntry: state.saveEditScoreEntry,
+    addScoreEntry: state.addScoreEntry,
+    getCurrentTimestamp: () => {},
+    seekBackward1Second: () => {},
+    seekForward1Second: () => {},
+    lyricsInputRefs: state.lyricsInputRefs,
+    timestampInputRef: state.timestampInputRef,
+  })
+  useLayoutEffect(() => { score = state; persistence = autoSave; shortcut = keyboardHandler })
   return null
 }
 
@@ -53,6 +67,43 @@ afterEach(async () => {
 })
 
 describe('inline editing and recovery', () => {
+  it.each(['', '   ', 'Infinity', '-Infinity', 'NaN', '12abc'])('rejects invalid edit timestamp %j before changing data or history', async value => {
+    await act(async () => score.startEditScoreEntry(entries[0]))
+    await act(async () => {
+      score.setEditingTimestamp(value)
+      score.setEditingLyrics(['修正中', '', '', ''])
+    })
+    await act(async () => score.saveEditScoreEntry())
+    expect(score.scoreEntries).toEqual(entries)
+    expect(score.editingId).toBe('one')
+    expect(score.editingLyrics[0]).toBe('修正中')
+    expect(score.canUndo).toBe(false)
+    expect(toast.error).toHaveBeenCalledWith('タイムスタンプは数値で入力してください。')
+  })
+
+  it('rejects an empty timestamp through Ctrl+Enter and keeps the draft restorable', async () => {
+    await act(async () => score.startEditScoreEntry(entries[0]))
+    await act(async () => score.setEditingTimestamp(''))
+    const event = new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, cancelable: true })
+    await act(async () => shortcut(event))
+    await act(async () => persistence.flush())
+    expect(event.defaultPrevented).toBe(true)
+    expect(score.editingId).toBe('one')
+    expect(loadDraft('test-session')?.scoreEntries).toEqual(entries)
+    expect(loadDraft('test-session')?.scoreEntries[0].timestamp.toFixed(2)).toBe('10.00')
+  })
+
+  it.each(['0', '30.25'])('saves valid timestamp %s through Ctrl+Enter, sorts pages, and supports Undo', async value => {
+    await act(async () => score.startEditScoreEntry(entries[0]))
+    await act(async () => score.setEditingTimestamp(value))
+    await act(async () => shortcut(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, cancelable: true })))
+    expect(score.editingId).toBeNull()
+    expect(score.scoreEntries.find(entry => entry.id === 'one')?.timestamp).toBe(Number(value))
+    expect(score.scoreEntries.map(entry => entry.id)).toEqual(value === '0' ? ['one', 'two'] : ['two', 'one'])
+    await act(async () => score.undoLastOperation())
+    expect(score.scoreEntries).toEqual(entries)
+  })
+
   it('saves unnormalized input after one second and normalizes only on leaving the line', async () => {
     await act(async () => score.startInlineEdit('one', 0))
     await act(async () => score.changeInlineLyrics('one', 0, 'カナ abc!'))
