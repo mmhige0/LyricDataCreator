@@ -78,11 +78,6 @@ export const parseLrcToScoreEntries = (content: string): ScoreEntry[] => {
   return convertLrcToScoreEntries(lrcEntries)
 }
 
-const selectLyricLine = (lyrics: LyricsArray): string => {
-  const nonEmpty = lyrics.find((line) => line.trim() !== '')
-  return nonEmpty ?? ''
-}
-
 export const createLrcFromScoreEntries = (
   entries: ScoreEntry[],
   options?: {
@@ -103,7 +98,7 @@ export const createLrcFromScoreEntries = (
 
   const sortedEntries = [...entries].sort((a, b) => a.timestamp - b.timestamp)
   sortedEntries.forEach((entry) => {
-    lines.push(`[${formatTimestampForLrc(entry.timestamp)}]${selectLyricLine(entry.lyrics)}`)
+    lines.push(`[${formatTimestampForLrc(entry.timestamp)}]${entry.lyrics.join('/')}`)
   })
 
   return lines.join('\n')
