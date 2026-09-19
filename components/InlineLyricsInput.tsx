@@ -4,6 +4,7 @@ import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import { splitLyricsLine } from '@/lib/inlineLyrics'
 
 export interface InlineLyricsActions {
+  onAddPage?: (afterId: string) => void
   onSelect?: (position: LyricsPosition) => void
   onNavigate?: (position: LyricsPosition, direction: -1 | 1, unit: 'line' | 'page') => LyricsPosition | null
   onStart: (id: string, line: number) => void
@@ -77,6 +78,7 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
         if (event.key === 'Enter' && event.ctrlKey) {
           event.preventDefault()
           event.stopPropagation()
+          if (!event.repeat && !event.altKey && !event.metaKey && !event.shiftKey) actions.onAddPage?.(entry.id)
           return
         }
         navigate(event, false)

@@ -1,9 +1,9 @@
-import { memo, useEffect, useRef, useState, type Dispatch, type FC, type MouseEvent, type SetStateAction } from 'react'
+import { Fragment, memo, useEffect, useRef, useState, type Dispatch, type FC, type MouseEvent, type SetStateAction } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, Redo, ScrollText, Scroll } from "lucide-react"
+import { Plus, Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, Redo, ScrollText, Scroll } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
@@ -58,6 +58,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
+  addEmptyScoreEntry?: (targetId?: string, position?: 'before' | 'after') => void
   selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
   isInlineEditing?: boolean
@@ -97,6 +98,7 @@ interface ScoreManagementSectionProps {
 }
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
+  addEmptyScoreEntry,
   selectedLyrics,
   inlineActions,
   isInlineEditing = false,
@@ -234,6 +236,18 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col min-h-0">
+        {!readOnly && addEmptyScoreEntry && (
+          <div className="mb-4 space-y-2">
+            {scoreEntries.length === 0 && (
+              <Button type="button" variant="outline" size="sm" disabled={Boolean(editingId)} onClick={() => addEmptyScoreEntry()}>
+                <Plus className="h-4 w-4 mr-1" />空ページを追加
+              </Button>
+            )}
+            <p className="text-xs text-muted-foreground">
+              一覧で編集終了後、<kbd className="px-1 py-0.5 bg-muted border border-border rounded font-mono">Ctrl</kbd> + <kbd className="px-1 py-0.5 bg-muted border border-border rounded font-mono">Enter</kbd> で選択ページの直後に追加
+            </p>
+          </div>
+        )}
         {/* 動画の総時間表示とUndo/Redoボタン */}
         {!readOnly && (
           <div className="mb-4 flex items-center justify-between">
@@ -286,7 +300,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
 
         {scoreEntries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            ページがありません。歌詞を入力して追加してください。
+            ページがありません。{addEmptyScoreEntry && !readOnly ? '「空ページを追加」から歌詞を入力できます。' : '歌詞を入力して追加してください。'}
           </p>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
@@ -310,8 +324,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 const displayPageNumber = Math.max(0, index + 1 - pageNumberOffset)
 
                 return (
+                  <Fragment key={entry.id}>
+                    {!readOnly && addEmptyScoreEntry && (
+                      <Button type="button" variant="ghost" className="w-full h-8 border border-dashed text-muted-foreground hover:text-primary" disabled={Boolean(editingId)}
+                        aria-label={`ページ${displayPageNumber}の前に空ページを追加`}
+                        title={`ページ${displayPageNumber}の前に空ページを追加`}
+                        onClick={() => addEmptyScoreEntry(entry.id, 'before')}>
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    )}
                   <div
-                    key={entry.id}
                     ref={(el) => { entryRefs.current[index] = el }}
                     className={`relative group p-3 border rounded-lg bg-card hover:bg-secondary dark:bg-[hsl(220,14%,18%)] dark:border-[hsl(220,12%,28%)] dark:hover:bg-[hsl(220,14%,22%)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] ${isCurrentlyPlaying ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/40 dark:border-primary/50" : ""
                       } ${isEditing ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/30 dark:border-primary/40" : ""} ${isClickable ? "cursor-pointer" : ""
@@ -435,6 +457,15 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       </div>
                     )}
                   </div>
+                    {!readOnly && addEmptyScoreEntry && index === scoreEntries.length - 1 && (
+                      <Button type="button" variant="ghost" className="w-full h-8 border border-dashed text-muted-foreground hover:text-primary" disabled={Boolean(editingId)}
+                        aria-label={`ページ${displayPageNumber}の後に空ページを追加`}
+                        title={`ページ${displayPageNumber}の後に空ページを追加`}
+                        onClick={() => addEmptyScoreEntry(entry.id, 'after')}>
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    )}
+                  </Fragment>
                 )
               })}
             </div>
@@ -536,4 +567,3 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     </Card>
   )
 }
-
