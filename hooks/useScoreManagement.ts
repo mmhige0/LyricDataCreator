@@ -268,6 +268,27 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     lyricsInputRefs.current[0]?.focus()
   }
 
+  const addEmptyScoreEntry = (afterId?: string) => {
+    if (editingId) return
+    const index = afterId ? scoreEntries.findIndex(entry => entry.id === afterId) : scoreEntries.length - 1
+    if (afterId && index < 0) return
+    const previous = scoreEntries[index]
+    const next = scoreEntries[index + 1]
+    const newEntry: ScoreEntry = {
+      id: `entry_${crypto.randomUUID()}`,
+      timestamp: previous ? (next ? previous.timestamp + (next.timestamp - previous.timestamp) / 2 : previous.timestamp + 1) : 0,
+      lyrics: ['', '', '', ''],
+    }
+    saveCurrentState()
+    setScoreEntries(prev => [...prev.slice(0, index + 1), newEntry, ...prev.slice(index + 1)])
+    selectLyricsPosition({ id: newEntry.id, line: 0 })
+    requestAnimationFrame(() => {
+      const input = document.getElementById(`lyrics-${newEntry.id}-0`)
+      input?.focus({ preventScroll: true })
+      input?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    })
+  }
+
   const getCurrentLyricsIndex = (): number => {
     if (!currentPlayer || scoreEntries.length === 0) return -1
 
@@ -319,6 +340,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveEditScoreEntry,
     cancelEditScoreEntry,
     addScoreEntry,
+    addEmptyScoreEntry,
     getCurrentLyricsIndex,
     clearAllScoreEntries,
     undoLastOperation,
@@ -328,4 +350,3 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveCurrentState
   }
 }
-

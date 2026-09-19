@@ -58,6 +58,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
+  addEmptyScoreEntry?: (afterId?: string) => void
   selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
   isInlineEditing?: boolean
@@ -97,6 +98,7 @@ interface ScoreManagementSectionProps {
 }
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
+  addEmptyScoreEntry,
   selectedLyrics,
   inlineActions,
   isInlineEditing = false,
@@ -234,6 +236,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col min-h-0">
+        {!readOnly && addEmptyScoreEntry && (
+          <div className="mb-4 space-y-2">
+            <Button type="button" variant="outline" size="sm" disabled={Boolean(editingId)} onClick={() => addEmptyScoreEntry(selectedLyrics?.id)}>
+              空ページを追加
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              一覧で編集終了後、<kbd className="px-1 py-0.5 bg-muted border border-border rounded font-mono">Ctrl</kbd> + <kbd className="px-1 py-0.5 bg-muted border border-border rounded font-mono">Enter</kbd> で選択ページの直後に追加
+            </p>
+          </div>
+        )}
         {/* 動画の総時間表示とUndo/Redoボタン */}
         {!readOnly && (
           <div className="mb-4 flex items-center justify-between">
@@ -286,7 +298,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
 
         {scoreEntries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            ページがありません。歌詞を入力して追加してください。
+            ページがありません。{addEmptyScoreEntry && !readOnly ? '「空ページを追加」から歌詞を入力できます。' : '歌詞を入力して追加してください。'}
           </p>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
@@ -536,4 +548,3 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     </Card>
   )
 }
-

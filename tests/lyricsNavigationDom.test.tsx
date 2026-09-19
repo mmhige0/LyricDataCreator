@@ -23,7 +23,7 @@ function Harness() {
   return <>{state.scoreEntries.map((entry, page) => entry.lyrics.map((_, line) => (
     <InlineLyricsInput key={`${entry.id}-${line}`} entry={entry} line={line} pageNumber={page + 1}
       selected={state.selectedLyrics?.id === entry.id && state.selectedLyrics.line === line}
-      actions={{ onSelect: state.selectLyricsPosition, onNavigate: (pos, direction, unit) => adjacentLyricsPosition(state.scoreEntries, pos, direction, unit), onStart: state.startInlineEdit, onChange: state.changeInlineLyrics, onReplace: state.replaceInlineLyrics, onFinish: state.finishInlineEdit, onCompositionChange: () => {} }} />
+      actions={{ onAddPage: state.addEmptyScoreEntry, onSelect: state.selectLyricsPosition, onNavigate: (pos, direction, unit) => adjacentLyricsPosition(state.scoreEntries, pos, direction, unit), onStart: state.startInlineEdit, onChange: state.changeInlineLyrics, onReplace: state.replaceInlineLyrics, onFinish: state.finishInlineEdit, onCompositionChange: () => {} }} />
   )))}</>
 }
 const field = (id: string, line: number) => document.getElementById(`lyrics-${id}-${line}`) as HTMLInputElement
@@ -105,4 +105,51 @@ it('updates the selected page timestamp after editing ends and preserves selecti
   expect(score.inlineEditing).toBeNull()
   await act(async () => score.undoLastOperation())
   expect(score.scoreEntries.find(entry => entry.id === 'a')?.timestamp).toBe(0)
+})
+
+it('adds a blank page after confirming the current line and focuses its first line', async () => {
+  await act(async () => score.setLyrics(['左の下書き', '', '', '']))
+  await act(async () => score.setTimestamp('42'))
+  await act(async () => field('a', 3).focus())
+  await key(field('a', 3), 'Enter', { ctrlKey: true })
+  expect(score.scoreEntries).toHaveLength(2)
+  const selection = document.activeElement as HTMLElement
+  await key(selection, 'Enter', { ctrlKey: true, repeat: true })
+  await key(selection, 'Enter', { ctrlKey: true, isComposing: true })
+  expect(score.scoreEntries).toHaveLength(2)
+  await key(selection, 'Enter', { ctrlKey: true })
+  const added = score.scoreEntries[1]
+  expect(added.lyrics).toEqual(['', '', '', ''])
+  expect(added.timestamp).toBe(5)
+  expect(score.scoreEntries.map(entry => entry.id)).toEqual(['a', added.id, 'b'])
+  expect(document.activeElement).toBe(field(added.id, 0))
+  expect(score.lyrics[0]).toBe('左の下書き')
+  expect(score.timestamp).toBe('42')
+  await act(async () => window.dispatchEvent(new Event('pagehide')))
+  expect(loadDraft('navigation')?.scoreEntries).toHaveLength(3)
+  await key(field(added.id, 0), 'Escape')
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries.map(entry => entry.id)).toEqual(['a', 'b'])
+  expect(score.scoreEntries[0].lyrics[3]).toBe('かな')
+  await act(async () => score.redoLastOperation())
+  expect(score.scoreEntries[1]).toEqual(added)
+})
+it('adds a first page at zero and appends after the last page', async () => {
+  await act(async () => score.setScoreEntries([]))
+  await act(async () => score.addEmptyScoreEntry())
+  await act(async () => { frames.splice(0).forEach(fn => fn(0)) })
+  const first = score.scoreEntries[0]
+  expect(first.timestamp).toBe(0)
+  expect(document.activeElement).toBe(field(first.id, 0))
+  await key(field(first.id, 0), 'Enter', { ctrlKey: true })
+  await key(document.activeElement as HTMLElement, 'Enter', { ctrlKey: true })
+  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 1])
+  expect(new Set(score.scoreEntries.map(entry => entry.id)).size).toBe(2)
+})
+it('inserts directly after a page even when adjacent timestamps match', async () => {
+  await act(async () => score.setScoreEntries(score.scoreEntries.map(entry => ({ ...entry, timestamp: 10 }))))
+  await act(async () => score.addEmptyScoreEntry('a'))
+  expect(score.scoreEntries[0].id).toBe('a')
+  expect(score.scoreEntries[1].timestamp).toBe(10)
+  expect(score.scoreEntries[2].id).toBe('b')
 })
