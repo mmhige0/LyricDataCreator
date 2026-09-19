@@ -30,16 +30,16 @@ describe('lyrics navigation', () => {
 })
 
 describe('head-start playback target', () => {
-  it('plays the selected page including zero and honors the classic edit timestamp', () => {
-    expect(pagePlaybackTimestamp(pages, 'a', null, '')).toBe(0)
-    expect(pagePlaybackTimestamp(pages, 'b', null, '')).toBe(10)
-    expect(pagePlaybackTimestamp(pages, 'a', 'c', '25.50')).toBe(25.5)
+  it('plays the selected page including zero', () => {
+    expect(pagePlaybackTimestamp(pages, 'a')).toBe(0)
+    expect(pagePlaybackTimestamp(pages, 'b')).toBe(10)
+
   })
-  it('does not substitute another page for a missing target or invalid edit time', () => {
-    expect(pagePlaybackTimestamp(pages, null, null, '')).toBeNull()
-    expect(pagePlaybackTimestamp(pages, 'deleted', null, '')).toBeNull()
-    for (const time of ['', ' ', '-2', '12oops', 'NaN', 'Infinity']) {
-      expect(pagePlaybackTimestamp(pages, 'a', 'b', time)).toBeNull()
+  it('does not substitute another page for a missing target or invalid stored time', () => {
+    expect(pagePlaybackTimestamp(pages, null)).toBeNull()
+    expect(pagePlaybackTimestamp(pages, 'deleted')).toBeNull()
+    for (const time of ['-2', '12oops', 'NaN', 'Infinity']) {
+      expect(pagePlaybackTimestamp([{ ...pages[0], timestamp: Number(time) }], 'a')).toBeNull()
     }
   })
 })

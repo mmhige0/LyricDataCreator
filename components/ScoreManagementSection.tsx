@@ -1,14 +1,14 @@
-import { memo, useEffect, useRef, useState, type Dispatch, type FC, type MouseEvent, type SetStateAction } from 'react'
+import { memo, useState, type FC, type MouseEvent } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, Redo, ScrollText, Scroll } from "lucide-react"
+import { Upload, Download, Clock, Play, Copy, Trash2, Undo, Redo, ScrollText, Scroll } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
 import { InlineLyricsInput, type InlineLyricsActions } from '@/components/InlineLyricsInput'
-import { LyricsEditCard } from '@/components/LyricsEditCard'
+import { PageTimestampInput, PageLyricsActions } from '@/components/PageEditControls'
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
@@ -60,23 +60,17 @@ EntryDisplay.displayName = 'EntryDisplay'
 interface ScoreManagementSectionProps {
   selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
+  onTimestampCapture?: (id: string) => void
+  onTimestampChange?: (value: string, id: string) => boolean | undefined
+  onReplacePageLyrics?: (id: string, lyrics: LyricsArray, expected?: LyricsArray) => boolean
   isInlineEditing?: boolean
   scoreEntries: ScoreEntry[]
   duration: number
   player: YouTubePlayer | null
-  editingId: string | null
-  editingLyrics?: LyricsArray
-  setEditingLyrics?: Dispatch<SetStateAction<LyricsArray>>
-  editingTimestamp?: string
-  setEditingTimestamp?: Dispatch<SetStateAction<string>>
-  saveEditScoreEntry?: () => void
-  cancelEditScoreEntry?: () => void
-  saveCurrentState?: () => void
   getCurrentLyricsIndex: () => number
   importScoreData: () => void
   exportScoreData: (event?: MouseEvent<HTMLButtonElement>) => void
   deleteScoreEntry: (id: string) => void
-  startEditScoreEntry: (entry: ScoreEntry) => void
   clearAllScoreEntries: () => void
   seekToAndPlay: (time: number) => void
   bulkAdjustTimings: (offsetSeconds: number) => void
@@ -100,22 +94,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   selectedLyrics,
   inlineActions,
   isInlineEditing = false,
+  onTimestampChange,
+  onTimestampCapture,
+  onReplacePageLyrics,
   scoreEntries,
   duration,
   player,
-  editingId,
-  editingLyrics,
-  setEditingLyrics,
-  editingTimestamp,
-  setEditingTimestamp,
-  saveEditScoreEntry,
-  cancelEditScoreEntry,
-  saveCurrentState,
   getCurrentLyricsIndex,
   importScoreData,
   exportScoreData,
   deleteScoreEntry,
-  startEditScoreEntry,
   clearAllScoreEntries,
   seekToAndPlay,
   bulkAdjustTimings,
@@ -135,53 +123,12 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
   const [kpmMode, setKpmMode] = useState<'roma' | 'kana'>('roma')
   const effectiveKpmMode = kpmModeOverride ?? kpmMode
-  const editingLyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const editingTimestampInputRef = useRef<HTMLInputElement | null>(null)
-  const canInlineEdit =
-    !readOnly &&
-    Boolean(editingId) &&
-    Boolean(editingLyrics) &&
-    Boolean(setEditingLyrics) &&
-    typeof editingTimestamp === 'string' &&
-    Boolean(setEditingTimestamp) &&
-    Boolean(saveEditScoreEntry) &&
-    Boolean(cancelEditScoreEntry)
-
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
     scoreEntries,
-    enabled: autoScroll && !isInlineEditing && !editingId && !isLyricsFocused,
+    enabled: autoScroll && !isInlineEditing && !isLyricsFocused,
     onUserScroll: () => setAutoScroll(false)
   })
-
-  useEffect(() => {
-    if (readOnly || !editingId || !cancelEditScoreEntry) return
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229) return
-      event.preventDefault()
-      cancelEditScoreEntry()
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [cancelEditScoreEntry, editingId, readOnly])
-
-  useEffect(() => {
-    if (readOnly || !editingId) return
-    const entryIndex = scoreEntries.findIndex((entry) => entry.id === editingId)
-    if (entryIndex < 0) return
-    const entryElement = entryRefs.current[entryIndex]
-    if (!entryElement) return
-
-    entryElement.scrollIntoView({
-      block: 'center',
-      behavior: 'smooth',
-    })
-  }, [editingId, readOnly, scoreEntries, entryRefs])
-
 
   const handleBulkTimingAdjust = () => {
     const value = parseFloat(adjustValue)
@@ -196,16 +143,6 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     }
 
     bulkAdjustTimings(value)
-  }
-
-  const handleInlineSave = () => {
-    if (!saveEditScoreEntry || typeof editingTimestamp !== 'string') return
-    const parsedTimestamp = Number.parseFloat(editingTimestamp)
-    if (!Number.isFinite(parsedTimestamp)) {
-      toast.error('タイムスタンプは数値で入力してください。')
-      return
-    }
-    saveEditScoreEntry()
   }
 
   return (
@@ -294,17 +231,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
               ref={scrollContainerRef}
               className="space-y-4 flex-1 overflow-y-auto pr-2 min-h-0"
               onFocusCapture={event => {
-                const focused = event.target instanceof Element && Boolean(event.target.closest('[data-lyrics-navigation]'))
+                const focused = event.target instanceof Element && Boolean(event.target.closest('[data-page-id]'))
                 setIsLyricsFocused(focused)
                 if (focused) setAutoScroll(false)
               }}
               onBlurCapture={event => {
-                if (!(event.relatedTarget instanceof Element) || !event.relatedTarget.closest('[data-lyrics-navigation]')) setIsLyricsFocused(false)
+                if (!(event.relatedTarget instanceof Element) || !event.relatedTarget.closest('[data-page-id]')) setIsLyricsFocused(false)
               }}
             >
               {scoreEntries.map((entry, index) => {
                 const isCurrentlyPlaying = getCurrentLyricsIndex() === index
-                const isEditing = editingId === entry.id
                 const kpmData = kpmDataMap.get(entry.id) || null
                 const isClickable = readOnly && Boolean(player)
                 const displayPageNumber = Math.max(0, index + 1 - pageNumberOffset)
@@ -312,23 +248,17 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 return (
                   <div
                     key={entry.id}
+                    data-page-id={readOnly ? undefined : entry.id}
                     ref={(el) => { entryRefs.current[index] = el }}
                     className={`relative group p-3 border rounded-lg bg-card hover:bg-secondary dark:bg-[hsl(220,14%,18%)] dark:border-[hsl(220,12%,28%)] dark:hover:bg-[hsl(220,14%,22%)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] ${isCurrentlyPlaying ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/40 dark:border-primary/50" : ""
-                      } ${isEditing ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/30 dark:border-primary/40" : ""} ${isClickable ? "cursor-pointer" : ""
+                      } ${isClickable ? "cursor-pointer" : ""
                       }`}
                     onClick={
                       isClickable
                         ? () => {
                           seekToAndPlay(entry.timestamp)
                         }
-                        : (event) => {
-                          if (!event.ctrlKey && !event.metaKey) return
-                          const target = event.target
-                          if (target instanceof HTMLElement && target.closest('button, input, textarea')) {
-                            return
-                          }
-                          startEditScoreEntry(entry)
-                        }
+                        : undefined
                     }
                     role={isClickable ? 'button' : undefined}
                     tabIndex={isClickable ? 0 : undefined}
@@ -343,11 +273,6 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         : undefined
                     }
                   >
-                    {!readOnly && (
-                      <span className="pointer-events-none absolute right-2 -top-2 rounded-full bg-foreground px-2 py-1 text-[10px] font-medium text-background opacity-0 shadow-sm transition duration-150 ease-out group-hover:opacity-100">
-                        Ctrl+クリックで編集
-                      </span>
-                    )}
                     <div className="flex items-start gap-4">
                       <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
                         <div className="text-sm font-mono text-muted-foreground  flex items-center justify-between">
@@ -359,7 +284,9 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                           )}
                         </div>
                         {!readOnly && (
-                          <div className="mt-auto">
+                          <div className="mt-auto flex flex-col gap-1">
+                            {onTimestampCapture && <Button variant="outline" size="sm" className="h-6 text-xs px-2" disabled={!player} aria-label={`ページ${displayPageNumber}に現在の時刻を入力`} onClick={() => onTimestampCapture(entry.id)}><Clock className="h-3 w-3 mr-1" />現在時刻</Button>}
+                            {onTimestampChange && <PageTimestampInput timestamp={entry.timestamp} pageNumber={displayPageNumber} onCommit={value => onTimestampChange(value, entry.id)} />}
                             <Button
                               variant="outline"
                               size="sm"
@@ -374,7 +301,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         )}
                       </div>
                       <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                        <EntryDisplay selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly && !editingId ? inlineActions : undefined} />
+                        <EntryDisplay selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
                       </div>
                       {!readOnly && (
                         <div className="flex flex-col gap-1 min-w-fit self-center">
@@ -387,16 +314,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                             <Copy className="h-3 w-3 mr-1" />
                             コピー
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => startEditScoreEntry(entry)}
-                            className={`text-xs hover:bg-muted/60 hover:text-foreground ${isEditing ? 'bg-primary/10 border-primary/30' : ''}`}
-                            disabled={isEditing}
-                          >
-                            <Edit className="h-3 w-3 mr-1" />
-                            {isEditing ? '編集中' : '編集'}
-                          </Button>
+                          {onReplacePageLyrics && <PageLyricsActions entry={entry} onReplace={onReplacePageLyrics} />}
                           <Button
                             variant="outline"
                             size="sm"
@@ -409,31 +327,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         </div>
                       )}
                     </div>
-                    {canInlineEdit && isEditing && (
-                      <div className="mt-4" data-lyrics-edit-form>
-                        <LyricsEditCard
-                          lyrics={editingLyrics ?? ["", "", "", ""]}
-                          setLyrics={(nextLyrics) => setEditingLyrics?.(nextLyrics)}
-                          timestamp={editingTimestamp ?? "0.00"}
-                          setTimestamp={(nextTimestamp) => setEditingTimestamp?.(nextTimestamp)}
-                          player={player}
-                          seekToInput={(inputValue) => {
-                            if (!inputValue) return
-                            const parsedTimestamp = Number.parseFloat(inputValue)
-                            if (Number.isFinite(parsedTimestamp)) {
-                              seekToAndPlay(parsedTimestamp)
-                            }
-                          }}
-                          mode="edit"
-                          editingEntryIndex={index}
-                          onSave={handleInlineSave}
-                          onCancel={() => cancelEditScoreEntry?.()}
-                          lyricsInputRefs={editingLyricsInputRefs}
-                          timestampInputRef={editingTimestampInputRef}
-                          saveCurrentState={saveCurrentState}
-                        />
-                      </div>
-                    )}
+
                   </div>
                 )
               })}

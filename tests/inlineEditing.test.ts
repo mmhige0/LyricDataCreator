@@ -9,7 +9,7 @@ import { setSessionId } from '../lib/sessionStorage'
 import { splitLyricsLine } from '../lib/inlineLyrics'
 import type { ScoreEntry } from '../lib/types'
 
-vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn() } }))
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
 
 let root: Root
 let host: HTMLDivElement
@@ -147,5 +147,41 @@ describe('inline editing and recovery', () => {
 
   it('splits a selection into the next line without losing its existing text', () => {
     expect(splitLyricsLine(['あいうえお', 'つづき', '', ''], 0, 1, 3)).toEqual(['あ', 'えお　つづき', '', ''])
+  })
+})
+
+
+describe('page controls', () => {
+  it.each(['', ' ', 'NaN', 'Infinity', '-1', '12oops'])('rejects invalid timestamp %j without altering data or history', async value => {
+    await act(async () => { expect(score.updateInlineTimestamp(value, 'one')).toBe(false) })
+    expect(score.scoreEntries).toEqual(entries)
+    expect(score.canUndo).toBe(false)
+    await act(async () => persistence.flush())
+    expect(loadDraft('test-session')?.scoreEntries).toEqual(entries)
+  })
+  it('commits zero and decimal timestamps, reorders, and supports undo/redo', async () => {
+    await act(async () => score.updateInlineTimestamp('0', 'two'))
+    expect(score.scoreEntries.map(e => e.id)).toEqual(['two', 'one'])
+    await act(async () => score.updateInlineTimestamp('30.25', 'two'))
+    expect(score.scoreEntries[1].timestamp).toBe(30.25)
+    await act(async () => score.undoLastOperation())
+    expect(score.scoreEntries[0].timestamp).toBe(0)
+    await act(async () => score.redoLastOperation())
+    expect(score.scoreEntries[1].timestamp).toBe(30.25)
+  })
+  it('clear and conversion each have independent undo and persist', async () => {
+    await act(async () => score.replacePageLyrics('one', ['へんかん', '', '', '']))
+    await act(async () => score.replacePageLyrics('one', ['', '', '', '']))
+    await act(async () => persistence.flush())
+    expect(loadDraft('test-session')?.scoreEntries[0].lyrics).toEqual(['', '', '', ''])
+    await act(async () => score.undoLastOperation())
+    expect(score.scoreEntries[0].lyrics[0]).toBe('へんかん')
+    await act(async () => score.undoLastOperation())
+    expect(score.scoreEntries[0].lyrics[0]).toBe('はじめ')
+  })
+  it('rejects stale conversion results without changing data or history', async () => {
+    await act(async () => { expect(score.replacePageLyrics('one', ['へんかん', '', '', ''], ['old', '', '', ''])).toBe(false) })
+    expect(score.scoreEntries).toEqual(entries)
+    expect(score.canUndo).toBe(false)
   })
 })

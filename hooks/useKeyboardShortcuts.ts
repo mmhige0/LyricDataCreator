@@ -5,8 +5,6 @@ interface KeyboardShortcutsProps {
   playSelectedPage?: () => void
   getCurrentTimestamp: () => void
   addScoreEntry: () => void
-  saveScoreEntry?: () => void
-  editingId?: string | null
   seekBackward1Second: () => void
   seekForward1Second: () => void
   adjustVolume?: (delta: number) => void
@@ -28,8 +26,6 @@ export const useKeyboardShortcuts = ({
   playSelectedPage,
   getCurrentTimestamp,
   addScoreEntry,
-  saveScoreEntry,
-  editingId,
   seekBackward1Second,
   seekForward1Second,
   adjustVolume: _adjustVolume,
@@ -77,11 +73,7 @@ export const useKeyboardShortcuts = ({
 
     if (event.ctrlKey && event.key === "Enter") {
       event.preventDefault()
-      if (editingId && saveScoreEntry) {
-        saveScoreEntry()
-      } else {
-        addScoreEntry()
-      }
+      addScoreEntry()
       return
     }
 

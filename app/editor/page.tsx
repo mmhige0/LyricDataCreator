@@ -11,7 +11,7 @@ import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
-import { LyricsEditCard } from "@/components/LyricsEditCard"
+import { LyricsAddCard } from "@/components/LyricsAddCard"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
@@ -76,25 +76,18 @@ export default function LyricsTypingApp() {
     replaceInlineLyrics,
     finishInlineEdit,
     updateInlineTimestamp,
+    replacePageLyrics,
     scoreEntries,
     setScoreEntries,
     lyrics,
     setLyrics,
     timestamp,
     setTimestamp,
-    editingId,
-    editingLyrics,
-    setEditingLyrics,
-    editingTimestamp,
-    setEditingTimestamp,
     timestampOffset,
     setTimestampOffset,
     lyricsInputRefs,
     timestampInputRef,
     deleteScoreEntry,
-    startEditScoreEntry,
-    saveEditScoreEntry,
-    cancelEditScoreEntry,
     addScoreEntry,
     getCurrentLyricsIndex,
     clearAllScoreEntries,
@@ -107,17 +100,18 @@ export default function LyricsTypingApp() {
 
   const handleGetCurrentTimestamp = useCallback(() => {
     const timestampValue = getCurrentTimestamp(timestampOffset)
-    if (inlineEditing) {
+    const focusedPage = document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id')
+    if (focusedPage && !document.activeElement?.closest('[data-lyrics-navigation]')) {
+      updateInlineTimestamp(timestampValue, focusedPage)
+    } else if (inlineEditing) {
       updateInlineTimestamp(timestampValue)
     } else if (selectedLyrics && document.activeElement?.closest('[data-lyrics-navigation]')) {
       updateInlineTimestamp(timestampValue, selectedLyrics.id)
       requestAnimationFrame(() => document.getElementById(`lyrics-selection-${selectedLyrics.id}-${selectedLyrics.line}`)?.focus({ preventScroll: true }))
-    } else if (editingId) {
-      setEditingTimestamp(timestampValue)
     } else {
       setTimestamp(timestampValue)
     }
-  }, [getCurrentTimestamp, timestampOffset, inlineEditing, selectedLyrics, updateInlineTimestamp, editingId, setTimestamp, setEditingTimestamp])
+  }, [getCurrentTimestamp, timestampOffset, inlineEditing, selectedLyrics, updateInlineTimestamp, setTimestamp])
 
   const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
 
@@ -126,13 +120,11 @@ export default function LyricsTypingApp() {
     if (pastedLyrics) {
       if (inlineEditing) {
         replaceInlineLyrics(inlineEditing.id, pastedLyrics)
-      } else if (editingId) {
-        setEditingLyrics(pastedLyrics)
       } else {
         setLyrics(pastedLyrics)
       }
     }
-  }, [pasteLyricsFromClipboard, inlineEditing, replaceInlineLyrics, editingId, setEditingLyrics, setLyrics])
+  }, [pasteLyricsFromClipboard, inlineEditing, replaceInlineLyrics, setLyrics])
 
   const handleBulkTimingAdjust = useCallback(
     (offsetSeconds: number) => {
@@ -172,15 +164,13 @@ export default function LyricsTypingApp() {
     player,
     playSelectedPage: () => {
       const focused = document.activeElement
-      if (!player || !(focused instanceof Element) || !focused.closest('[data-lyrics-navigation], [data-lyrics-edit-form]')) return
-      const focusedEditingId = focused.closest('[data-lyrics-edit-form]') ? editingId : null
-      const time = pagePlaybackTimestamp(scoreEntries, selectedLyrics?.id ?? null, focusedEditingId, editingTimestamp)
+      if (!player || !(focused instanceof Element) || !focused.closest('[data-page-id]')) return
+      const time = pagePlaybackTimestamp(scoreEntries, focused.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id ?? null)
       if (time !== null) seekToAndPlay(time)
     },
     getCurrentTimestamp: handleGetCurrentTimestamp,
     addScoreEntry,
-    saveScoreEntry: saveEditScoreEntry,
-    editingId,
+
     seekBackward1Second,
     seekForward1Second,
     lyricsInputRefs,
@@ -446,16 +436,13 @@ export default function LyricsTypingApp() {
                   seekTo={seekTo}
                 />
 
-                <LyricsEditCard
+                <LyricsAddCard
                   lyrics={lyrics}
                   setLyrics={setLyrics}
                   timestamp={timestamp}
                   setTimestamp={setTimestamp}
                   player={player}
                   seekToInput={seekToInput}
-                  mode="add"
-                  isDisabled={Boolean(editingId)}
-                  disabledReason="ページ編集中"
                   onAdd={addScoreEntry}
                   lyricsInputRefs={lyricsInputRefs}
                   timestampInputRef={timestampInputRef}
@@ -482,19 +469,13 @@ export default function LyricsTypingApp() {
                   scoreEntries={scoreEntries}
                   duration={duration}
                   player={player}
-                  editingId={editingId}
-                  editingLyrics={editingLyrics}
-                  setEditingLyrics={setEditingLyrics}
-                  editingTimestamp={editingTimestamp}
-                  setEditingTimestamp={setEditingTimestamp}
-                  saveEditScoreEntry={saveEditScoreEntry}
-                  cancelEditScoreEntry={cancelEditScoreEntry}
-                  saveCurrentState={saveCurrentState}
+                  onTimestampCapture={id => updateInlineTimestamp(getCurrentTimestamp(timestampOffset), id)}
+                  onTimestampChange={updateInlineTimestamp}
+                  onReplacePageLyrics={replacePageLyrics}
                   getCurrentLyricsIndex={getCurrentLyricsIndex}
                   importScoreData={importScoreData}
                   exportScoreData={handleExport}
                   deleteScoreEntry={deleteScoreEntry}
-                  startEditScoreEntry={startEditScoreEntry}
                   clearAllScoreEntries={clearAllScoreEntries}
                   seekToAndPlay={seekToAndPlay}
                   bulkAdjustTimings={handleBulkTimingAdjust}
