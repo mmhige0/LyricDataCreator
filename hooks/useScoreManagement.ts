@@ -22,9 +22,6 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([])
   const [lyrics, setLyrics] = useState<LyricsArray>(["", "", "", ""])
   const [timestamp, setTimestamp] = useState<string>("0.00")
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editingLyrics, setEditingLyrics] = useState<LyricsArray>(["", "", "", ""])
-  const [editingTimestamp, setEditingTimestamp] = useState<string>("0.00")
   const [timestampOffset, setTimestampOffsetState] = useState<number>(0)
   const [undoHistory, setUndoHistory] = useState<AppState[]>([])
   const [redoHistory, setRedoHistory] = useState<AppState[]>([])
@@ -121,17 +118,33 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const updateInlineTimestamp = (value: string, selectedId?: string) => {
-    const id = inlineEditing?.id ?? selectedId
+    const id = selectedId ?? inlineEditing?.id
     if (!id || !scoreEntries.some(entry => entry.id === id)) return
     const time = Number(value)
-    if (!Number.isFinite(time) || time < 0) return
-    if (inlineEditing) checkpointInlineEdit()
+    if (!value.trim() || !Number.isFinite(time) || time < 0) {
+      toast.error('タイムスタンプは0以上の数値で入力してください。')
+      return false
+    }
+    if (scoreEntries.find(entry => entry.id === id)?.timestamp === time) return true
+    if (inlineEditing?.id === id) checkpointInlineEdit()
     else saveCurrentState()
     // Keep the focused input mounted in place; sort when the line is finished.
     setScoreEntries(prev => {
       const updated = prev.map(entry => entry.id === id ? { ...entry, timestamp: time } : entry)
-      return inlineEditing ? updated : updated.sort((a, b) => a.timestamp - b.timestamp)
+      return inlineEditing?.id === id ? updated : updated.sort((a, b) => a.timestamp - b.timestamp)
     })
+    return true
+  }
+
+  // Page-level actions each receive their own undo checkpoint.
+  const replacePageLyrics = (id: string, next: LyricsArray, expected?: LyricsArray) => {
+    const entry = scoreEntries.find(item => item.id === id)
+    if (!entry || (expected && entry.lyrics.some((line, i) => line !== expected[i]))) return false
+    const normalized = processLyricsForSave(next)
+    if (entry.lyrics.every((line, i) => line === normalized[i])) return true
+    saveCurrentState()
+    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, lyrics: normalized } : item))
+    return true
   }
 
   // Undo last operation
@@ -156,11 +169,6 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
     setInlineEditing(null)
     inlineHistorySaved.current = false
-
-    // Cancel any ongoing edit
-    setEditingId(null)
-    setEditingLyrics(["", "", "", ""])
-    setEditingTimestamp("0.00")
 
     // Restore previous state
     setUndoHistory(restUndo)
@@ -193,11 +201,6 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     setInlineEditing(null)
     inlineHistorySaved.current = false
 
-    // Cancel any ongoing edit
-    setEditingId(null)
-    setEditingLyrics(["", "", "", ""])
-    setEditingTimestamp("0.00")
-
     // Restore next state
     setRedoHistory(restRedo)
     setScoreEntries(nextState.scoreEntries)
@@ -211,40 +214,6 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveCurrentState()
     setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
     toast.success('ページを削除しました (Ctrl+Zで元に戻せます)')
-  }
-
-  const startEditScoreEntry = (entry: ScoreEntry) => {
-    setEditingId(entry.id)
-    setEditingLyrics(entry.lyrics)
-    setEditingTimestamp(entry.timestamp.toString())
-  }
-
-  const saveEditScoreEntry = () => {
-    if (!editingId) return
-
-    // Save the state before editing so that Undo restores to pre-edit state
-    saveCurrentState()
-
-    const convertedLyrics = processLyricsForSave(editingLyrics)
-
-    setScoreEntries((prev) => {
-      const updatedEntries = prev.map((entry) =>
-        entry.id === editingId
-          ? { ...entry, lyrics: convertedLyrics, timestamp: Number.parseFloat(editingTimestamp) }
-          : entry,
-      )
-      return updatedEntries.sort((a, b) => a.timestamp - b.timestamp)
-    })
-
-    setEditingId(null)
-    setEditingLyrics(["", "", "", ""])
-    setEditingTimestamp("0.00")
-  }
-
-  const cancelEditScoreEntry = () => {
-    setEditingId(null)
-    setEditingLyrics(["", "", "", ""])
-    setEditingTimestamp("0.00")
   }
 
   const addScoreEntry = () => {
@@ -296,6 +265,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     replaceInlineLyrics,
     finishInlineEdit,
     updateInlineTimestamp,
+    replacePageLyrics,
     // State
     scoreEntries,
     setScoreEntries,
@@ -303,11 +273,6 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     setLyrics,
     timestamp,
     setTimestamp,
-    editingId,
-    editingLyrics,
-    setEditingLyrics,
-    editingTimestamp,
-    setEditingTimestamp,
     timestampOffset,
     setTimestampOffset,
     lyricsInputRefs,
@@ -315,9 +280,6 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
     // Functions
     deleteScoreEntry,
-    startEditScoreEntry,
-    saveEditScoreEntry,
-    cancelEditScoreEntry,
     addScoreEntry,
     getCurrentLyricsIndex,
     clearAllScoreEntries,

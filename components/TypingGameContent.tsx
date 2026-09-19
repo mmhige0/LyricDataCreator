@@ -458,7 +458,6 @@ export function TypingGameContent({
   // read-only 用ダミー関数群
   const dummyFunction = () => { }
   const dummyFunctionWithId = (_id: string) => { }
-  const dummyFunctionWithEntry = (_entry: ScoreEntry) => { }
   const dummyFunctionWithNumber = (_n: number) => { }
 
   return (
@@ -762,12 +761,10 @@ export function TypingGameContent({
                 scoreEntries={normalizedScoreEntries}
                 duration={effectiveDuration}
                 player={player}
-                editingId={null}
                 getCurrentLyricsIndex={getCurrentLyricsIndex}
                 importScoreData={dummyFunction}
                 exportScoreData={dummyFunction}
                 deleteScoreEntry={dummyFunctionWithId}
-                startEditScoreEntry={dummyFunctionWithEntry}
                 clearAllScoreEntries={dummyFunction}
                 seekToAndPlay={seekToAndPlay}
                 bulkAdjustTimings={dummyFunctionWithNumber}
