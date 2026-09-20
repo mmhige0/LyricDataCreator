@@ -1,4 +1,4 @@
-import { Fragment, memo, useEffect, useRef, useState, type Dispatch, type FC, type MouseEvent, type SetStateAction } from 'react'
+import { memo, useEffect, useRef, useState, type Dispatch, type FC, type MouseEvent, type SetStateAction } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -306,7 +306,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
           <div className="flex-1 flex flex-col min-h-0">
             <div
               ref={scrollContainerRef}
-              className="space-y-4 flex-1 overflow-y-auto pr-2 min-h-0"
+              className={`space-y-4 flex-1 overflow-y-auto pr-2 min-h-0 ${!readOnly && addEmptyScoreEntry ? 'py-6' : ''}`}
               onFocusCapture={event => {
                 const focused = event.target instanceof Element && Boolean(event.target.closest('[data-lyrics-navigation]'))
                 setIsLyricsFocused(focused)
@@ -324,9 +324,9 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 const displayPageNumber = Math.max(0, index + 1 - pageNumberOffset)
 
                 return (
-                  <Fragment key={entry.id}>
+                  <div key={entry.id} className="relative">
                     {!readOnly && addEmptyScoreEntry && (
-                      <Button type="button" variant="ghost" className="w-full h-8 border border-dashed text-muted-foreground hover:text-primary" disabled={Boolean(editingId)}
+                      <Button type="button" variant="outline" className={`absolute left-1/2 -translate-x-1/2 z-10 h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary ${index === 0 ? '-top-4' : '-top-6'}`} disabled={Boolean(editingId)}
                         aria-label={`ページ${displayPageNumber}の前に空ページを追加`}
                         title={`ページ${displayPageNumber}の前に空ページを追加`}
                         onClick={() => addEmptyScoreEntry(entry.id, 'before')}>
@@ -458,14 +458,14 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                     )}
                   </div>
                     {!readOnly && addEmptyScoreEntry && index === scoreEntries.length - 1 && (
-                      <Button type="button" variant="ghost" className="w-full h-8 border border-dashed text-muted-foreground hover:text-primary" disabled={Boolean(editingId)}
+                      <Button type="button" variant="outline" className="absolute left-1/2 -translate-x-1/2 -bottom-4 z-10 h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary" disabled={Boolean(editingId)}
                         aria-label={`ページ${displayPageNumber}の後に空ページを追加`}
                         title={`ページ${displayPageNumber}の後に空ページを追加`}
                         onClick={() => addEmptyScoreEntry(entry.id, 'after')}>
                         <Plus className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     )}
-                  </Fragment>
+                  </div>
                 )
               })}
             </div>
