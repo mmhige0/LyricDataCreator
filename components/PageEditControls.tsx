@@ -14,6 +14,11 @@ export function PageTimestampInput({ timestamp, pageNumber, onCommit }: {
   const [draft, setDraft] = useState<{ base: number; value: string } | null>(null)
   const [invalid, setInvalid] = useState(false)
   const cancelled = useRef(false)
+  // Discard superseded input permanently, so Undo cannot revive it later.
+  if (draft && draft.base !== timestamp) {
+    setDraft(null)
+    setInvalid(false)
+  }
   const value = draft?.base === timestamp ? draft.value : timestamp.toFixed(2)
   return (
     <Input

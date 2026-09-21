@@ -52,6 +52,35 @@ it('keeps invalid draft separate from saved data, and Escape cancels without sav
   expect(input.value).toBe('10.00')
   expect(onCommit).toHaveBeenCalledTimes(1)
 })
+it.each(['12', ''])('discards draft %j after timestamp capture and undo', async draft => {
+  const onCommit = vi.fn(() => false)
+  const renderTimestamp = async (timestamp: number) => {
+    await act(async () => root.render(createElement(PageTimestampInput, { timestamp, pageNumber: 1, onCommit })))
+  }
+  await renderTimestamp(10)
+  const input = await enter(draft)
+  if (!draft) {
+    await act(async () => input.blur())
+    expect(input.getAttribute('aria-invalid')).toBe('true')
+    await act(async () => input.focus())
+    onCommit.mockClear()
+  }
+  // F2 updates the saved timestamp while the input remains focused.
+  await renderTimestamp(20)
+  expect(document.activeElement).toBe(input)
+  expect(input.value).toBe('20.00')
+  expect(input.getAttribute('aria-invalid')).toBe('false')
+  await act(async () => input.blur())
+  // Undo returns to the old timestamp; its discarded draft must not return.
+  await renderTimestamp(10)
+  expect(input.value).toBe('10.00')
+  await act(async () => input.focus())
+  await act(async () => input.blur())
+  expect(onCommit).not.toHaveBeenCalled()
+  // Redo also keeps the saved value without reviving the draft.
+  await renderTimestamp(20)
+  expect(input.value).toBe('20.00')
+})
 it('uses current callback to reject conversion after another edit', async () => {
   let resolve!: (lyrics: LyricsArray) => void
   vi.mocked(convertLyricsArrayToHiragana).mockReturnValue(new Promise(done => { resolve = done }))
