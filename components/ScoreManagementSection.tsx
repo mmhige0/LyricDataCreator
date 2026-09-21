@@ -239,8 +239,8 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
         {!readOnly && addEmptyScoreEntry && (
           <div className="mb-4 space-y-2">
             {scoreEntries.length === 0 && (
-              <Button type="button" variant="outline" size="sm" disabled={Boolean(editingId)} onClick={() => addEmptyScoreEntry()}>
-                <Plus className="h-4 w-4 mr-1" />空ページを追加
+              <Button type="button" variant="outline" className="flex mx-auto h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary" aria-label="空ページを追加" title="空ページを追加" disabled={Boolean(editingId)} onClick={() => addEmptyScoreEntry()}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
               </Button>
             )}
             <p className="text-xs text-muted-foreground">
@@ -300,7 +300,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
 
         {scoreEntries.length === 0 ? (
           <p className="text-center text-muted-foreground py-8">
-            ページがありません。{addEmptyScoreEntry && !readOnly ? '「空ページを追加」から歌詞を入力できます。' : '歌詞を入力して追加してください。'}
+            ページがありません。{addEmptyScoreEntry && !readOnly ? '「＋」から空ページを追加できます。' : '歌詞を入力して追加してください。'}
           </p>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
