@@ -20,7 +20,7 @@ function Harness() {
   const state = useScoreManagement({ currentTime: 0, currentPlayer: null })
   useDraftAutoSave({ youtubeUrl: '', songTitle: '', scoreEntries: state.scoreEntries })
   useLayoutEffect(() => { score = state })
-  return <>{state.scoreEntries.map((entry, page) => entry.lyrics.map((_, line) => (
+  return <>{state.scoreEntries.flatMap((entry, page) => entry.lyrics.map((_, line) => (
     <InlineLyricsInput key={`${entry.id}-${line}`} entry={entry} line={line} pageNumber={page + 1}
       selected={state.selectedLyrics?.id === entry.id && state.selectedLyrics.line === line}
       actions={{ onAppendPage: state.appendPageFromNavigation, onSelect: state.selectLyricsPosition, onNavigate: (pos, direction, unit) => adjacentLyricsPosition(state.scoreEntries, pos, direction, unit), onStart: state.startInlineEdit, onChange: state.changeInlineLyrics, onReplace: state.replaceInlineLyrics, onFinish: state.finishInlineEdit, onCompositionChange: () => {} }} />
@@ -70,6 +70,58 @@ it('preserves line position for Alt arrows', async () => {
   expect(document.activeElement).toBe(field('b', 2))
   await key(field('b', 2), 'ArrowUp', { altKey: true })
   expect(document.activeElement).toBe(field('a', 2))
+})
+it('moves across all pages with Ctrl arrows, positions the caret and commits edits', async () => {
+  await act(async () => score.setScoreEntries(previous => previous.map(entry => entry.id === 'b' ? { ...entry, lyrics: ['', '', '', 'カナ'] } : entry)))
+  await act(async () => field('a', 1).focus())
+  await key(field('a', 1), 'ArrowDown', { ctrlKey: true })
+  expect(document.activeElement).toBe(field('b', 3))
+  expect(field('b', 3).selectionStart).toBe(0)
+  expect(field('b', 3).selectionEnd).toBe(0)
+  await key(field('b', 3), 'ArrowUp', { ctrlKey: true })
+  expect(document.activeElement).toBe(field('a', 0))
+  expect(field('a', 0).selectionStart).toBe(0)
+  expect(field('a', 0).selectionEnd).toBe(0)
+  expect(score.scoreEntries[1].lyrics[3]).toBe('かな')
+  expect(score.inlineEditing).toEqual({ id: 'a', line: 0 })
+  expect(scroll).toHaveBeenCalled()
+  await act(async () => window.dispatchEvent(new Event('pagehide')))
+  expect(loadDraft('navigation')?.scoreEntries[1].lyrics[3]).toBe('かな')
+})
+it('moves selection across all pages without entering edit mode', async () => {
+  await act(async () => field('a', 1).focus())
+  await key(field('a', 1), 'Escape')
+  await key(document.activeElement as HTMLElement, 'ArrowDown', { ctrlKey: true })
+  expect(score.selectedLyrics).toEqual({ id: 'b', line: 3 })
+  expect(score.inlineEditing).toBeNull()
+  await key(document.activeElement as HTMLElement, 'ArrowUp', { ctrlKey: true })
+  expect(score.selectedLyrics).toEqual({ id: 'a', line: 0 })
+  expect(score.inlineEditing).toBeNull()
+})
+it('resolves the final page after blur sorts an updated timestamp', async () => {
+  await act(async () => field('a', 1).focus())
+  await act(async () => score.updateInlineTimestamp('20', 'a'))
+  await key(field('a', 1), 'ArrowDown', { ctrlKey: true })
+  expect(score.scoreEntries.map(entry => entry.id)).toEqual(['b', 'a'])
+  expect(document.activeElement).toBe(field('a', 3))
+  await key(field('a', 3), 'ArrowUp', { ctrlKey: true })
+  expect(document.activeElement).toBe(field('b', 0))
+})
+it('keeps Ctrl arrows within the last page, including empty boundary lines and repeated keys', async () => {
+  await act(async () => field('b', 1).focus())
+  await key(field('b', 1), 'ArrowDown', { ctrlKey: true })
+  await key(field('b', 3), 'ArrowDown', { ctrlKey: true, repeat: true })
+  expect(document.activeElement).toBe(field('b', 3))
+  expect(field('b', 3).selectionStart).toBe(0)
+  expect(score.scoreEntries).toHaveLength(2)
+})
+it('leaves composition and other Ctrl arrow combinations alone', async () => {
+  await act(async () => field('a', 1).focus())
+  for (const options of [{ isComposing: true }, { keyCode: 229 }, { shiftKey: true }, { altKey: true }, { metaKey: true }]) {
+    await key(field('a', 1), 'ArrowDown', { ctrlKey: true, ...options })
+    expect(document.activeElement).toBe(field('a', 1))
+  }
+  expect(scroll).not.toHaveBeenCalled()
 })
 it('keeps selection after Esc, navigates without editing, and resumes with Enter', async () => {
   await act(async () => field('a', 0).focus())
