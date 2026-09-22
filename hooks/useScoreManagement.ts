@@ -98,7 +98,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     next.forEach((value, line) => {
       if (entry?.lyrics[line] !== value) inlineChangedLines.current.add(line)
     })
-    checkpointInlineEdit()
+    // Splits and multiline paste are separate operations from preceding typing.
+    saveCurrentState()
+    inlineHistorySaved.current = true
     setScoreEntries(prev => prev.map(entry => entry.id === id ? { ...entry, lyrics: next } : entry))
   }
 
@@ -154,7 +156,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
       return newHistory.slice(0, MAX_HISTORY)
     })
 
-    setInlineEditing(null)
+    // Keep the focused inline field active; the next edit starts a new history group.
+    inlineChangedLines.current.clear()
     inlineHistorySaved.current = false
 
     // Cancel any ongoing edit
@@ -190,7 +193,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
       return newHistory.slice(0, MAX_HISTORY)
     })
 
-    setInlineEditing(null)
+    // Keep the focused inline field active; the next edit starts a new history group.
+    inlineChangedLines.current.clear()
     inlineHistorySaved.current = false
 
     // Cancel any ongoing edit

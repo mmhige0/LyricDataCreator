@@ -3,6 +3,7 @@ import { act, useLayoutEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { InlineLyricsInput } from '../components/InlineLyricsInput'
+import { useKeyboardShortcuts, registerEditorKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useScoreManagement } from '../hooks/useScoreManagement'
 import { useDraftAutoSave } from '../hooks/useDraftAutoSave'
 import { adjacentLyricsPosition } from '../lib/lyricsNavigation'
@@ -20,6 +21,14 @@ function Harness() {
   const state = useScoreManagement({ currentTime: 0, currentPlayer: null })
   useDraftAutoSave({ youtubeUrl: '', songTitle: '', scoreEntries: state.scoreEntries })
   useLayoutEffect(() => { score = state })
+  const handler = useKeyboardShortcuts({
+    player: null, playSelectedPage: () => {},
+    getCurrentTimestamp: () => {}, addScoreEntry: state.addScoreEntry,
+    seekBackward1Second: () => {}, seekForward1Second: () => {},
+    lyricsInputRefs: state.lyricsInputRefs, timestampInputRef: state.timestampInputRef,
+    undoLastOperation: state.undoLastOperation, redoLastOperation: state.redoLastOperation,
+  })
+  useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
   return <>{state.scoreEntries.flatMap((entry, page) => entry.lyrics.map((_, line) => (
     <InlineLyricsInput key={`${entry.id}-${line}`} entry={entry} line={line} pageNumber={page + 1}
       selected={state.selectedLyrics?.id === entry.id && state.selectedLyrics.line === line}
@@ -253,4 +262,39 @@ it('inserts before a middle page and at zero without making negative timestamps'
   expect(score.scoreEntries[1].id).toBe('a')
   await act(async () => score.addEmptyScoreEntry('missing', 'before'))
   expect(score.scoreEntries).toHaveLength(4)
+})
+
+it('keeps arrow navigation usable after a playback shortcut leaves an unfinished IME event sequence', async () => {
+  await act(async () => field('a', 0).focus())
+  await key(field('a', 0), 'Process', { code: 'Space', keyCode: 229, ctrlKey: true, shiftKey: true })
+  await act(async () => field('a', 0).dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true })))
+  await key(field('a', 0), 'ArrowDown', { isComposing: true, keyCode: 229 })
+  expect(document.activeElement).toBe(field('a', 0))
+  await key(field('a', 0), 'ArrowDown')
+  expect(document.activeElement).toBe(field('a', 1))
+  await key(field('a', 1), 'ArrowUp')
+  expect(document.activeElement).toBe(field('a', 0))
+})
+it('undoes and redoes Enter splits while the next input stays focused', async () => {
+  await act(async () => score.setScoreEntries([{ id: 'a', timestamp: 0, lyrics: ['あいう', 'えお', '', ''] }]))
+  await act(async () => field('a', 0).focus())
+  await act(async () => score.changeInlineLyrics('a', 0, 'あいうか'))
+  field('a', 0).setSelectionRange(1, 1)
+  await key(field('a', 0), 'Enter')
+  const split = ['あ', 'いうか　えお', '', '']
+  expect(score.scoreEntries[0].lyrics).toEqual(split)
+  expect(document.activeElement).toBe(field('a', 1))
+  await key(field('a', 1), 'z', { ctrlKey: true })
+  expect(score.scoreEntries[0].lyrics).toEqual(['あいうか', 'えお', '', ''])
+  expect(score.inlineEditing).toEqual({ id: 'a', line: 1 })
+  await key(field('a', 1), 'y', { ctrlKey: true })
+  expect(score.scoreEntries[0].lyrics).toEqual(split)
+  await key(field('a', 1), 'z', { ctrlKey: true })
+  await key(field('a', 1), 'Z', { ctrlKey: true, shiftKey: true })
+  expect(score.scoreEntries[0].lyrics).toEqual(split)
+  await key(field('a', 1), 'z', { ctrlKey: true })
+  await act(async () => score.changeInlineLyrics('a', 1, '変更'))
+  expect(score.canRedo).toBe(false)
+  await key(field('a', 1), 'z', { ctrlKey: true })
+  expect(score.scoreEntries[0].lyrics).toEqual(['あいうか', 'えお', '', ''])
 })

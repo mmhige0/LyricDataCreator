@@ -121,7 +121,13 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
           actions.onFinish(entry.id, line, event.currentTarget.value)
         }}
         onKeyDown={event => {
-          if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) {
+          // A canceled IME shortcut may omit compositionend. Trust the next
+          // ordinary key event so a stale composition flag cannot trap navigation.
+          if (composing.current && !event.nativeEvent.isComposing && event.keyCode !== 229) {
+            composing.current = false
+            actions.onCompositionChange(false)
+          }
+          if (event.nativeEvent.isComposing || event.keyCode === 229) {
             event.stopPropagation()
             return
           }
