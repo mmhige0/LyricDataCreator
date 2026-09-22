@@ -96,6 +96,8 @@ export default function LyricsTypingApp() {
     saveEditScoreEntry,
     cancelEditScoreEntry,
     addScoreEntry,
+    addEmptyScoreEntry,
+    appendPageFromNavigation,
     getCurrentLyricsIndex,
     clearAllScoreEntries,
     undoLastOperation,
@@ -468,8 +470,10 @@ export default function LyricsTypingApp() {
 
               <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
                 <ScoreManagementSection
+                  addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
                   inlineActions={{
+                    onAppendPage: appendPageFromNavigation,
                     onSelect: selectLyricsPosition,
                     onNavigate: (position, direction, unit) => adjacentLyricsPosition(scoreEntries, position, direction, unit),
                     onStart: startInlineEdit,

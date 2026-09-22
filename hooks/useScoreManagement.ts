@@ -268,6 +268,33 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     lyricsInputRefs.current[0]?.focus()
   }
 
+  const addEmptyScoreEntry = (targetId?: string, position: 'before' | 'after' = 'after', line = 0, editing = true) => {
+    if (editingId) return
+    const targetIndex = targetId ? scoreEntries.findIndex(entry => entry.id === targetId) : scoreEntries.length - 1
+    if (targetId && targetIndex < 0) return
+    const index = targetId && position === 'before' ? targetIndex - 1 : targetIndex
+    const previous = scoreEntries[index]
+    const next = scoreEntries[index + 1]
+    const newEntry: ScoreEntry = {
+      id: `entry_${crypto.randomUUID()}`,
+      timestamp: previous ? (next ? previous.timestamp + (next.timestamp - previous.timestamp) / 2 : previous.timestamp + 1) : next ? Math.max(0, next.timestamp / 2) : 0,
+      lyrics: ['', '', '', ''],
+    }
+    saveCurrentState()
+    setScoreEntries(prev => [...prev.slice(0, index + 1), newEntry, ...prev.slice(index + 1)])
+    selectLyricsPosition({ id: newEntry.id, line })
+    requestAnimationFrame(() => {
+      const input = document.getElementById(`${editing ? 'lyrics' : 'lyrics-selection'}-${newEntry.id}-${line}`)
+      input?.focus({ preventScroll: true })
+      input?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    })
+  }
+
+  const appendPageFromNavigation = (lastId: string, line: number, editing: boolean) => {
+    if (scoreEntries.at(-1)?.id !== lastId || line < 0 || line > 3) return
+    addEmptyScoreEntry(lastId, 'after', line, editing)
+  }
+
   const getCurrentLyricsIndex = (): number => {
     if (!currentPlayer || scoreEntries.length === 0) return -1
 
@@ -319,6 +346,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveEditScoreEntry,
     cancelEditScoreEntry,
     addScoreEntry,
+    addEmptyScoreEntry,
+    appendPageFromNavigation,
     getCurrentLyricsIndex,
     clearAllScoreEntries,
     undoLastOperation,
@@ -328,4 +357,3 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     saveCurrentState
   }
 }
-

@@ -1,9 +1,11 @@
-import { useRef, type KeyboardEvent } from 'react'
+import { useRef, useLayoutEffect, type KeyboardEvent } from 'react'
+import { flushSync } from 'react-dom'
 import type { LyricsArray, ScoreEntry } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import { splitLyricsLine } from '@/lib/inlineLyrics'
 
 export interface InlineLyricsActions {
+  onAppendPage?: (lastId: string, line: number, editing: boolean) => void
   onSelect?: (position: LyricsPosition) => void
   onNavigate?: (position: LyricsPosition, direction: -1 | 1, unit: 'line' | 'page') => LyricsPosition | null
   onStart: (id: string, line: number) => void
@@ -22,6 +24,8 @@ interface InlineLyricsInputProps {
 }
 
 export function InlineLyricsInput({ entry, line, pageNumber, actions, selected = false }: InlineLyricsInputProps) {
+  const latestActions = useRef(actions)
+  useLayoutEffect(() => { latestActions.current = actions }, [actions])
   const composing = useRef(false)
   const selectionRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -31,7 +35,15 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
     event.preventDefault()
     event.stopPropagation()
     const target = actions.onNavigate({ id: entry.id, line }, event.key === 'ArrowUp' ? -1 : 1, event.altKey ? 'page' : 'line')
-    if (!target) return
+    if (!target) {
+      if (event.key === 'ArrowDown' && !event.repeat && actions.onAppendPage) {
+        const nextLine = event.altKey ? line : 0
+        // Commit blur normalization and sorting before creating the undo snapshot.
+        if (editing) flushSync(() => inputRef.current?.blur())
+        latestActions.current.onAppendPage?.(entry.id, nextLine, editing)
+      }
+      return
+    }
     const caret = inputRef.current?.selectionStart ?? 0
     // Blur commits normalization first. IDs remain stable even if F2 reorders pages.
     if (editing) inputRef.current?.blur()

@@ -30,10 +30,13 @@ export const useAutoScroll = ({ getCurrentLyricsIndex, scoreEntries, enabled, on
       if (currentEntryRef && scrollContainer) {
         lastAutoScrollIndexRef.current = currentIndex
 
-        // Calculate position within scroll container
-        const entryOffsetTop = currentEntryRef.offsetTop
+        // Use viewport geometry to get content coordinates. offsetTop is relative
+        // to the nearest positioned ancestor, which may be a per-page wrapper.
+        const entryRect = currentEntryRef.getBoundingClientRect()
+        const containerRect = scrollContainer.getBoundingClientRect()
+        const entryOffsetTop = entryRect.top - containerRect.top - scrollContainer.clientTop + scrollContainer.scrollTop
         const containerHeight = scrollContainer.clientHeight
-        const entryHeight = currentEntryRef.clientHeight
+        const entryHeight = entryRect.height
 
         // Calculate target scroll position to center the entry
         const targetScrollTop = entryOffsetTop - (containerHeight / 2) + (entryHeight / 2)
