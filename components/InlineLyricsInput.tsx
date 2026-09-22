@@ -7,7 +7,7 @@ import { splitLyricsLine } from '@/lib/inlineLyrics'
 export interface InlineLyricsActions {
   onAppendPage?: (lastId: string, line: number, editing: boolean) => void
   onSelect?: (position: LyricsPosition) => void
-  onNavigate?: (position: LyricsPosition, direction: -1 | 1, unit: 'line' | 'page') => LyricsPosition | null
+  onNavigate?: (position: LyricsPosition, direction: -1 | 1, unit: 'line' | 'page' | 'document') => LyricsPosition | null
   onStart: (id: string, line: number) => void
   onChange: (id: string, line: number, value: string) => void
   onReplace: (id: string, lyrics: LyricsArray) => void
@@ -30,13 +30,16 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
   const selectionRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = (event: KeyboardEvent<HTMLElement>, editing: boolean) => {
-    if ((event.key !== 'ArrowUp' && event.key !== 'ArrowDown') || event.ctrlKey || event.metaKey || event.shiftKey) return
+    if ((event.key !== 'ArrowUp' && event.key !== 'ArrowDown') || event.metaKey || event.shiftKey || (event.ctrlKey && event.altKey)) return
     if (!actions.onNavigate) return
     event.preventDefault()
     event.stopPropagation()
-    const target = actions.onNavigate({ id: entry.id, line }, event.key === 'ArrowUp' ? -1 : 1, event.altKey ? 'page' : 'line')
+    const direction = event.key === 'ArrowUp' ? -1 : 1
+    // Resolve document boundaries after blur has committed normalization and sorting.
+    if (event.ctrlKey && editing) flushSync(() => inputRef.current?.blur())
+    const target = latestActions.current.onNavigate?.({ id: entry.id, line }, direction, event.ctrlKey ? 'document' : event.altKey ? 'page' : 'line')
     if (!target) {
-      if (event.key === 'ArrowDown' && !event.repeat && actions.onAppendPage) {
+      if (!event.ctrlKey && event.key === 'ArrowDown' && !event.repeat && actions.onAppendPage) {
         const nextLine = event.altKey ? line : 0
         // Commit blur normalization and sorting before creating the undo snapshot.
         if (editing) flushSync(() => inputRef.current?.blur())
@@ -52,7 +55,7 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
       if (!element) return
       element.focus({ preventScroll: true })
       if (element instanceof HTMLInputElement) {
-        const nextCaret = Math.min(caret, element.value.length)
+        const nextCaret = event.ctrlKey ? (direction === -1 ? 0 : element.value.length) : Math.min(caret, element.value.length)
         element.setSelectionRange(nextCaret, nextCaret)
       }
       element.scrollIntoView({ block: 'nearest', inline: 'nearest' })

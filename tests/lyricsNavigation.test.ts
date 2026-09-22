@@ -9,6 +9,14 @@ const pages: ScoreEntry[] = [
 ]
 
 describe('lyrics navigation', () => {
+  it('jumps to document boundaries in display order, including a single page', () => {
+    expect(adjacentLyricsPosition(pages, { id: 'b', line: 2 }, -1, 'document')).toEqual({ id: 'a', line: 0 })
+    expect(adjacentLyricsPosition(pages, { id: 'a', line: 0 }, 1, 'document')).toEqual({ id: 'c', line: 3 })
+    expect(adjacentLyricsPosition([pages[2], pages[0], pages[1]], { id: 'a', line: 1 }, 1, 'document')).toEqual({ id: 'b', line: 3 })
+    expect(adjacentLyricsPosition([pages[0]], { id: 'a', line: 2 }, 1, 'document')).toEqual({ id: 'a', line: 3 })
+    expect(adjacentLyricsPosition([], { id: 'a', line: 1 }, 1, 'document')).toBeNull()
+    expect(adjacentLyricsPosition(pages, { id: 'deleted', line: 1 }, -1, 'document')).toBeNull()
+  })
   it('moves through empty lines and across page boundaries', () => {
     expect(adjacentLyricsPosition(pages, { id: 'a', line: 0 }, 1, 'line')).toEqual({ id: 'a', line: 1 })
     expect(adjacentLyricsPosition(pages, { id: 'a', line: 3 }, 1, 'line')).toEqual({ id: 'b', line: 0 })
