@@ -268,7 +268,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     lyricsInputRefs.current[0]?.focus()
   }
 
-  const addEmptyScoreEntry = (targetId?: string, position: 'before' | 'after' = 'after') => {
+  const addEmptyScoreEntry = (targetId?: string, position: 'before' | 'after' = 'after', line = 0, editing = true) => {
     if (editingId) return
     const targetIndex = targetId ? scoreEntries.findIndex(entry => entry.id === targetId) : scoreEntries.length - 1
     if (targetId && targetIndex < 0) return
@@ -282,12 +282,17 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     }
     saveCurrentState()
     setScoreEntries(prev => [...prev.slice(0, index + 1), newEntry, ...prev.slice(index + 1)])
-    selectLyricsPosition({ id: newEntry.id, line: 0 })
+    selectLyricsPosition({ id: newEntry.id, line })
     requestAnimationFrame(() => {
-      const input = document.getElementById(`lyrics-${newEntry.id}-0`)
+      const input = document.getElementById(`${editing ? 'lyrics' : 'lyrics-selection'}-${newEntry.id}-${line}`)
       input?.focus({ preventScroll: true })
       input?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
     })
+  }
+
+  const appendPageFromNavigation = (lastId: string, line: number, editing: boolean) => {
+    if (scoreEntries.at(-1)?.id !== lastId || line < 0 || line > 3) return
+    addEmptyScoreEntry(lastId, 'after', line, editing)
   }
 
   const getCurrentLyricsIndex = (): number => {
@@ -342,6 +347,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     cancelEditScoreEntry,
     addScoreEntry,
     addEmptyScoreEntry,
+    appendPageFromNavigation,
     getCurrentLyricsIndex,
     clearAllScoreEntries,
     undoLastOperation,

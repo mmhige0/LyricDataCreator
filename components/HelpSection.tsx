@@ -93,7 +93,7 @@ export const HelpSection: React.FC = () => {
             { keys: ['Alt', '↑'], description: '前のページへ移動' },
             { keys: ['Alt', '↓'], description: '次のページへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
-            { keys: ['Ctrl', 'Enter'], description: 'ページ追加／編集終了（一覧では編集終了後、もう一度押すと直後に空ページを追加）' },
+            { keys: ['Ctrl', 'Enter'], description: 'ページ追加／編集終了' },
             { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
             { keys: ['Ctrl', 'Z'], description: '元に戻す' },
             { keys: ['Ctrl', 'Y'], description: 'やり直す' },
@@ -121,9 +121,6 @@ export const HelpSection: React.FC = () => {
       </div>
 
       {/* 4. Other Features */}
-      <p className="mb-6 text-sm text-muted-foreground">
-        一覧から追加した空ページの時刻は、前後のページの中間（末尾では1秒後、最初のページは0秒）に仮設定されます。F2で動画の現在時刻に更新できます。
-      </p>
       <div className="mb-8">
         <div className="text-xl font-semibold text-foreground mb-4 border-b border-border pb-2">その他の機能</div>
 

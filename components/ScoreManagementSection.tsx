@@ -236,18 +236,6 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col min-h-0">
-        {!readOnly && addEmptyScoreEntry && (
-          <div className="mb-4 space-y-2">
-            {scoreEntries.length === 0 && (
-              <Button type="button" variant="outline" className="flex mx-auto h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary" aria-label="空ページを追加" title="空ページを追加" disabled={Boolean(editingId)} onClick={() => addEmptyScoreEntry()}>
-                <Plus className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            )}
-            <p className="text-xs text-muted-foreground">
-              一覧で編集終了後、<kbd className="px-1 py-0.5 bg-muted border border-border rounded font-mono">Ctrl</kbd> + <kbd className="px-1 py-0.5 bg-muted border border-border rounded font-mono">Enter</kbd> で選択ページの直後に追加
-            </p>
-          </div>
-        )}
         {/* 動画の総時間表示とUndo/Redoボタン */}
         {!readOnly && (
           <div className="mb-4 flex items-center justify-between">
@@ -299,9 +287,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
         )}
 
         {scoreEntries.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">
+          <div className="pr-2">
+            <div className="relative pt-12 pb-8 text-center text-muted-foreground">
+            {!readOnly && addEmptyScoreEntry && (
+              <Button type="button" variant="outline" className="absolute left-1/2 -translate-x-1/2 top-2 h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary" aria-label="空ページを追加" title="空ページを追加" disabled={Boolean(editingId)} onClick={() => addEmptyScoreEntry()}>
+                <Plus className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
             ページがありません。{addEmptyScoreEntry && !readOnly ? '「＋」から空ページを追加できます。' : '歌詞を入力して追加してください。'}
-          </p>
+            </div>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col min-h-0">
             <div

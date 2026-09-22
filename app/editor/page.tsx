@@ -97,6 +97,7 @@ export default function LyricsTypingApp() {
     cancelEditScoreEntry,
     addScoreEntry,
     addEmptyScoreEntry,
+    appendPageFromNavigation,
     getCurrentLyricsIndex,
     clearAllScoreEntries,
     undoLastOperation,
@@ -472,7 +473,7 @@ export default function LyricsTypingApp() {
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
                   inlineActions={{
-                    onAddPage: addEmptyScoreEntry,
+                    onAppendPage: appendPageFromNavigation,
                     onSelect: selectLyricsPosition,
                     onNavigate: (position, direction, unit) => adjacentLyricsPosition(scoreEntries, position, direction, unit),
                     onStart: startInlineEdit,
