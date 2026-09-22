@@ -97,22 +97,26 @@ export const useKeyboardShortcuts = ({
       return
     }
 
-    // Ctrl+Z: 入力フィールド内ではブラウザネイティブのUndo、それ以外ではアプリレベルのUndo
+    // Inline lyrics span multiple inputs, so use the shared application history.
+    const isInlineLyrics = activeElement instanceof HTMLElement && activeElement.hasAttribute('data-inline-lyrics')
+
+    // Other text fields retain native undo.
     if (event.ctrlKey && (event.key === "z" || event.key === "Z")) {
-      if (isInputFocused) {
+      if (isInputFocused && !isInlineLyrics) {
         // 入力フィールド内ではブラウザのデフォルト動作を許可
         return
       }
       event.preventDefault()
       if (undoLastOperation) {
-        undoLastOperation()
+        if (event.shiftKey) redoLastOperation?.()
+        else undoLastOperation()
       }
       return
     }
 
     // Ctrl+Y: 入力フィールド内ではブラウザネイティブのRedo、それ以外ではアプリレベルのRedo
     if (event.ctrlKey && (event.key === "y" || event.key === "Y")) {
-      if (isInputFocused) {
+      if (isInputFocused && !isInlineLyrics) {
         // 入力フィールド内ではブラウザのデフォルト動作を許可
         return
       }
