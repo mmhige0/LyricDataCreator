@@ -55,7 +55,7 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
       if (!element) return
       element.focus({ preventScroll: true })
       if (element instanceof HTMLInputElement) {
-        const nextCaret = event.ctrlKey ? (direction === -1 ? 0 : element.value.length) : Math.min(caret, element.value.length)
+        const nextCaret = event.ctrlKey ? 0 : Math.min(caret, element.value.length)
         element.setSelectionRange(nextCaret, nextCaret)
       }
       element.scrollIntoView({ block: 'nearest', inline: 'nearest' })
