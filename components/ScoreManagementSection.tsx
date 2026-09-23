@@ -20,10 +20,11 @@ interface EntryDisplayProps {
   pageNumber: number
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
+  showTotalKpm: boolean
   kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics, showTotalKpm }) => {
   return (
     <div className="flex items-stretch gap-3">
       <div className="min-w-0 flex-1 space-y-0.5">
@@ -49,7 +50,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
         )
       })}
       </div>
-      {kpmData && <div className="flex w-20 shrink-0 items-center justify-end border-l pl-2 text-right text-sm tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
+      {showTotalKpm && kpmData && <div className="flex w-20 shrink-0 items-end justify-end border-l pl-2 text-right text-xs tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
         {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
       </div>}
     </div>
@@ -313,7 +314,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         </div>}
                       </div>
                       <div className={`${readOnly ? 'text-base' : 'col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1'} min-w-0 ${isCurrentlyPlaying ? 'font-semibold text-primary' : ''}`}>
-                        <EntryDisplay selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
+                        <EntryDisplay showTotalKpm={!readOnly} selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
                       </div>
                       {!readOnly && <div className="col-start-2 row-start-1 sm:col-start-3">
                         <PageActionsMenu pageNumber={displayPageNumber} empty={entry.lyrics.every(line => !line.trim())}
