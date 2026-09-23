@@ -23,6 +23,7 @@ function Harness() {
   useLayoutEffect(() => { score = state })
   const handler = useKeyboardShortcuts({
     player: null, playSelectedPage: () => {},
+    addPage: () => state.addEmptyScoreEntry(),
     deleteSelectedPage: () => { if (state.selectedLyrics) state.deleteScoreEntry(state.selectedLyrics.id) },
     getCurrentTimestamp: () => {},
     seekBackward1Second: () => {}, seekForward1Second: () => {},
@@ -164,12 +165,21 @@ it('updates the selected page timestamp after editing ends and preserves selecti
   expect(score.scoreEntries.find(entry => entry.id === 'a')?.timestamp).toBe(0)
 })
 
-it('Ctrl+Enter leaves editing active and never adds a page', async () => {
-  await act(async () => field('b', 3).focus())
-  await key(field('b', 3), 'Enter', { ctrlKey: true })
-  await key(document.activeElement as HTMLElement, 'Enter', { ctrlKey: true })
-  expect(score.scoreEntries).toHaveLength(2)
-  expect(score.inlineEditing).toEqual({ id: 'b', line: 3 })
+it('Ctrl+Enter adds chronologically after committing the field, focuses it and preserves undo', async () => {
+  await act(async () => field('b', 1).focus())
+  await act(async () => score.changeInlineLyrics('b', 1, 'カナ'))
+  await key(field('b', 1), 'Enter', { ctrlKey: true })
+  await act(async () => { frames.splice(0).forEach(fn => fn(0)) })
+  const added = score.scoreEntries[1]
+  expect(score.scoreEntries.map(e => e.timestamp)).toEqual([0, 0, 10])
+  expect(document.activeElement).toBe(field(added.id, 0))
+  expect(score.scoreEntries[2].lyrics[1]).toBe('かな')
+  await key(field(added.id, 0), 'Enter', { ctrlKey: true, repeat: true })
+  await key(field(added.id, 0), 'Enter', { ctrlKey: true, isComposing: true })
+  expect(score.scoreEntries).toHaveLength(3)
+  await key(field(added.id, 0), 'z', { ctrlKey: true })
+  expect(score.scoreEntries.map(e => e.id)).toEqual(['a', 'b'])
+  expect(score.scoreEntries[1].lyrics[1]).toBe('かな')
 })
 it('appends on Down from the last line, normalizes before the undo snapshot, and saves', async () => {
   await act(async () => field('b', 3).focus())

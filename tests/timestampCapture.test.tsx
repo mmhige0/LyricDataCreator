@@ -66,3 +66,22 @@ it('clamps capture at zero/duration and rounds seconds', () => {
   expect(captureTimestamp(119.9, 0.5, 120)).toBe(120)
   expect(captureTimestamp(10.456, -0.15, 0)).toBe(10.31)
 })
+
+it('inserts plus-button pages by captured timestamp, including ties and earlier times', async () => {
+  await act(async () => root.render(<Harness />))
+  await act(async () => score.setScoreEntries([
+    { id: 'a', timestamp: 10, lyrics: ['', '', '', ''] },
+    { id: 'b', timestamp: 40, lyrics: ['', '', '', ''] },
+  ]))
+  await act(async () => score.addEmptyScoreEntry())
+  expect(score.scoreEntries.map(e => e.timestamp)).toEqual([10, 29.85, 40])
+  const middle = score.selectedLyrics!.id
+  time.mockReturnValue(10.15)
+  await act(async () => score.addEmptyScoreEntry())
+  expect(score.scoreEntries.map(e => e.timestamp)).toEqual([10, 10, 29.85, 40])
+  expect(score.scoreEntries[0].id).toBe('a')
+  time.mockReturnValue(0)
+  await act(async () => score.addEmptyScoreEntry())
+  expect(score.scoreEntries[0].timestamp).toBe(0)
+  expect(score.scoreEntries[3].id).toBe(middle)
+})

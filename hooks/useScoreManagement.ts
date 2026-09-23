@@ -230,7 +230,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
       lyrics: ['', '', '', ''],
     }
     saveCurrentState()
-    setScoreEntries(prev => [...prev.slice(0, index + 1), newEntry, ...prev.slice(index + 1)])
+    setScoreEntries(prev => targetId
+      ? [...prev.slice(0, index + 1), newEntry, ...prev.slice(index + 1)]
+      : [...prev, newEntry].sort((a, b) => a.timestamp - b.timestamp))
     selectLyricsPosition({ id: newEntry.id, line })
     requestAnimationFrame(() => {
       const input = document.getElementById(`${editing ? 'lyrics' : 'lyrics-selection'}-${newEntry.id}-${line}`)
