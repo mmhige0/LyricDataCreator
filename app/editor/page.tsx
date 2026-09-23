@@ -389,7 +389,7 @@ export default function LyricsTypingApp() {
           </div>
         ) : (
           <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab">
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.4fr)] gap-6 lg:items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.25fr)] gap-6 lg:items-start">
               <div className="space-y-6" id="left-column">
                 <YouTubeVideoSection
                   youtubeUrl={youtubeUrl}
