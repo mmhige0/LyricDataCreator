@@ -25,7 +25,8 @@ interface EntryDisplayProps {
 
 const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics }) => {
   return (
-    <div className="space-y-0.5">
+    <div className="flex items-stretch gap-3">
+      <div className="min-w-0 flex-1 space-y-0.5">
       {entry.lyrics.map((line, lineIndex) => {
         const lineKpm = kpmData?.lines[lineIndex]
         return (
@@ -47,7 +48,8 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
           </div>
         )
       })}
-      {kpmData && <div className="mt-1 text-right text-xs tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
+      </div>
+      {kpmData && <div className="flex w-20 shrink-0 items-center justify-end border-l pl-2 text-right text-sm tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
         {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
       </div>}
     </div>
@@ -299,7 +301,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                   >
                     <div className={readOnly ? 'space-y-2' : 'grid grid-cols-[minmax(0,1fr)_2rem] gap-x-2 gap-y-1 sm:grid-cols-[9.25rem_minmax(0,1fr)_2rem]'}>
                       <div className="col-start-1 row-start-1 flex flex-wrap items-center gap-2 sm:block">
-                        <div className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground sm:mb-1">
+                        <div className="flex items-center gap-2 text-sm tabular-nums text-muted-foreground sm:mb-1">
                           <span>#{displayPageNumber}</span>
                           {!readOnly && scoreEntries[index + 1] && <span title="次のページまでの時間">{(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s</span>}
                           {isCurrentlyPlaying && <span aria-label="再生中" title="再生中" className="text-primary">▶</span>}
