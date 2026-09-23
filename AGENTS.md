@@ -31,7 +31,8 @@
 
 ## Commit & Pull Request Guidelines
 - Write concise, imperative commit messages in `type: Title` format (e.g., `feat: Add timing export controls`); group related changes.
-- For PRs, include: summary of behavior change, linked issue/feature, and manual test notes. Add screenshots or clips for UI-facing updates.
+- For PRs, include: summary of behavior change, linked issue/feature, and manual test notes.
+- For UI changes, attach screenshots or clips to the PR description or discussion so reviewers can see them. Do not commit review-only screenshots or recordings to the repository. Commit images or videos only when they are actual application assets or test fixtures needed by the project.
 - Ensure `npm run test` passes before requesting review; mention any skipped checks or follow-ups explicitly.
 - Always run the app verification and lint checks before committing, and do not commit without explicit approval.
 
