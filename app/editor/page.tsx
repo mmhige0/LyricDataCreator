@@ -11,8 +11,9 @@ import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
-import { LyricsEditCard } from "@/components/LyricsEditCard"
+import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
+import { EditorShortcuts } from "@/components/EditorShortcuts"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
@@ -63,7 +64,6 @@ export default function LyricsTypingApp() {
     seekTo,
     seekToAndPlay,
     getCurrentTimestamp,
-    seekToInput,
     resetPlayer,
   } = useYouTube()
 
@@ -76,26 +76,12 @@ export default function LyricsTypingApp() {
     replaceInlineLyrics,
     finishInlineEdit,
     updateInlineTimestamp,
+    replacePageLyrics,
     scoreEntries,
     setScoreEntries,
-    lyrics,
-    setLyrics,
-    timestamp,
-    setTimestamp,
-    editingId,
-    editingLyrics,
-    setEditingLyrics,
-    editingTimestamp,
-    setEditingTimestamp,
     timestampOffset,
     setTimestampOffset,
-    lyricsInputRefs,
-    timestampInputRef,
     deleteScoreEntry,
-    startEditScoreEntry,
-    saveEditScoreEntry,
-    cancelEditScoreEntry,
-    addScoreEntry,
     addEmptyScoreEntry,
     appendPageFromNavigation,
     getCurrentLyricsIndex,
@@ -108,33 +94,23 @@ export default function LyricsTypingApp() {
   } = useScoreManagement({ currentTime, currentPlayer: player })
 
   const handleGetCurrentTimestamp = useCallback(() => {
-    const timestampValue = getCurrentTimestamp(timestampOffset)
-    if (inlineEditing) {
-      updateInlineTimestamp(timestampValue)
-    } else if (selectedLyrics && document.activeElement?.closest('[data-lyrics-navigation]')) {
-      updateInlineTimestamp(timestampValue, selectedLyrics.id)
-      requestAnimationFrame(() => document.getElementById(`lyrics-selection-${selectedLyrics.id}-${selectedLyrics.line}`)?.focus({ preventScroll: true }))
-    } else if (editingId) {
-      setEditingTimestamp(timestampValue)
-    } else {
-      setTimestamp(timestampValue)
-    }
-  }, [getCurrentTimestamp, timestampOffset, inlineEditing, selectedLyrics, updateInlineTimestamp, editingId, setTimestamp, setEditingTimestamp])
+    if (!player) return
+    const focusedPage = document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id')
+    const id = focusedPage ?? selectedLyrics?.id
+    if (id) updateInlineTimestamp(getCurrentTimestamp(timestampOffset), id)
+  }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp])
 
   const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
-
+  const pasteTargetRef = useRef(replacePageLyrics)
+  useEffect(() => { pasteTargetRef.current = replacePageLyrics }, [replacePageLyrics])
   const handlePasteLyrics = useCallback(async () => {
+    const entry = scoreEntries.find(item => item.id === selectedLyrics?.id)
+    if (!entry) return
     const pastedLyrics = await pasteLyricsFromClipboard()
-    if (pastedLyrics) {
-      if (inlineEditing) {
-        replaceInlineLyrics(inlineEditing.id, pastedLyrics)
-      } else if (editingId) {
-        setEditingLyrics(pastedLyrics)
-      } else {
-        setLyrics(pastedLyrics)
-      }
+    if (pastedLyrics && !pasteTargetRef.current(entry.id, pastedLyrics, entry.lyrics)) {
+      toast.info('歌詞が変更されたため、貼り付けを中止しました。')
     }
-  }, [pasteLyricsFromClipboard, inlineEditing, replaceInlineLyrics, editingId, setEditingLyrics, setLyrics])
+  }, [pasteLyricsFromClipboard, scoreEntries, selectedLyrics])
 
   const handleBulkTimingAdjust = useCallback(
     (offsetSeconds: number) => {
@@ -174,19 +150,13 @@ export default function LyricsTypingApp() {
     player,
     playSelectedPage: () => {
       const focused = document.activeElement
-      if (!player || !(focused instanceof Element) || !focused.closest('[data-lyrics-navigation], [data-lyrics-edit-form]')) return
-      const focusedEditingId = focused.closest('[data-lyrics-edit-form]') ? editingId : null
-      const time = pagePlaybackTimestamp(scoreEntries, selectedLyrics?.id ?? null, focusedEditingId, editingTimestamp)
+      if (!player || !(focused instanceof Element)) return
+      const time = pagePlaybackTimestamp(scoreEntries, focused.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id ?? null)
       if (time !== null) seekToAndPlay(time)
     },
     getCurrentTimestamp: handleGetCurrentTimestamp,
-    addScoreEntry,
-    saveScoreEntry: saveEditScoreEntry,
-    editingId,
     seekBackward1Second,
     seekForward1Second,
-    lyricsInputRefs,
-    timestampInputRef,
     timestampOffset,
     pasteLyrics: handlePasteLyrics,
     undoLastOperation,
@@ -419,7 +389,7 @@ export default function LyricsTypingApp() {
           </div>
         ) : (
           <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.25fr)] gap-6 lg:items-start">
               <div className="space-y-6" id="left-column">
                 <YouTubeVideoSection
                   youtubeUrl={youtubeUrl}
@@ -448,27 +418,12 @@ export default function LyricsTypingApp() {
                   seekTo={seekTo}
                 />
 
-                <LyricsEditCard
-                  lyrics={lyrics}
-                  setLyrics={setLyrics}
-                  timestamp={timestamp}
-                  setTimestamp={setTimestamp}
-                  player={player}
-                  seekToInput={seekToInput}
-                  mode="add"
-                  isDisabled={Boolean(editingId)}
-                  disabledReason="ページ編集中"
-                  onAdd={addScoreEntry}
-                  lyricsInputRefs={lyricsInputRefs}
-                  timestampInputRef={timestampInputRef}
-                  timestampOffset={timestampOffset}
-                  setTimestampOffset={setTimestampOffset}
-                  getCurrentTimestamp={getCurrentTimestamp}
-                  saveCurrentState={saveCurrentState}
-                />
+                <TimestampOffsetControl value={timestampOffset} onChange={setTimestampOffset} />
+                <EditorShortcuts />
+                <HelpSection />
               </div>
 
-              <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+              <div className="min-w-0 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
                 <ScoreManagementSection
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
@@ -486,19 +441,13 @@ export default function LyricsTypingApp() {
                   scoreEntries={scoreEntries}
                   duration={duration}
                   player={player}
-                  editingId={editingId}
-                  editingLyrics={editingLyrics}
-                  setEditingLyrics={setEditingLyrics}
-                  editingTimestamp={editingTimestamp}
-                  setEditingTimestamp={setEditingTimestamp}
-                  saveEditScoreEntry={saveEditScoreEntry}
-                  cancelEditScoreEntry={cancelEditScoreEntry}
-                  saveCurrentState={saveCurrentState}
+                  onTimestampCapture={id => updateInlineTimestamp(getCurrentTimestamp(timestampOffset), id)}
+                  onTimestampChange={updateInlineTimestamp}
+                  onReplacePageLyrics={replacePageLyrics}
                   getCurrentLyricsIndex={getCurrentLyricsIndex}
                   importScoreData={importScoreData}
                   exportScoreData={handleExport}
                   deleteScoreEntry={deleteScoreEntry}
-                  startEditScoreEntry={startEditScoreEntry}
                   clearAllScoreEntries={clearAllScoreEntries}
                   seekToAndPlay={seekToAndPlay}
                   bulkAdjustTimings={handleBulkTimingAdjust}
@@ -510,9 +459,7 @@ export default function LyricsTypingApp() {
               </div>
             </div>
 
-            <section className="mt-8">
-              <HelpSection />
-            </section>
+
           </div>
         )}
       </main>

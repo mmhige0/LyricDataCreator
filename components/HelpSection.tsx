@@ -3,9 +3,9 @@ import { HelpCircle, ChevronDown } from 'lucide-react'
 
 export const HelpSection: React.FC = () => {
   return (
-    <details className="mt-8 max-w-[1600px] mx-auto px-8 group">
-      <summary className="text-2xl font-semibold text-foreground flex items-center gap-3 cursor-pointer list-none select-none">
-        <HelpCircle className="h-7 w-7 text-primary" />
+    <details className="rounded-lg border bg-card p-4 group">
+      <summary className="text-base font-semibold text-foreground flex items-center gap-3 cursor-pointer list-none select-none">
+        <HelpCircle className="h-5 w-5 text-primary" />
         操作ガイド
         <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
       </summary>
@@ -13,30 +13,31 @@ export const HelpSection: React.FC = () => {
 
       {/* 1. Basic Usage */}
       <div className="mb-8">
-        <div className="text-xl font-semibold text-foreground mb-4 border-b border-border pb-2">データ作成の流れ</div>
-        <div className="text-lg text-muted-foreground">
+        <div className="text-base font-semibold text-foreground mb-4 border-b border-border pb-2">データ作成の流れ</div>
+        <div className="text-sm text-muted-foreground">
           <ol className="list-decimal ml-4 space-y-1">
             <li>作成する曲のYouTubeのURLを入力し、「読み込み」をクリック</li>
+            <li>一覧下部の「＋」で空ページを追加し、歌詞を入力</li>
             <li>動画を再生し、ページを表示したいタイミングで<kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded font-mono text-foreground">F2</kbd>キーでタイムスタンプを入力<br />
               💡 入力されるタイミングは「補正」で微調整できます（-0.2〜-0.1秒がおすすめ）</li>
-            <li>歌詞（最大4行）を入力し、「ページ追加」をクリック（歌詞のないページを追加する場合は、4行とも空行にして追加）</li>
-            <li>2,3を繰り返して、すべてのページを追加し終わったら、「エクスポート」をクリック</li>
+            <li>歌詞と時刻は一覧で直接編集できます。歌詞のないページは4行とも空欄にします</li>
+            <li>追加と編集を繰り返して、すべてのページを追加し終わったら、「エクスポート」をクリック</li>
           </ol>
         </div>
       </div>
 
       {/* 2. File Operations */}
       <div className="mb-8">
-        <div className="text-xl font-semibold text-foreground mb-4 border-b border-border pb-2">ファイル操作</div>
+        <div className="text-base font-semibold text-foreground mb-4 border-b border-border pb-2">ファイル操作</div>
 
         {/* Import/Export Information */}
         <div className="mb-6">
-          <div className="text-lg font-medium text-foreground mb-3">インポート・エクスポート</div>
-          <div className="text-lg text-muted-foreground">
+          <div className="text-sm font-medium text-foreground mb-3">インポート・エクスポート</div>
+          <div className="text-sm text-muted-foreground">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted/50">
-                  <th className="text-left py-2 pr-4 font-medium w-48 border-b border-border pl-2 text-foreground">操作</th>
+                  <th className="text-left py-2 pr-4 font-medium w-24 border-b border-border pl-2 text-foreground">操作</th>
                   <th className="text-left py-2 font-medium border-b border-border pl-2 text-foreground">対応形式・備考</th>
                 </tr>
               </thead>
@@ -66,8 +67,8 @@ export const HelpSection: React.FC = () => {
 
         {/* File Format Information */}
         <div className="mb-6">
-          <div className="text-lg font-medium text-foreground mb-2">ファイルフォーマット <span className="font-mono text-sm bg-primary/10 text-primary px-2 py-1 rounded">.txt</span></div>
-          <div className="text-lg text-muted-foreground">
+          <div className="text-sm font-medium text-foreground mb-2">ファイルフォーマット <span className="font-mono text-sm bg-primary/10 text-primary px-2 py-1 rounded">.txt</span></div>
+          <div className="text-sm text-muted-foreground">
             <div className="font-mono text-sm bg-muted p-4 rounded mb-3 text-foreground">
               <div className="text-primary">120.5</div>
               <div>最初の歌詞/!/!/!/12.50</div>
@@ -78,59 +79,15 @@ export const HelpSection: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. Controls and Shortcuts */}
-      <div className="mb-8">
-        <div className="text-xl font-semibold text-foreground mb-4 border-b border-border pb-2">ショートカットキー</div>
-
-        {[
-          { title: '動画再生', shortcuts: [
-            { keys: ['Ctrl', 'Space'], description: '再生/一時停止' },
-            { keys: ['Ctrl', 'Shift', 'Space'], description: '選択・編集中のページを頭出し再生' },
-            { keys: ['Ctrl', '←'], description: '1秒巻き戻し' },
-            { keys: ['Ctrl', '→'], description: '1秒早送り' },
-          ] },
-          { title: 'ページ操作', shortcuts: [
-            { keys: ['Ctrl', '↑'], description: '最初のページの1行目へ移動' },
-            { keys: ['Ctrl', '↓'], description: '最後のページの4行目へ移動' },
-            { keys: ['Alt', '↑'], description: '前のページへ移動' },
-            { keys: ['Alt', '↓'], description: '次のページへ移動' },
-            { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
-            { keys: ['Ctrl', 'Enter'], description: 'ページ追加／編集終了' },
-            { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
-            { keys: ['Ctrl', 'Z'], description: '元に戻す' },
-            { keys: ['Ctrl', 'Y'], description: 'やり直す' },
-          ] },
-        ].map(group => (
-          <div key={group.title} className="mb-6">
-            <div className="text-lg font-medium text-foreground mb-3">{group.title}</div>
-            <div className="grid grid-cols-1 gap-3">
-              {group.shortcuts.map(({ keys, description }) => (
-                <div key={keys.join('+')} className="flex flex-wrap items-center gap-3 p-2 rounded hover:bg-muted/50">
-                  <div className="flex items-center gap-1 w-[220px] shrink-0">
-                    {keys.map((key, index) => (
-                      <React.Fragment key={key}>
-                        {index > 0 && <span className="text-sm text-muted-foreground">+</span>}
-                        <kbd className="px-2 py-1.5 text-sm bg-muted border border-border rounded font-mono text-center text-foreground">{key}</kbd>
-                      </React.Fragment>
-                    ))}
-                  </div>
-                  <span className="text-base text-foreground">{description}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* 4. Other Features */}
       <div className="mb-8">
-        <div className="text-xl font-semibold text-foreground mb-4 border-b border-border pb-2">その他の機能</div>
+        <div className="text-base font-semibold text-foreground mb-4 border-b border-border pb-2">その他の機能</div>
 
         {/* Text Processing Information */}
         <div className="mb-6">
-          <div className="text-lg font-medium text-foreground mb-2">歌詞変換</div>
-          <div className="text-lg text-muted-foreground">
-            <div>ページ追加・編集時に以下の変換が自動で行われます：</div>
+          <div className="text-sm font-medium text-foreground mb-2">歌詞変換</div>
+          <div className="text-sm text-muted-foreground">
+            <div>歌詞の編集終了時に以下の変換が自動で行われます：</div>
             <ul className="ml-4 mt-1 list-disc">
               <li>前後のスペース削除</li>
               <li>記号削除</li>

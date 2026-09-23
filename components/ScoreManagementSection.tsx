@@ -1,14 +1,15 @@
-import { memo, useEffect, useRef, useState, type Dispatch, type FC, type MouseEvent, type SetStateAction } from 'react'
+import { memo, useState, type FC, type MouseEvent } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Upload, Download, Clock, Play, Copy, Edit, Trash2, Undo, Redo, ScrollText, Scroll } from "lucide-react"
+import { Upload, Download, Clock, Play, Plus, Trash2, Undo, Redo, ScrollText, Scroll } from "lucide-react"
 import { useLyricsCopyPaste } from '@/hooks/useLyricsCopyPaste'
 import { useKpmCalculation } from '@/hooks/useKpmCalculation'
 import { useAutoScroll } from '@/hooks/useAutoScroll'
 import { InlineLyricsInput, type InlineLyricsActions } from '@/components/InlineLyricsInput'
-import { LyricsEditCard } from '@/components/LyricsEditCard'
+import { PageActionsMenu } from '@/components/PageActionsMenu'
+import { PageTimestampInput, PageLyricsActions } from '@/components/PageEditControls'
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
@@ -19,12 +20,14 @@ interface EntryDisplayProps {
   pageNumber: number
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
+  showTotalKpm: boolean
   kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics, showTotalKpm }) => {
   return (
-    <div className="space-y-1">
+    <div className="flex items-stretch gap-3">
+      <div className="min-w-0 flex-1 space-y-0.5">
       {entry.lyrics.map((line, lineIndex) => {
         const lineKpm = kpmData?.lines[lineIndex]
         return (
@@ -33,24 +36,23 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
               {inlineActions ? (
                 <InlineLyricsInput entry={entry} line={lineIndex} pageNumber={pageNumber} actions={inlineActions} selected={selectedLyrics?.id === entry.id && selectedLyrics.line === lineIndex} />
               ) : (
-                <div className={`select-text ${line ? "text-foreground" : "text-muted-foreground"}`}>
+                <div className={`select-text break-words ${line ? "text-foreground" : "text-muted-foreground"}`}>
                   {line || "!"}
                 </div>
               )}
             </div>
             {lineKpm && lineKpm.charCount[kpmMode] > 0 && (
-              <div className="text-xs font-mono text-muted-foreground ml-2 select-none">
+              <div className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground ml-2 select-none">
                 {lineKpm.kpm[kpmMode].toFixed(0)} kpm
               </div>
             )}
           </div>
         )
       })}
-      {kpmData && (
-        <div className="text-xs font-mono text-muted-foreground border-t pt-1 mt-1 text-right leading-tight select-none">
-          {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
-        </div>
-      )}
+      </div>
+      {showTotalKpm && kpmData && <div className="flex w-20 shrink-0 items-end justify-end border-l pl-2 text-right text-xs tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
+        {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
+      </div>}
     </div>
   )
 })
@@ -58,26 +60,20 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
-  addEmptyScoreEntry?: (targetId?: string, position?: 'before' | 'after') => void
+  addEmptyScoreEntry?: () => void
   selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
+  onTimestampCapture?: (id: string) => void
+  onTimestampChange?: (value: string, id: string) => boolean | undefined
+  onReplacePageLyrics?: (id: string, lyrics: LyricsArray, expected?: LyricsArray) => boolean
   isInlineEditing?: boolean
   scoreEntries: ScoreEntry[]
   duration: number
   player: YouTubePlayer | null
-  editingId: string | null
-  editingLyrics?: LyricsArray
-  setEditingLyrics?: Dispatch<SetStateAction<LyricsArray>>
-  editingTimestamp?: string
-  setEditingTimestamp?: Dispatch<SetStateAction<string>>
-  saveEditScoreEntry?: () => void
-  cancelEditScoreEntry?: () => void
-  saveCurrentState?: () => void
   getCurrentLyricsIndex: () => number
   importScoreData: () => void
   exportScoreData: (event?: MouseEvent<HTMLButtonElement>) => void
   deleteScoreEntry: (id: string) => void
-  startEditScoreEntry: (entry: ScoreEntry) => void
   clearAllScoreEntries: () => void
   seekToAndPlay: (time: number) => void
   bulkAdjustTimings: (offsetSeconds: number) => void
@@ -102,22 +98,16 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   selectedLyrics,
   inlineActions,
   isInlineEditing = false,
+  onTimestampChange,
+  onTimestampCapture,
+  onReplacePageLyrics,
   scoreEntries,
   duration,
   player,
-  editingId,
-  editingLyrics,
-  setEditingLyrics,
-  editingTimestamp,
-  setEditingTimestamp,
-  saveEditScoreEntry,
-  cancelEditScoreEntry,
-  saveCurrentState,
   getCurrentLyricsIndex,
   importScoreData,
   exportScoreData,
   deleteScoreEntry,
-  startEditScoreEntry,
   clearAllScoreEntries,
   seekToAndPlay,
   bulkAdjustTimings,
@@ -130,60 +120,22 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   pageNumberOffset = 0,
   timeOffsetControl,
 }) => {
-  const { copyLyricsToClipboard, copyStatus } = useLyricsCopyPaste()
+  const { copyLyricsToClipboard } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries, duration)
   const [adjustValue, setAdjustValue] = useState<string>('0')
   const [isLyricsFocused, setIsLyricsFocused] = useState(false)
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
   const [kpmMode, setKpmMode] = useState<'roma' | 'kana'>('roma')
   const effectiveKpmMode = kpmModeOverride ?? kpmMode
-  const editingLyricsInputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const editingTimestampInputRef = useRef<HTMLInputElement | null>(null)
-  const canInlineEdit =
-    !readOnly &&
-    Boolean(editingId) &&
-    Boolean(editingLyrics) &&
-    Boolean(setEditingLyrics) &&
-    typeof editingTimestamp === 'string' &&
-    Boolean(setEditingTimestamp) &&
-    Boolean(saveEditScoreEntry) &&
-    Boolean(cancelEditScoreEntry)
-
   const { entryRefs, scrollContainerRef } = useAutoScroll({
     getCurrentLyricsIndex,
     scoreEntries,
-    enabled: autoScroll && !isInlineEditing && !editingId && !isLyricsFocused,
+    enabled: autoScroll && !isInlineEditing && !isLyricsFocused,
     onUserScroll: () => setAutoScroll(false)
   })
 
-  useEffect(() => {
-    if (readOnly || !editingId || !cancelEditScoreEntry) return
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.isComposing || event.keyCode === 229) return
-      event.preventDefault()
-      cancelEditScoreEntry()
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
-    }
-  }, [cancelEditScoreEntry, editingId, readOnly])
-
-  useEffect(() => {
-    if (readOnly || !editingId) return
-    const entryIndex = scoreEntries.findIndex((entry) => entry.id === editingId)
-    if (entryIndex < 0) return
-    const entryElement = entryRefs.current[entryIndex]
-    if (!entryElement) return
-
-    entryElement.scrollIntoView({
-      block: 'center',
-      behavior: 'smooth',
-    })
-  }, [editingId, readOnly, scoreEntries, entryRefs])
-
+  const selectedEntry = scoreEntries.find(entry => entry.id === selectedLyrics?.id)
+  const selectedPageNumber = selectedEntry ? scoreEntries.indexOf(selectedEntry) + 1 - pageNumberOffset : null
 
   const handleBulkTimingAdjust = () => {
     const value = parseFloat(adjustValue)
@@ -200,20 +152,10 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
     bulkAdjustTimings(value)
   }
 
-  const handleInlineSave = () => {
-    if (!saveEditScoreEntry || typeof editingTimestamp !== 'string') return
-    const parsedTimestamp = Number.parseFloat(editingTimestamp)
-    if (!Number.isFinite(parsedTimestamp)) {
-      toast.error('タイムスタンプは数値で入力してください。')
-      return
-    }
-    saveEditScoreEntry()
-  }
-
   return (
     <Card className="bg-card text-card-foreground border shadow-lg h-full flex flex-col">
-      <CardHeader className="pb-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-3 flex-shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-xl font-semibold flex items-center gap-2">
             <div className="p-2 rounded-lg bg-amber-500 text-white">
               <Clock className="h-5 w-5" />
@@ -238,7 +180,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
       <CardContent className="flex-1 flex flex-col min-h-0">
         {/* 動画の総時間表示とUndo/Redoボタン */}
         {!readOnly && (
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             {duration > 0 && (
               <div className="flex items-center gap-2 text-sm font-medium">
                 <Clock className="h-4 w-4" />
@@ -268,6 +210,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={undoLastOperation}
+                aria-label="元に戻す"
                 disabled={!canUndo}
                 className="text-xs h-7"
               >
@@ -277,6 +220,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={redoLastOperation}
+                aria-label="やり直す"
                 disabled={!canRedo}
                 className="text-xs h-7"
               >
@@ -286,65 +230,61 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
           </div>
         )}
 
-        {scoreEntries.length === 0 ? (
-          <div className="pr-2">
-            <div className="relative pt-12 pb-8 text-center text-muted-foreground">
-            {!readOnly && addEmptyScoreEntry && (
-              <Button type="button" variant="outline" className="absolute left-1/2 -translate-x-1/2 top-2 h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary" aria-label="空ページを追加" title="空ページを追加" disabled={Boolean(editingId)} onClick={() => addEmptyScoreEntry()}>
-                <Plus className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            )}
-            ページがありません。{addEmptyScoreEntry && !readOnly ? '「＋」から空ページを追加できます。' : '歌詞を入力して追加してください。'}
-            </div>
+        {!readOnly && (
+          <div data-page-toolbar className="mb-2 flex flex-wrap items-center gap-2 border-y py-2" aria-label="選択ページの編集">
+            <span className="min-w-20 text-sm font-medium text-primary" aria-live="polite">{selectedPageNumber === null ? '未選択' : `#${selectedPageNumber}`}</span>
+            {onTimestampCapture && <Button variant="outline" size="sm" disabled={!player || !selectedEntry}
+              onClick={() => selectedEntry && onTimestampCapture(selectedEntry.id)}>
+              <Clock className="size-4" />タイムスタンプ入力 <kbd className="rounded border px-1 text-xs">F2</kbd>
+            </Button>}
+            {onReplacePageLyrics && (selectedEntry
+              ? <PageLyricsActions key={selectedEntry.id} entry={selectedEntry} onReplace={onReplacePageLyrics} />
+              : <Button variant="outline" size="sm" disabled>かな変換</Button>)}
           </div>
-        ) : (
-          <div className="flex-1 flex flex-col min-h-0">
+        )}
+        <div className="flex-1 flex flex-col min-h-0">
             <div
               ref={scrollContainerRef}
-              className={`space-y-4 flex-1 overflow-y-auto pr-2 min-h-0 ${!readOnly && addEmptyScoreEntry ? 'py-6' : ''}`}
+              className={`flex-1 overflow-y-auto min-h-0 ${readOnly ? 'space-y-4 pr-2' : 'divide-y'}`}
               onFocusCapture={event => {
-                const focused = event.target instanceof Element && Boolean(event.target.closest('[data-lyrics-navigation]'))
+                const focused = event.target instanceof Element && Boolean(event.target.closest('[data-page-id]'))
                 setIsLyricsFocused(focused)
                 if (focused) setAutoScroll(false)
               }}
               onBlurCapture={event => {
-                if (!(event.relatedTarget instanceof Element) || !event.relatedTarget.closest('[data-lyrics-navigation]')) setIsLyricsFocused(false)
+                if (!(event.relatedTarget instanceof Element) || !event.relatedTarget.closest('[data-page-id]')) setIsLyricsFocused(false)
               }}
             >
+              {scoreEntries.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">ページがありません。</p>}
               {scoreEntries.map((entry, index) => {
+                const isSelected = selectedLyrics?.id === entry.id
                 const isCurrentlyPlaying = getCurrentLyricsIndex() === index
-                const isEditing = editingId === entry.id
                 const kpmData = kpmDataMap.get(entry.id) || null
                 const isClickable = readOnly && Boolean(player)
                 const displayPageNumber = Math.max(0, index + 1 - pageNumberOffset)
 
                 return (
-                  <div key={entry.id} className="relative">
-                    {!readOnly && addEmptyScoreEntry && (
-                      <Button type="button" variant="outline" className={`absolute left-1/2 -translate-x-1/2 z-10 h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary ${index === 0 ? '-top-4' : '-top-6'}`} disabled={Boolean(editingId)}
-                        aria-label={`ページ${displayPageNumber}の前に空ページを追加`}
-                        title={`ページ${displayPageNumber}の前に空ページを追加`}
-                        onClick={() => addEmptyScoreEntry(entry.id, 'before')}>
-                        <Plus className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    )}
                   <div
+                    key={entry.id}
+                    data-page-id={readOnly ? undefined : entry.id}
                     ref={(el) => { entryRefs.current[index] = el }}
-                    className={`relative group p-3 border rounded-lg bg-card hover:bg-secondary dark:bg-[hsl(220,14%,18%)] dark:border-[hsl(220,12%,28%)] dark:hover:bg-[hsl(220,14%,22%)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] ${isCurrentlyPlaying ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/40 dark:border-primary/50" : ""
-                      } ${isEditing ? "bg-secondary dark:bg-[hsl(220,14%,22%)] border-primary/30 dark:border-primary/40" : ""} ${isClickable ? "cursor-pointer" : ""
-                      }`}
+                    className={readOnly
+                      ? `relative rounded-lg border bg-card p-3 ${isCurrentlyPlaying ? 'border-primary/40 bg-secondary' : ''} ${isClickable ? 'cursor-pointer' : ''}`
+                      : `relative border-l-2 px-2 py-2 ${isSelected ? 'border-l-primary bg-primary/5' : 'border-l-transparent'} ${isCurrentlyPlaying ? 'bg-secondary/50' : ''}`}
+                    onFocusCapture={event => {
+                      if (!readOnly && event.target instanceof Element && !event.target.closest('[data-lyrics-navigation]')) {
+                        inlineActions?.onSelect?.({ id: entry.id, line: isSelected ? selectedLyrics.line : 0 })
+                      }
+                    }}
                     onClick={
                       isClickable
                         ? () => {
                           seekToAndPlay(entry.timestamp)
                         }
-                        : (event) => {
-                          if (!event.ctrlKey && !event.metaKey) return
-                          const target = event.target
-                          if (target instanceof HTMLElement && target.closest('button, input, textarea')) {
-                            return
+                        : event => {
+                          if (event.target instanceof Element && !event.target.closest('button, input, [data-lyrics-navigation], [data-page-menu]')) {
+                            inlineActions?.onSelect?.({ id: entry.id, line: isSelected ? selectedLyrics.line : 0 })
                           }
-                          startEditScoreEntry(entry)
                         }
                     }
                     role={isClickable ? 'button' : undefined}
@@ -360,115 +300,45 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         : undefined
                     }
                   >
-                    {!readOnly && (
-                      <span className="pointer-events-none absolute right-2 -top-2 rounded-full bg-foreground px-2 py-1 text-[10px] font-medium text-background opacity-0 shadow-sm transition duration-150 ease-out group-hover:opacity-100">
-                        Ctrl+クリックで編集
-                      </span>
-                    )}
-                    <div className="flex items-start gap-4">
-                      <div className="flex flex-col gap-1 min-w-fit justify-between self-stretch">
-                        <div className="text-sm font-mono text-muted-foreground  flex items-center justify-between">
+                    <div className={readOnly ? 'space-y-2' : 'grid grid-cols-[minmax(0,1fr)_2rem] gap-x-2 gap-y-1 sm:grid-cols-[9.25rem_minmax(0,1fr)_2rem]'}>
+                      <div className="col-start-1 row-start-1 flex flex-wrap items-center gap-2 sm:block">
+                        <div className="flex items-center gap-2 text-sm tabular-nums text-muted-foreground sm:mb-1">
                           <span>#{displayPageNumber}</span>
-                          {!readOnly && scoreEntries[index + 1] && (
-                            <span className="text-xs">
-                              {(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s
-                            </span>
-                          )}
+                          {!readOnly && scoreEntries[index + 1] && <span title="次のページまでの時間">{(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s</span>}
+                          {isCurrentlyPlaying && <span aria-label="再生中" title="再生中" className="text-primary">▶</span>}
                         </div>
-                        {!readOnly && (
-                          <div className="mt-auto">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => seekToAndPlay(entry.timestamp)}
-                              disabled={!player}
-                              className="text-xs font-mono h-6 px-2 "
-                            >
-                              <Play className="h-3 w-3 mr-1" />
-                              {entry.timestamp.toFixed(2)}s
-                            </Button>
-                          </div>
-                        )}
+                        {!readOnly && <div className="flex items-center gap-1">
+                          {onTimestampChange && <PageTimestampInput timestamp={entry.timestamp} pageNumber={displayPageNumber} onCommit={value => onTimestampChange(value, entry.id)} />}
+                          <Button variant="ghost" size="sm" className="size-8 p-0 [@media(pointer:coarse)]:size-11" aria-label={`ページ${displayPageNumber}から再生`} title="このページから再生"
+                            disabled={!player} onClick={() => seekToAndPlay(entry.timestamp)}><Play className="size-4" /></Button>
+                        </div>}
                       </div>
-                      <div className={`flex-1 text-sm ${isCurrentlyPlaying ? "font-semibold text-primary" : ""}`}>
-                        <EntryDisplay selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly && !editingId ? inlineActions : undefined} />
+                      <div className={`${readOnly ? 'text-base' : 'col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1'} min-w-0 ${isCurrentlyPlaying ? 'font-semibold text-primary' : ''}`}>
+                        <EntryDisplay showTotalKpm={!readOnly} selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
                       </div>
-                      {!readOnly && (
-                        <div className="flex flex-col gap-1 min-w-fit self-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyLyricsToClipboard(entry.lyrics)}
-                            className={`text-xs hover:bg-muted/60 hover:text-foreground ${copyStatus === 'success' ? 'bg-success/10 border-success/20 text-success' : copyStatus === 'error' ? 'bg-destructive/10 border-destructive/20 text-destructive' : ''}`}
-                          >
-                            <Copy className="h-3 w-3 mr-1" />
-                            コピー
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => startEditScoreEntry(entry)}
-                            className={`text-xs hover:bg-muted/60 hover:text-foreground ${isEditing ? 'bg-primary/10 border-primary/30' : ''}`}
-                            disabled={isEditing}
-                          >
-                            <Edit className="h-3 w-3 mr-1" />
-                            {isEditing ? '編集中' : '編集'}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => deleteScoreEntry(entry.id)}
-                            className="text-xs hover:bg-muted/60 hover:text-foreground"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            削除
-                          </Button>
-                        </div>
-                      )}
+                      {!readOnly && <div className="col-start-2 row-start-1 sm:col-start-3">
+                        <PageActionsMenu pageNumber={displayPageNumber} empty={entry.lyrics.every(line => !line.trim())}
+                          onCopy={() => { void copyLyricsToClipboard(entry.lyrics) }}
+                          onClear={onReplacePageLyrics ? () => onReplacePageLyrics(entry.id, ['', '', '', '']) : undefined}
+                          onDelete={() => deleteScoreEntry(entry.id)} />
+                      </div>}
                     </div>
-                    {canInlineEdit && isEditing && (
-                      <div className="mt-4" data-lyrics-edit-form>
-                        <LyricsEditCard
-                          lyrics={editingLyrics ?? ["", "", "", ""]}
-                          setLyrics={(nextLyrics) => setEditingLyrics?.(nextLyrics)}
-                          timestamp={editingTimestamp ?? "0.00"}
-                          setTimestamp={(nextTimestamp) => setEditingTimestamp?.(nextTimestamp)}
-                          player={player}
-                          seekToInput={(inputValue) => {
-                            if (!inputValue) return
-                            const parsedTimestamp = Number.parseFloat(inputValue)
-                            if (Number.isFinite(parsedTimestamp)) {
-                              seekToAndPlay(parsedTimestamp)
-                            }
-                          }}
-                          mode="edit"
-                          editingEntryIndex={index}
-                          onSave={handleInlineSave}
-                          onCancel={() => cancelEditScoreEntry?.()}
-                          lyricsInputRefs={editingLyricsInputRefs}
-                          timestampInputRef={editingTimestampInputRef}
-                          saveCurrentState={saveCurrentState}
-                        />
-                      </div>
-                    )}
-                  </div>
-                    {!readOnly && addEmptyScoreEntry && index === scoreEntries.length - 1 && (
-                      <Button type="button" variant="outline" className="absolute left-1/2 -translate-x-1/2 -bottom-4 z-10 h-8 w-8 rounded-full p-0 bg-card shadow-sm text-muted-foreground hover:text-primary" disabled={Boolean(editingId)}
-                        aria-label={`ページ${displayPageNumber}の後に空ページを追加`}
-                        title={`ページ${displayPageNumber}の後に空ページを追加`}
-                        onClick={() => addEmptyScoreEntry(entry.id, 'after')}>
-                        <Plus className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                    )}
+
                   </div>
                 )
               })}
             </div>
 
+            {!readOnly && addEmptyScoreEntry && <div className="flex shrink-0 justify-center border-t py-2">
+              <Button type="button" variant="outline" className="size-8 rounded-full p-0 [@media(pointer:coarse)]:size-11" aria-label="空ページを追加" title="空ページを追加" onClick={() => addEmptyScoreEntry()}>
+                <Plus className="size-4" aria-hidden="true" />
+              </Button>
+            </div>}
+
             {/* 編集モード: タイム調整 + 自動スクロール + 全ページ削除 */}
             {!readOnly && (
-              <div className="mt-3 pt-3 border-t flex justify-between items-center">
-                <div className="flex items-center gap-2">
+              <div className="mt-2 pt-2 border-t flex flex-wrap gap-2 justify-between items-center">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground">全ページタイム調整</span>
                   <Input
                     type="number"
@@ -556,7 +426,6 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
               </div>
             )}
           </div>
-        )}
 
       </CardContent>
     </Card>

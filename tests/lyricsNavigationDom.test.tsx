@@ -23,9 +23,8 @@ function Harness() {
   useLayoutEffect(() => { score = state })
   const handler = useKeyboardShortcuts({
     player: null, playSelectedPage: () => {},
-    getCurrentTimestamp: () => {}, addScoreEntry: state.addScoreEntry,
+    getCurrentTimestamp: () => {},
     seekBackward1Second: () => {}, seekForward1Second: () => {},
-    lyricsInputRefs: state.lyricsInputRefs, timestampInputRef: state.timestampInputRef,
     undoLastOperation: state.undoLastOperation, redoLastOperation: state.redoLastOperation,
   })
   useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
@@ -155,11 +154,9 @@ it('does not navigate during IME composition or modified text selection', async 
 it('updates the selected page timestamp after editing ends and preserves selection through sorting', async () => {
   await act(async () => field('a', 1).focus())
   await key(field('a', 1), 'Escape')
-  const addTimestamp = score.timestamp
   await act(async () => score.updateInlineTimestamp('20', score.selectedLyrics!.id))
   expect(score.scoreEntries.map(entry => entry.id)).toEqual(['b', 'a'])
   expect(score.scoreEntries[1].timestamp).toBe(20)
-  expect(score.timestamp).toBe(addTimestamp)
   expect(score.selectedLyrics).toEqual({ id: 'a', line: 1 })
   expect(score.inlineEditing).toBeNull()
   await act(async () => score.undoLastOperation())
@@ -174,8 +171,6 @@ it('Ctrl+Enter finishes editing but never adds a page from the selection', async
   expect(score.inlineEditing).toBeNull()
 })
 it('appends on Down from the last line, normalizes before the undo snapshot, and saves', async () => {
-  await act(async () => score.setLyrics(['左の下書き', '', '', '']))
-  await act(async () => score.setTimestamp('42'))
   await act(async () => field('b', 3).focus())
   await act(async () => score.changeInlineLyrics('b', 3, 'カナ'))
   await key(field('b', 3), 'ArrowDown')
@@ -183,8 +178,6 @@ it('appends on Down from the last line, normalizes before the undo snapshot, and
   expect(added.timestamp).toBe(11)
   expect(document.activeElement).toBe(field(added.id, 0))
   expect(score.scoreEntries[1].lyrics[3]).toBe('かな')
-  expect(score.lyrics[0]).toBe('左の下書き')
-  expect(score.timestamp).toBe('42')
   await act(async () => window.dispatchEvent(new Event('pagehide')))
   expect(loadDraft('navigation')?.scoreEntries).toHaveLength(3)
   await key(field(added.id, 0), 'Escape')

@@ -89,7 +89,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
 
         {videoId && (
           <div className="space-y-4">
-            <div className="flex justify-center">
+            <div className="relative aspect-video w-full overflow-hidden rounded-lg [&>iframe]:absolute [&>iframe]:inset-0 [&>iframe]:h-full [&>iframe]:w-full">
               <div id="youtube-player" className="rounded-lg overflow-hidden"></div>
             </div>
 

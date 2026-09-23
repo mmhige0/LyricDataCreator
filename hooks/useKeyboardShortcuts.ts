@@ -4,15 +4,10 @@ interface KeyboardShortcutsProps {
   player: YouTubePlayer | null
   playSelectedPage?: () => void
   getCurrentTimestamp: () => void
-  addScoreEntry: () => void
-  saveScoreEntry?: () => void
-  editingId?: string | null
   seekBackward1Second: () => void
   seekForward1Second: () => void
   adjustVolume?: (delta: number) => void
   toggleMute?: () => void
-  lyricsInputRefs: React.MutableRefObject<(HTMLInputElement | null)[]>
-  timestampInputRef: React.MutableRefObject<HTMLInputElement | null>
   timestampOffset?: number
   pasteLyrics?: () => void
   undoLastOperation?: () => void
@@ -27,15 +22,10 @@ export const useKeyboardShortcuts = ({
   player,
   playSelectedPage,
   getCurrentTimestamp,
-  addScoreEntry,
-  saveScoreEntry,
-  editingId,
   seekBackward1Second,
   seekForward1Second,
   adjustVolume: _adjustVolume,
   toggleMute: _toggleMute,
-  lyricsInputRefs,
-  timestampInputRef,
   timestampOffset: _timestampOffset = 0,
   pasteLyrics,
   undoLastOperation,
@@ -72,16 +62,6 @@ export const useKeyboardShortcuts = ({
     if (event.key === "F2") {
       event.preventDefault()
       getCurrentTimestamp()
-      return
-    }
-
-    if (event.ctrlKey && event.key === "Enter") {
-      event.preventDefault()
-      if (editingId && saveScoreEntry) {
-        saveScoreEntry()
-      } else {
-        addScoreEntry()
-      }
       return
     }
 
@@ -127,26 +107,7 @@ export const useKeyboardShortcuts = ({
       return
     }
 
-    if (event.key === "Tab" && isInputFocused) {
-      const currentIndex = lyricsInputRefs.current.findIndex((ref) => ref === activeElement)
-      const isShift = event.shiftKey
 
-      if (currentIndex >= 0) {
-        if (isShift && currentIndex > 0) {
-          event.preventDefault()
-          lyricsInputRefs.current[currentIndex - 1]?.focus()
-        } else if (!isShift && currentIndex < 3) {
-          event.preventDefault()
-          lyricsInputRefs.current[currentIndex + 1]?.focus()
-        } else if (!isShift && currentIndex === 3) {
-          event.preventDefault()
-          timestampInputRef.current?.focus()
-        }
-      } else if (isShift && activeElement === timestampInputRef.current) {
-        event.preventDefault()
-        lyricsInputRefs.current[3]?.focus()
-      }
-    }
   }
 }
 
