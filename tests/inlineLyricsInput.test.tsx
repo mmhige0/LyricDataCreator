@@ -63,9 +63,9 @@ it('ignores composing keyboard events in the shared shortcut handler', async () 
   let handle!: ReturnType<typeof useKeyboardShortcuts>
   function ShortcutsHarness() {
     const handler = useKeyboardShortcuts({
-    player: null, getCurrentTimestamp: timestamp, addScoreEntry: add,
+    player: null, getCurrentTimestamp: timestamp,
     seekBackward1Second: vi.fn(), seekForward1Second: vi.fn(),
-    lyricsInputRefs: { current: [] }, timestampInputRef: { current: null },
+
     })
     useLayoutEffect(() => { handle = handler })
     return null
@@ -90,8 +90,8 @@ it('prioritizes Ctrl+Shift+Space without also toggling playback, including no ta
     const handler = useKeyboardShortcuts({
       player: { getPlayerState: state, playVideo: play, pauseVideo: pause } as unknown as import('../lib/types').YouTubePlayer,
       playSelectedPage: headStart,
-      getCurrentTimestamp: vi.fn(), addScoreEntry: vi.fn(), seekBackward1Second: vi.fn(), seekForward1Second: vi.fn(),
-      lyricsInputRefs: { current: [] }, timestampInputRef: { current: null },
+      getCurrentTimestamp: vi.fn(),  seekBackward1Second: vi.fn(), seekForward1Second: vi.fn(),
+
     })
     useLayoutEffect(() => { handle = handler })
     return null
@@ -116,9 +116,9 @@ it('captures IME-shaped Ctrl+Shift+Space before the input blocks propagation and
   function Harness() {
     const handler = useKeyboardShortcuts({
       player: null, playSelectedPage: headStart,
-      getCurrentTimestamp: vi.fn(), addScoreEntry: vi.fn(),
+      getCurrentTimestamp: vi.fn(),
       seekBackward1Second: vi.fn(), seekForward1Second: vi.fn(),
-      lyricsInputRefs: { current: [] }, timestampInputRef: { current: null },
+
     })
     useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
     return <InlineLyricsInput entry={entry} line={0} pageNumber={1} actions={actions} />

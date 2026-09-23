@@ -17,10 +17,11 @@ export const HelpSection: React.FC = () => {
         <div className="text-lg text-muted-foreground">
           <ol className="list-decimal ml-4 space-y-1">
             <li>作成する曲のYouTubeのURLを入力し、「読み込み」をクリック</li>
+            <li>一覧下部の「＋」で空ページを追加し、歌詞を入力</li>
             <li>動画を再生し、ページを表示したいタイミングで<kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded font-mono text-foreground">F2</kbd>キーでタイムスタンプを入力<br />
               💡 入力されるタイミングは「補正」で微調整できます（-0.2〜-0.1秒がおすすめ）</li>
-            <li>歌詞（最大4行）を入力し、「ページ追加」をクリック（歌詞のないページを追加する場合は、4行とも空行にして追加）</li>
-            <li>2,3を繰り返して、すべてのページを追加し終わったら、「エクスポート」をクリック</li>
+            <li>歌詞と時刻は一覧で直接編集できます。歌詞のないページは4行とも空欄にします</li>
+            <li>追加と編集を繰り返して、すべてのページを追加し終わったら、「エクスポート」をクリック</li>
           </ol>
         </div>
       </div>
@@ -95,7 +96,7 @@ export const HelpSection: React.FC = () => {
             { keys: ['Alt', '↑'], description: '前のページへ移動' },
             { keys: ['Alt', '↓'], description: '次のページへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
-            { keys: ['Ctrl', 'Enter'], description: 'ページ追加／編集終了' },
+            { keys: ['Ctrl', 'Enter'], description: '編集終了' },
             { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
             { keys: ['Ctrl', 'Z'], description: '元に戻す' },
             { keys: ['Ctrl', 'Y'], description: 'やり直す' },
@@ -130,7 +131,7 @@ export const HelpSection: React.FC = () => {
         <div className="mb-6">
           <div className="text-lg font-medium text-foreground mb-2">歌詞変換</div>
           <div className="text-lg text-muted-foreground">
-            <div>ページ追加・編集時に以下の変換が自動で行われます：</div>
+            <div>歌詞の編集終了時に以下の変換が自動で行われます：</div>
             <ul className="ml-4 mt-1 list-disc">
               <li>前後のスペース削除</li>
               <li>記号削除</li>

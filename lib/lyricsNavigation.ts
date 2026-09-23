@@ -24,16 +24,8 @@ export function adjacentLyricsPosition(
   return { id: entries[Math.floor(target / 4)].id, line: target % 4 }
 }
 
-export function pagePlaybackTimestamp(
-  entries: ScoreEntry[],
-  selectedId: string | null,
-  editingId: string | null,
-  editingTimestamp: string,
-): number | null {
-  const id = editingId ?? selectedId
-  const entry = entries.find(item => item.id === id)
+export function pagePlaybackTimestamp(entries: ScoreEntry[], selectedId: string | null): number | null {
+  const entry = entries.find(item => item.id === selectedId)
   if (!entry) return null
-  if (editingId && !editingTimestamp.trim()) return null
-  const time = editingId ? Number(editingTimestamp) : entry.timestamp
-  return Number.isFinite(time) && time >= 0 ? time : null
+  return Number.isFinite(entry.timestamp) && entry.timestamp >= 0 ? entry.timestamp : null
 }
