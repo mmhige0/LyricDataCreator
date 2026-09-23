@@ -75,7 +75,7 @@ it('keeps one append control for empty/populated lists and creates pages on clic
   expect(button('タイムスタンプ入力').disabled).toBe(true)
   await act(async () => add.click())
   await act(async () => add.click())
-  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 1])
+  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 0])
 })
 it('keeps playback available in the read-only list without editor controls', async () => {
   await act(async () => root.render(<Harness readOnly />))

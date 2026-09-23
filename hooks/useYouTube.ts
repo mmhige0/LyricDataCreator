@@ -1,3 +1,4 @@
+import { captureTimestamp } from '@/lib/timestampCapture'
 import { useState, useEffect, useCallback } from 'react'
 import { extractVideoId } from '@/lib/youtubeUtils'
 import { youtubeErrors, handleError } from '@/lib/errorUtils'
@@ -313,7 +314,7 @@ export const useYouTube = ({
   const getCurrentTimestamp = (offset: number = 0) => {
     if (player) {
       const currentTime = player.getCurrentTime()
-      const adjustedTime = Math.max(0, Math.min(duration, currentTime + offset))
+      const adjustedTime = captureTimestamp(currentTime, offset, player.getDuration())
       return adjustedTime.toFixed(2)
     }
     return "0.00"

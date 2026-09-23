@@ -50,7 +50,9 @@ it('does not let Ctrl+Enter bubble into page creation', async () => {
   document.addEventListener('keydown', listener)
   try {
     await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true })))
-    expect(actions.onFinish).toHaveBeenCalledWith('one', 0, 'あいう')
+    expect(actions.onFinish).not.toHaveBeenCalled()
+    expect(actions.onReplace).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(input)
     expect(listener).not.toHaveBeenCalled()
   } finally {
     document.removeEventListener('keydown', listener)

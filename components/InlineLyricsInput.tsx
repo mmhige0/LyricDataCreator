@@ -131,7 +131,12 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
             event.stopPropagation()
             return
           }
-          if (event.key === 'Escape' || (event.key === 'Enter' && event.ctrlKey)) {
+          if (event.key === 'Enter' && event.ctrlKey) {
+            event.preventDefault()
+            event.stopPropagation()
+            return
+          }
+          if (event.key === 'Escape') {
             event.preventDefault()
             event.stopPropagation()
             event.currentTarget.blur()

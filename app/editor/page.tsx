@@ -154,6 +154,7 @@ export default function LyricsTypingApp() {
       const time = pagePlaybackTimestamp(scoreEntries, focused.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id ?? null)
       if (time !== null) seekToAndPlay(time)
     },
+    deleteSelectedPage: () => { if (selectedLyrics) deleteScoreEntry(selectedLyrics.id) },
     getCurrentTimestamp: handleGetCurrentTimestamp,
     seekBackward1Second,
     seekForward1Second,

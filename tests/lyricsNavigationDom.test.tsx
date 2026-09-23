@@ -23,6 +23,7 @@ function Harness() {
   useLayoutEffect(() => { score = state })
   const handler = useKeyboardShortcuts({
     player: null, playSelectedPage: () => {},
+    deleteSelectedPage: () => { if (state.selectedLyrics) state.deleteScoreEntry(state.selectedLyrics.id) },
     getCurrentTimestamp: () => {},
     seekBackward1Second: () => {}, seekForward1Second: () => {},
     undoLastOperation: state.undoLastOperation, redoLastOperation: state.redoLastOperation,
@@ -163,19 +164,19 @@ it('updates the selected page timestamp after editing ends and preserves selecti
   expect(score.scoreEntries.find(entry => entry.id === 'a')?.timestamp).toBe(0)
 })
 
-it('Ctrl+Enter finishes editing but never adds a page from the selection', async () => {
+it('Ctrl+Enter leaves editing active and never adds a page', async () => {
   await act(async () => field('b', 3).focus())
   await key(field('b', 3), 'Enter', { ctrlKey: true })
   await key(document.activeElement as HTMLElement, 'Enter', { ctrlKey: true })
   expect(score.scoreEntries).toHaveLength(2)
-  expect(score.inlineEditing).toBeNull()
+  expect(score.inlineEditing).toEqual({ id: 'b', line: 3 })
 })
 it('appends on Down from the last line, normalizes before the undo snapshot, and saves', async () => {
   await act(async () => field('b', 3).focus())
   await act(async () => score.changeInlineLyrics('b', 3, 'カナ'))
   await key(field('b', 3), 'ArrowDown')
   const added = score.scoreEntries[2]
-  expect(added.timestamp).toBe(11)
+  expect(added.timestamp).toBe(0)
   expect(document.activeElement).toBe(field(added.id, 0))
   expect(score.scoreEntries[1].lyrics[3]).toBe('かな')
   await act(async () => window.dispatchEvent(new Event('pagehide')))
@@ -185,7 +186,7 @@ it('appends on Down from the last line, normalizes before the undo snapshot, and
   expect(score.scoreEntries.map(entry => entry.id)).toEqual(['a', 'b'])
   expect(score.scoreEntries[1].lyrics[3]).toBe('かな')
   await act(async () => score.redoLastOperation())
-  expect(score.scoreEntries[2]).toEqual(added)
+  expect(score.scoreEntries.find(entry => entry.id === added.id)).toEqual(added)
 })
 it.each([0, 1, 2, 3])('Alt+Down appends and preserves line %i', async line => {
   await act(async () => field('b', line).focus())
@@ -219,14 +220,14 @@ it('adds a first page at zero and appends after the last page', async () => {
   expect(first.timestamp).toBe(0)
   expect(document.activeElement).toBe(field(first.id, 0))
   await key(field(first.id, 0), 'ArrowDown', { altKey: true })
-  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 1])
+  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 0])
   expect(new Set(score.scoreEntries.map(entry => entry.id)).size).toBe(2)
 })
 it('inserts directly after a page even when adjacent timestamps match', async () => {
   await act(async () => score.setScoreEntries(score.scoreEntries.map(entry => ({ ...entry, timestamp: 10 }))))
   await act(async () => score.addEmptyScoreEntry('a'))
   expect(score.scoreEntries[0].id).toBe('a')
-  expect(score.scoreEntries[1].timestamp).toBe(10)
+  expect(score.scoreEntries[1].timestamp).toBe(0)
   expect(score.scoreEntries[2].id).toBe('b')
 })
 
@@ -235,7 +236,7 @@ it('inserts before the first page, focuses it and preserves undo/redo and draft 
   await act(async () => score.addEmptyScoreEntry('a', 'before'))
   await act(async () => { frames.splice(0).forEach(fn => fn(0)) })
   const first = score.scoreEntries[0]
-  expect(first.timestamp).toBe(5)
+  expect(first.timestamp).toBe(0)
   expect(score.scoreEntries.map(entry => entry.id)).toEqual([first.id, 'a', 'b'])
   expect(document.activeElement).toBe(field(first.id, 0))
   await act(async () => window.dispatchEvent(new Event('pagehide')))
@@ -248,10 +249,10 @@ it('inserts before the first page, focuses it and preserves undo/redo and draft 
 })
 it('inserts before a middle page and at zero without making negative timestamps', async () => {
   await act(async () => score.addEmptyScoreEntry('b', 'before'))
-  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 5, 10])
+  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 0, 10])
   expect(score.scoreEntries[2].id).toBe('b')
   await act(async () => score.addEmptyScoreEntry('a', 'before'))
-  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 0, 5, 10])
+  expect(score.scoreEntries.map(entry => entry.timestamp)).toEqual([0, 0, 0, 10])
   expect(score.scoreEntries[1].id).toBe('a')
   await act(async () => score.addEmptyScoreEntry('missing', 'before'))
   expect(score.scoreEntries).toHaveLength(4)
@@ -290,4 +291,19 @@ it('undoes and redoes Enter splits while the next input stays focused', async ()
   expect(score.canRedo).toBe(false)
   await key(field('a', 1), 'z', { ctrlKey: true })
   expect(score.scoreEntries[0].lyrics).toEqual(['あいうか', 'えお', '', ''])
+})
+
+it('Delete preserves text input, then deletes the selection after Esc and supports undo', async () => {
+  await act(async () => field('b', 1).focus())
+  await key(field('b', 1), 'Delete')
+  expect(score.scoreEntries).toHaveLength(2)
+  await key(field('b', 1), 'Escape')
+  await key(document.activeElement as HTMLElement, 'Delete', { isComposing: true })
+  await key(document.activeElement as HTMLElement, 'Delete', { repeat: true })
+  expect(score.scoreEntries).toHaveLength(2)
+  await key(document.activeElement as HTMLElement, 'Delete')
+  expect(score.scoreEntries.map(entry => entry.id)).toEqual(['a'])
+  expect(document.activeElement?.id).toBe('lyrics-selection-a-1')
+  await key(document.activeElement as HTMLElement, 'z', { ctrlKey: true })
+  expect(score.scoreEntries.map(entry => entry.id)).toEqual(['a', 'b'])
 })

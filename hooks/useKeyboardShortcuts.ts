@@ -12,6 +12,7 @@ interface KeyboardShortcutsProps {
   pasteLyrics?: () => void
   undoLastOperation?: () => void
   redoLastOperation?: () => void
+  deleteSelectedPage?: () => void
 }
 
 /**
@@ -29,7 +30,8 @@ export const useKeyboardShortcuts = ({
   timestampOffset: _timestampOffset = 0,
   pasteLyrics,
   undoLastOperation,
-  redoLastOperation
+  redoLastOperation,
+  deleteSelectedPage
 }: KeyboardShortcutsProps) => {
   return (event: KeyboardEvent) => {
     if (event.defaultPrevented) return
@@ -49,6 +51,16 @@ export const useKeyboardShortcuts = ({
     if (event.isComposing || event.keyCode === 229) return
     const activeElement = document.activeElement
     const isInputFocused = activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA"
+
+    // Keep native text deletion while editing. Esc leaves the lyric input.
+    if (event.key === 'Delete' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+      if (!isInputFocused && !(activeElement instanceof HTMLElement && (activeElement.isContentEditable || activeElement.closest('[role="dialog"], [popover]:popover-open')))
+        && !event.repeat && deleteSelectedPage) {
+        event.preventDefault()
+        deleteSelectedPage()
+      }
+      return
+    }
 
     // Ctrl+Shift+V は常に動作（テキストフィールド外でも）
     if (event.ctrlKey && event.shiftKey && (event.key === "V" || event.key === "v")) {
