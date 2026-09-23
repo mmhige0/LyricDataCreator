@@ -20,12 +20,14 @@ interface EntryDisplayProps {
   pageNumber: number
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
+  showTotalKpm: boolean
   kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics, showTotalKpm }) => {
   return (
-    <div className="space-y-0.5">
+    <div className="flex items-stretch gap-3">
+      <div className="min-w-0 flex-1 space-y-0.5">
       {entry.lyrics.map((line, lineIndex) => {
         const lineKpm = kpmData?.lines[lineIndex]
         return (
@@ -47,7 +49,8 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
           </div>
         )
       })}
-      {kpmData && <div className="mt-1 text-right text-xs tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
+      </div>
+      {showTotalKpm && kpmData && <div className="flex w-20 shrink-0 items-end justify-end border-l pl-2 text-right text-xs tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
         {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
       </div>}
     </div>
@@ -299,7 +302,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                   >
                     <div className={readOnly ? 'space-y-2' : 'grid grid-cols-[minmax(0,1fr)_2rem] gap-x-2 gap-y-1 sm:grid-cols-[9.25rem_minmax(0,1fr)_2rem]'}>
                       <div className="col-start-1 row-start-1 flex flex-wrap items-center gap-2 sm:block">
-                        <div className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground sm:mb-1">
+                        <div className="flex items-center gap-2 text-sm tabular-nums text-muted-foreground sm:mb-1">
                           <span>#{displayPageNumber}</span>
                           {!readOnly && scoreEntries[index + 1] && <span title="次のページまでの時間">{(scoreEntries[index + 1].timestamp - entry.timestamp).toFixed(2)}s</span>}
                           {isCurrentlyPlaying && <span aria-label="再生中" title="再生中" className="text-primary">▶</span>}
@@ -311,7 +314,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         </div>}
                       </div>
                       <div className={`${readOnly ? 'text-base' : 'col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1'} min-w-0 ${isCurrentlyPlaying ? 'font-semibold text-primary' : ''}`}>
-                        <EntryDisplay selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
+                        <EntryDisplay showTotalKpm={!readOnly} selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
                       </div>
                       {!readOnly && <div className="col-start-2 row-start-1 sm:col-start-3">
                         <PageActionsMenu pageNumber={displayPageNumber} empty={entry.lyrics.every(line => !line.trim())}

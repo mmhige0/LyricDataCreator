@@ -19,7 +19,6 @@ export function EditorShortcuts() {
             { keys: ['Alt', '↓'], description: '次のページへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
             { keys: ['Ctrl', 'Enter'], description: 'ページを追加' },
-            { keys: ['Delete'], description: '選択ページを削除' },
             { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
             { keys: ['Ctrl', 'Z'], description: '元に戻す' },
             { keys: ['Ctrl', 'Y'], description: 'やり直す' },
