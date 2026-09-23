@@ -28,7 +28,7 @@ export function PageTimestampInput({ timestamp, pageNumber, onCommit }: {
       aria-label={`ページ${pageNumber}の時刻（秒）`}
       aria-invalid={invalid}
       title="秒数を入力し、Enterまたはフォーカス移動で確定。Escで取り消し"
-      className="h-8 w-20 text-xs font-mono [@media(pointer:coarse)]:h-11"
+      className="h-8 w-[6.5rem] shrink-0 px-2 text-sm tabular-nums font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [@media(pointer:coarse)]:h-11"
       value={value}
       onFocus={() => { cancelled.current = false }}
       onChange={event => { setDraft({ base: timestamp, value: event.target.value }); setInvalid(false) }}
@@ -92,7 +92,7 @@ export function PageLyricsActions({ entry, onReplace }: {
   const empty = entry.lyrics.every(line => !line.trim())
   return (
     <Button variant="outline" size="sm" className="text-xs" disabled={converting || empty} onClick={convert}>
-      <Languages className="h-3 w-3 mr-1" />{converting ? '変換中…' : 'ひらがな変換'}
+      <Languages className="h-3 w-3 mr-1" />{converting ? '変換中…' : 'かな変換'}
     </Button>
   )
 }

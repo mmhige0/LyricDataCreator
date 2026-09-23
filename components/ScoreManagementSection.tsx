@@ -34,20 +34,22 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
               {inlineActions ? (
                 <InlineLyricsInput entry={entry} line={lineIndex} pageNumber={pageNumber} actions={inlineActions} selected={selectedLyrics?.id === entry.id && selectedLyrics.line === lineIndex} />
               ) : (
-                <div className={`select-text ${line ? "text-foreground" : "text-muted-foreground"}`}>
+                <div className={`select-text break-words ${line ? "text-foreground" : "text-muted-foreground"}`}>
                   {line || "!"}
                 </div>
               )}
             </div>
             {lineKpm && lineKpm.charCount[kpmMode] > 0 && (
-              <div className="text-xs font-mono text-muted-foreground ml-2 select-none">
+              <div className="w-16 shrink-0 text-right text-xs tabular-nums text-muted-foreground ml-2 select-none">
                 {lineKpm.kpm[kpmMode].toFixed(0)} kpm
               </div>
             )}
           </div>
         )
       })}
-
+      {kpmData && <div className="mt-1 text-right text-xs tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
+        合計 {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
+      </div>}
     </div>
   )
 })
@@ -227,14 +229,14 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
 
         {!readOnly && (
           <div data-page-toolbar className="mb-2 flex flex-wrap items-center gap-2 border-y py-2" aria-label="選択ページの編集">
-            <span className="min-w-20 text-sm font-medium text-primary" aria-live="polite">{selectedPageNumber === null ? '未選択' : `ページ ${selectedPageNumber}`}</span>
+            <span className="min-w-20 text-sm font-medium text-primary" aria-live="polite">{selectedPageNumber === null ? '未選択' : `#${selectedPageNumber}`}</span>
             {onTimestampCapture && <Button variant="outline" size="sm" disabled={!player || !selectedEntry}
               onClick={() => selectedEntry && onTimestampCapture(selectedEntry.id)}>
               <Clock className="size-4" />タイムスタンプ入力 <kbd className="rounded border px-1 text-xs">F2</kbd>
             </Button>}
             {onReplacePageLyrics && (selectedEntry
               ? <PageLyricsActions key={selectedEntry.id} entry={selectedEntry} onReplace={onReplacePageLyrics} />
-              : <Button variant="outline" size="sm" disabled>ひらがな変換</Button>)}
+              : <Button variant="outline" size="sm" disabled>かな変換</Button>)}
           </div>
         )}
         <div className="flex-1 flex flex-col min-h-0">
@@ -295,7 +297,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         : undefined
                     }
                   >
-                    <div className="grid grid-cols-[minmax(0,1fr)_2rem] gap-x-2 gap-y-1 sm:grid-cols-[7.25rem_minmax(0,1fr)_2rem] [@media(pointer:coarse)]:grid-cols-[minmax(0,1fr)_2.75rem] [@media(min-width:640px)_and_(pointer:coarse)]:grid-cols-[7.25rem_minmax(0,1fr)_2.75rem]">
+                    <div className={readOnly ? 'space-y-2' : 'grid grid-cols-[minmax(0,1fr)_2rem] gap-x-2 gap-y-1 sm:grid-cols-[8.75rem_minmax(0,1fr)_2rem]'}>
                       <div className="col-start-1 row-start-1 flex flex-wrap items-center gap-2 sm:block">
                         <div className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground sm:mb-1">
                           <span>#{displayPageNumber}</span>
@@ -307,9 +309,8 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                           <Button variant="ghost" size="sm" className="size-8 p-0 [@media(pointer:coarse)]:size-11" aria-label={`ページ${displayPageNumber}から再生`} title="このページから再生"
                             disabled={!player} onClick={() => seekToAndPlay(entry.timestamp)}><Play className="size-4" /></Button>
                         </div>}
-                        {kpmData && <div className="text-xs tabular-nums text-muted-foreground sm:mt-1">{kpmData.totalKpm[effectiveKpmMode].toFixed(0)} kpm</div>}
                       </div>
-                      <div className={`col-span-2 row-start-2 min-w-0 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1 ${isCurrentlyPlaying ? 'font-semibold text-primary' : ''}`}>
+                      <div className={`${readOnly ? 'text-base' : 'col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1'} min-w-0 ${isCurrentlyPlaying ? 'font-semibold text-primary' : ''}`}>
                         <EntryDisplay selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
                       </div>
                       {!readOnly && <div className="col-start-2 row-start-1 sm:col-start-3">

@@ -508,9 +508,9 @@ export function TypingGameContent({
       )}
 
       <div className="container mx-auto p-4 max-w-[1600px]">
-        <div className="flex justify-center gap-8 items-start">
+        <div className="flex flex-col lg:flex-row justify-center gap-6 items-start">
           {/* 左側: ゲーム画面 */}
-          <div className="space-y-6 max-w-5xl w-full">
+          <div className="space-y-6 min-w-0 flex-1 w-full">
             <main className="bg-card text-card-foreground rounded-lg shadow-lg p-6 flex flex-col">
               {/* YouTube 動画プレイヤー */}
               <div className="flex justify-center mb-4">
@@ -756,7 +756,7 @@ export function TypingGameContent({
 
           {/* 右側: ページ一覧 */}
           {showPageList && (
-            <div className="w-full max-w-md lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+            <div className="w-full lg:w-[38%] lg:min-w-[400px] lg:shrink-0 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
               <ScoreManagementSection
                 scoreEntries={normalizedScoreEntries}
                 duration={effectiveDuration}

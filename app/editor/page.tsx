@@ -13,6 +13,7 @@ import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
 import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
+import { EditorShortcuts } from "@/components/EditorShortcuts"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
@@ -388,7 +389,7 @@ export default function LyricsTypingApp() {
           </div>
         ) : (
           <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.4fr)] gap-6 lg:items-start">
               <div className="space-y-6" id="left-column">
                 <YouTubeVideoSection
                   youtubeUrl={youtubeUrl}
@@ -418,9 +419,11 @@ export default function LyricsTypingApp() {
                 />
 
                 <TimestampOffsetControl value={timestampOffset} onChange={setTimestampOffset} />
+                <EditorShortcuts />
+                <HelpSection />
               </div>
 
-              <div className="lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+              <div className="min-w-0 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
                 <ScoreManagementSection
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
@@ -456,9 +459,7 @@ export default function LyricsTypingApp() {
               </div>
             </div>
 
-            <section className="mt-8">
-              <HelpSection />
-            </section>
+
           </div>
         )}
       </main>

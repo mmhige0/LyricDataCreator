@@ -50,7 +50,7 @@ it('targets the selected lyric page from the shared toolbar without resetting li
   await act(async () => capture.focus())
   await act(async () => capture.click())
   expect(score.scoreEntries.map(e => e.timestamp)).toEqual([10, 24.5])
-  expect(host.querySelector('[data-page-toolbar]')?.textContent).toContain('ページ 2')
+  expect(host.querySelector('[data-page-toolbar]')?.textContent).toContain('#2')
   expect(host.querySelectorAll('[data-page-toolbar]')).toHaveLength(1)
   expect(host.querySelectorAll('[data-page-id] input[type="number"]')).toHaveLength(2)
   expect(host.querySelector('[aria-label="ページ2から再生"]')?.textContent).toBe('')
