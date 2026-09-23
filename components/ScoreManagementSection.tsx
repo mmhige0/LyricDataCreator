@@ -48,7 +48,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
         )
       })}
       {kpmData && <div className="mt-1 text-right text-xs tabular-nums text-muted-foreground" aria-label={`ページ${pageNumber}の合計KPM`}>
-        合計 {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
+        {kpmData.totalKpm[kpmMode].toFixed(0)} kpm
       </div>}
     </div>
   )
@@ -297,7 +297,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         : undefined
                     }
                   >
-                    <div className={readOnly ? 'space-y-2' : 'grid grid-cols-[minmax(0,1fr)_2rem] gap-x-2 gap-y-1 sm:grid-cols-[8.75rem_minmax(0,1fr)_2rem]'}>
+                    <div className={readOnly ? 'space-y-2' : 'grid grid-cols-[minmax(0,1fr)_2rem] gap-x-2 gap-y-1 sm:grid-cols-[9.25rem_minmax(0,1fr)_2rem]'}>
                       <div className="col-start-1 row-start-1 flex flex-wrap items-center gap-2 sm:block">
                         <div className="flex items-center gap-2 text-xs tabular-nums text-muted-foreground sm:mb-1">
                           <span>#{displayPageNumber}</span>
