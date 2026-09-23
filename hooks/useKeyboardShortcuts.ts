@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from 'react'
+import { flushSync } from 'react-dom'
 import type { YouTubePlayer } from '@/lib/types'
 
 interface KeyboardShortcutsProps {
@@ -12,6 +14,8 @@ interface KeyboardShortcutsProps {
   pasteLyrics?: () => void
   undoLastOperation?: () => void
   redoLastOperation?: () => void
+  deleteSelectedPage?: () => void
+  addPage?: () => void
 }
 
 /**
@@ -29,10 +33,24 @@ export const useKeyboardShortcuts = ({
   timestampOffset: _timestampOffset = 0,
   pasteLyrics,
   undoLastOperation,
-  redoLastOperation
+  redoLastOperation,
+  deleteSelectedPage,
+  addPage
 }: KeyboardShortcutsProps) => {
+  const addPageRef = useRef(addPage)
+  useLayoutEffect(() => { addPageRef.current = addPage }, [addPage])
   return (event: KeyboardEvent) => {
     if (event.defaultPrevented) return
+    if (isAddPageShortcut(event) && addPageRef.current) {
+      event.preventDefault()
+      event.stopPropagation()
+      if (event.repeat || event.isComposing || event.keyCode === 229) return
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+      // Blur commits/normalizes the current field. Use the resulting state for Undo.
+      // Mount the new field before the add action's next-frame focus callback.
+      requestAnimationFrame(() => flushSync(() => addPageRef.current?.()))
+      return
+    }
     // Handle physical Space before the generic IME guard. IME-enabled browsers
     // may report key="Process" / keyCode=229 even outside active composition.
     if (isPlaybackShortcut(event)) {
@@ -49,6 +67,16 @@ export const useKeyboardShortcuts = ({
     if (event.isComposing || event.keyCode === 229) return
     const activeElement = document.activeElement
     const isInputFocused = activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA"
+
+    // Keep native text deletion while editing. Esc leaves the lyric input.
+    if (event.key === 'Delete' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+      if (!isInputFocused && !(activeElement instanceof HTMLElement && (activeElement.isContentEditable || activeElement.closest('[role="dialog"], [popover]:popover-open')))
+        && !event.repeat && deleteSelectedPage) {
+        event.preventDefault()
+        deleteSelectedPage()
+      }
+      return
+    }
 
     // Ctrl+Shift+V は常に動作（テキストフィールド外でも）
     if (event.ctrlKey && event.shiftKey && (event.key === "V" || event.key === "v")) {
@@ -112,6 +140,10 @@ export const useKeyboardShortcuts = ({
 }
 
 
+function isAddPageShortcut(event: KeyboardEvent) {
+  return event.key === 'Enter' && event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey
+}
+
 function isPlaybackShortcut(event: KeyboardEvent) {
   return event.ctrlKey && !event.altKey && !event.metaKey && (event.code === 'Space' || event.key === ' ')
 }
@@ -127,6 +159,11 @@ export function registerEditorKeyboardShortcuts(handler: (event: KeyboardEvent) 
   // Some IMEs deliver text input separately from the canceled keydown.
   // Limit protection to the same field and this physical shortcut gesture.
   const capturePlayback = (event: KeyboardEvent) => {
+    if (isAddPageShortcut(event)) {
+      clearPending()
+      handler(event)
+      return
+    }
     if (!isPlaybackShortcut(event)) {
       clearPending()
       return

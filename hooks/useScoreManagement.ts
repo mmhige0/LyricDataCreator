@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import { updateLyricsLine, finishLyricsLine } from '@/lib/inlineLyrics'
 
+import { captureTimestamp, DEFAULT_TIMESTAMP_OFFSET } from '@/lib/timestampCapture'
+
 const MAX_HISTORY = 15
 
 interface AppState {
@@ -18,7 +20,7 @@ interface UseScoreManagementProps {
 
 export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManagementProps) => {
   const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([])
-  const [timestampOffset, setTimestampOffsetState] = useState<number>(0)
+  const [timestampOffset, setTimestampOffsetState] = useState<number>(DEFAULT_TIMESTAMP_OFFSET)
   const [undoHistory, setUndoHistory] = useState<AppState[]>([])
   const [redoHistory, setRedoHistory] = useState<AppState[]>([])
 
@@ -33,9 +35,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   useEffect(() => {
     const savedOffset = localStorage.getItem('timestampOffset')
     if (savedOffset !== null) {
-      const parsed = Number.parseFloat(savedOffset)
+      const parsed = savedOffset.trim() ? Number(savedOffset) : NaN
       if (Number.isFinite(parsed)) {
-        setTimestampOffsetState(parsed)
+        setTimestampOffsetState(Math.max(-2, Math.min(2, parsed)))
       }
     }
   }, [])
@@ -198,7 +200,21 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   const deleteScoreEntry = (id: string) => {
-    if (selectedLyrics?.id === id) selectLyricsPosition(null)
+    const index = scoreEntries.findIndex(entry => entry.id === id)
+    if (index < 0) return
+    if (selectedLyrics?.id === id) {
+      const next = scoreEntries[index + 1] ?? scoreEntries[index - 1]
+      const line = selectedLyrics.line
+      selectLyricsPosition(next ? { id: next.id, line } : null)
+      setInlineEditing(null)
+      inlineChangedLines.current.clear()
+      inlineHistorySaved.current = false
+      requestAnimationFrame(() => {
+        const target = next ? document.getElementById(`lyrics-selection-${next.id}-${line}`) : document.querySelector<HTMLElement>('[aria-label="空ページを追加"]')
+        target?.focus({ preventScroll: true })
+        target?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+      })
+    }
     saveCurrentState()
     setScoreEntries((prev) => prev.filter((entry) => entry.id !== id))
     toast.success('ページを削除しました (Ctrl+Zで元に戻せます)')
@@ -208,15 +224,15 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     const targetIndex = targetId ? scoreEntries.findIndex(entry => entry.id === targetId) : scoreEntries.length - 1
     if (targetId && targetIndex < 0) return
     const index = targetId && position === 'before' ? targetIndex - 1 : targetIndex
-    const previous = scoreEntries[index]
-    const next = scoreEntries[index + 1]
     const newEntry: ScoreEntry = {
       id: `entry_${crypto.randomUUID()}`,
-      timestamp: previous ? (next ? previous.timestamp + (next.timestamp - previous.timestamp) / 2 : previous.timestamp + 1) : next ? Math.max(0, next.timestamp / 2) : 0,
+      timestamp: currentPlayer ? captureTimestamp(currentPlayer.getCurrentTime(), timestampOffset, currentPlayer.getDuration()) : 0,
       lyrics: ['', '', '', ''],
     }
     saveCurrentState()
-    setScoreEntries(prev => [...prev.slice(0, index + 1), newEntry, ...prev.slice(index + 1)])
+    setScoreEntries(prev => targetId
+      ? [...prev.slice(0, index + 1), newEntry, ...prev.slice(index + 1)]
+      : [...prev, newEntry].sort((a, b) => a.timestamp - b.timestamp))
     selectLyricsPosition({ id: newEntry.id, line })
     requestAnimationFrame(() => {
       const input = document.getElementById(`${editing ? 'lyrics' : 'lyrics-selection'}-${newEntry.id}-${line}`)
