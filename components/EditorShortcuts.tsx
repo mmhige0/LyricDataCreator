@@ -15,10 +15,8 @@ export function EditorShortcuts() {
           { title: 'ページ操作', shortcuts: [
             { keys: ['Ctrl', '↑'], description: '最初のページの1行目へ移動' },
             { keys: ['Ctrl', '↓'], description: '最後のページの4行目へ移動' },
-            { keys: ['PageUp'], description: '前のページへ移動' },
-            { keys: ['PageDown'], description: '次のページへ移動' },
-            { keys: ['Alt', '↑'], description: '前のページへ移動' },
-            { keys: ['Alt', '↓'], description: '次のページへ移動' },
+            { keys: ['Alt', '↑'], alternative: 'PageUp', description: '前のページへ移動' },
+            { keys: ['Alt', '↓'], alternative: 'PageDown', description: '次のページへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
             { keys: ['Ctrl', 'Enter'], description: 'ページを追加' },
             { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
@@ -29,15 +27,21 @@ export function EditorShortcuts() {
           <div key={group.title} className="mb-3">
             <div className="text-sm font-medium text-foreground mb-3">{group.title}</div>
             <div className="grid grid-cols-1 gap-1">
-              {group.shortcuts.map(({ keys, description }) => (
+              {group.shortcuts.map(({ keys, alternative, description }) => (
                 <div key={keys.join('+')} className="flex flex-wrap items-center gap-2 py-1 rounded hover:bg-muted/50">
-                  <div className="flex items-center gap-1 w-[190px] shrink-0">
+                  <div className="flex items-center gap-1 w-[210px] shrink-0">
                     {keys.map((key, index) => (
                       <React.Fragment key={key}>
                         {index > 0 && <span className="text-sm text-muted-foreground">+</span>}
                         <kbd className="px-2 py-0.5 text-xs bg-muted border border-border rounded font-mono text-center text-foreground">{key}</kbd>
                       </React.Fragment>
                     ))}
+                    {alternative && (
+                      <>
+                        <span className="text-sm text-muted-foreground">/</span>
+                        <kbd className="px-2 py-0.5 text-xs bg-muted border border-border rounded font-mono text-center text-foreground">{alternative}</kbd>
+                      </>
+                    )}
                   </div>
                   <span className="min-w-0 flex-1 text-xs text-foreground">{description}</span>
                 </div>
