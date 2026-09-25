@@ -30,17 +30,20 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
   const selectionRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = (event: KeyboardEvent<HTMLElement>, editing: boolean) => {
-    if ((event.key !== 'ArrowUp' && event.key !== 'ArrowDown') || event.metaKey || event.shiftKey || (event.ctrlKey && event.altKey)) return
+    const pageKey = event.key === 'PageUp' || event.key === 'PageDown'
+    if ((!pageKey && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') || event.metaKey || event.shiftKey || (event.ctrlKey && event.altKey)) return
+    if (pageKey && (event.ctrlKey || event.altKey)) return
+    const pageNavigation = pageKey || event.altKey
     if (!actions.onNavigate) return
     event.preventDefault()
     event.stopPropagation()
-    const direction = event.key === 'ArrowUp' ? -1 : 1
+    const direction = event.key === 'ArrowUp' || event.key === 'PageUp' ? -1 : 1
     // Resolve document boundaries after blur has committed normalization and sorting.
     if (event.ctrlKey && editing) flushSync(() => inputRef.current?.blur())
-    const target = latestActions.current.onNavigate?.({ id: entry.id, line }, direction, event.ctrlKey ? 'document' : event.altKey ? 'page' : 'line')
+    const target = latestActions.current.onNavigate?.({ id: entry.id, line }, direction, event.ctrlKey ? 'document' : pageNavigation ? 'page' : 'line')
     if (!target) {
-      if (!event.ctrlKey && event.key === 'ArrowDown' && !event.repeat && actions.onAppendPage) {
-        const nextLine = event.altKey ? line : 0
+      if (!event.ctrlKey && direction === 1 && !event.repeat && actions.onAppendPage) {
+        const nextLine = pageNavigation ? line : 0
         // Commit blur normalization and sorting before creating the undo snapshot.
         if (editing) flushSync(() => inputRef.current?.blur())
         latestActions.current.onAppendPage?.(entry.id, nextLine, editing)

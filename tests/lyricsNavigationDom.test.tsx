@@ -74,11 +74,14 @@ it('finishes, normalizes and saves before moving to the next page', async () => 
   expect(loadDraft('navigation')?.scoreEntries[0].lyrics[3]).toBe('かな')
   expect(scroll).toHaveBeenCalled()
 })
-it('preserves line position for Alt arrows', async () => {
+it.each([
+  ['ArrowDown', 'ArrowUp', { altKey: true }],
+  ['PageDown', 'PageUp', {}],
+] as const)('preserves line position for %s / %s', async (down, up, options) => {
   await act(async () => field('a', 2).focus())
-  await key(field('a', 2), 'ArrowDown', { altKey: true })
+  await key(field('a', 2), down, options)
   expect(document.activeElement).toBe(field('b', 2))
-  await key(field('b', 2), 'ArrowUp', { altKey: true })
+  await key(field('b', 2), up, options)
   expect(document.activeElement).toBe(field('a', 2))
 })
 it('moves across all pages with Ctrl arrows, positions the caret and commits edits', async () => {
@@ -316,4 +319,30 @@ it('Delete preserves text input, then deletes the selection after Esc and suppor
   expect(document.activeElement?.id).toBe('lyrics-selection-a-1')
   await key(document.activeElement as HTMLElement, 'z', { ctrlKey: true })
   expect(score.scoreEntries.map(entry => entry.id)).toEqual(['a', 'b'])
+})
+
+it.each([0, 1, 2, 3])('PageDown appends and preserves line %i', async line => {
+  await act(async () => field('b', line).focus())
+  await key(field('b', line), 'PageDown')
+  expect(score.scoreEntries).toHaveLength(3)
+  expect(document.activeElement).toBe(field(score.scoreEntries[2].id, line))
+})
+it('supports page keys in selection mode and stops at the first page', async () => {
+  await act(async () => field('a', 2).focus())
+  await key(field('a', 2), 'Escape')
+  await key(document.activeElement as HTMLElement, 'PageDown')
+  expect(document.activeElement?.id).toBe('lyrics-selection-b-2')
+  await key(document.activeElement as HTMLElement, 'PageUp')
+  expect(document.activeElement?.id).toBe('lyrics-selection-a-2')
+  await key(document.activeElement as HTMLElement, 'PageUp')
+  expect(document.activeElement?.id).toBe('lyrics-selection-a-2')
+  expect(score.scoreEntries).toHaveLength(2)
+})
+it('ignores modified and IME page keys and does not append on repeat', async () => {
+  await act(async () => field('b', 1).focus())
+  for (const options of [{ ctrlKey: true }, { altKey: true }, { shiftKey: true }, { metaKey: true }, { isComposing: true }, { keyCode: 229 }, { repeat: true }]) {
+    await key(field('b', 1), 'PageDown', options)
+    expect(document.activeElement).toBe(field('b', 1))
+    expect(score.scoreEntries).toHaveLength(2)
+  }
 })
