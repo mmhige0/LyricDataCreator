@@ -15,8 +15,8 @@ export function EditorShortcuts() {
           { title: 'ページ操作', shortcuts: [
             { keys: ['Ctrl', '↑'], description: '最初のページの1行目へ移動' },
             { keys: ['Ctrl', '↓'], description: '最後のページの4行目へ移動' },
-            { keys: ['Alt', '↑'], description: '前のページへ移動' },
-            { keys: ['Alt', '↓'], description: '次のページへ移動' },
+            { keys: ['PageUp'], description: '前のページへ移動' },
+            { keys: ['PageDown'], description: '次のページへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
             { keys: ['Ctrl', 'Enter'], description: 'ページを追加' },
             { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
