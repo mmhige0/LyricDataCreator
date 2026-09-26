@@ -5,11 +5,13 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ScoreManagementSection } from '../components/ScoreManagementSection'
 import { useScoreManagement } from '../hooks/useScoreManagement'
 import type { YouTubePlayer } from '../lib/types'
+import { adjacentLyricsPosition } from '../lib/lyricsNavigation'
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
 let root: Root
 let host: HTMLDivElement
 let score: ReturnType<typeof useScoreManagement>
+let frames: FrameRequestCallback[]
 const seek = vi.fn()
 function Harness({ readOnly = false }: { readOnly?: boolean }) {
   const state = useScoreManagement({ currentTime: 0, currentPlayer: null })
@@ -17,6 +19,8 @@ function Harness({ readOnly = false }: { readOnly?: boolean }) {
   return <ScoreManagementSection scoreEntries={state.scoreEntries} duration={60}
     player={{} as YouTubePlayer} readOnly={readOnly} selectedLyrics={state.selectedLyrics}
     inlineActions={{ onSelect: state.selectLyricsPosition, onStart: state.startInlineEdit,
+      onNavigate: (position, direction, unit) => adjacentLyricsPosition(state.scoreEntries, position, direction, unit),
+      onAppendPage: state.appendPageFromNavigation,
       onChange: state.changeInlineLyrics, onReplace: state.replaceInlineLyrics, onFinish: state.finishInlineEdit, onCompositionChange: () => {} }}
     addEmptyScoreEntry={state.addEmptyScoreEntry}
     onTimestampChange={state.updateInlineTimestamp} onTimestampCapture={id => state.updateInlineTimestamp('24.50', id)}
@@ -28,7 +32,9 @@ function Harness({ readOnly = false }: { readOnly?: boolean }) {
 const button = (label: string) => Array.from(host.querySelectorAll('button')).find(b => b.textContent?.includes(label))!
 beforeEach(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-  vi.stubGlobal('requestAnimationFrame', vi.fn())
+  frames = []
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { frames.push(callback); return frames.length })
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
   localStorage.clear()
   Object.defineProperty(HTMLElement.prototype, 'hidePopover', { configurable: true, value: vi.fn() })
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
@@ -41,6 +47,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); vi.clearAllMocks()
   delete (HTMLElement.prototype as { hidePopover?: unknown }).hidePopover
+  delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView
 })
 it('targets the selected lyric page from the shared toolbar without resetting line selection', async () => {
   const line = host.querySelector<HTMLInputElement>('#lyrics-b-1')!
@@ -84,4 +91,35 @@ it('keeps playback available in the read-only list without editor controls', asy
   expect(host.querySelector('[data-page-menu]')).toBeNull()
   await act(async () => host.querySelector<HTMLElement>('[role="button"]')!.click())
   expect(seek).toHaveBeenCalledWith(10)
+})
+
+async function pageKey(key: string) {
+  const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+  await act(async () => { document.activeElement!.dispatchEvent(event) })
+  await act(async () => { frames.splice(0).forEach(callback => callback(0)) })
+  expect(event.defaultPrevented).toBe(true)
+}
+
+it('navigates with PageUp/PageDown after clicking a page outside its inputs', async () => {
+  await act(async () => host.querySelector<HTMLElement>('[data-page-id="a"]')!.click())
+  expect(document.activeElement?.id).toBe('lyrics-selection-a-0')
+  await pageKey('PageDown')
+  expect(score.selectedLyrics).toEqual({ id: 'b', line: 0 })
+  expect(document.activeElement?.id).toBe('lyrics-selection-b-0')
+  await pageKey('PageUp')
+  expect(document.activeElement?.id).toBe('lyrics-selection-a-0')
+  await pageKey('PageUp')
+  expect(document.activeElement?.id).toBe('lyrics-selection-a-0')
+})
+
+it('preserves the selected line when clicking the page number and navigating', async () => {
+  await act(async () => host.querySelector<HTMLInputElement>('#lyrics-a-2')!.focus())
+  const number = Array.from(host.querySelectorAll<HTMLElement>('[data-page-id="a"] span')).find(element => element.textContent === '#1')!
+  await act(async () => number.click())
+  expect(document.activeElement?.id).toBe('lyrics-selection-a-2')
+  await pageKey('PageDown')
+  expect(document.activeElement?.id).toBe('lyrics-selection-b-2')
+  await pageKey('PageDown')
+  expect(score.scoreEntries).toHaveLength(3)
+  expect(document.activeElement?.id).toBe(`lyrics-selection-${score.scoreEntries[2].id}-2`)
 })

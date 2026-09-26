@@ -283,7 +283,9 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         }
                         : event => {
                           if (event.target instanceof Element && !event.target.closest('button, input, [data-lyrics-navigation], [data-page-menu]')) {
-                            inlineActions?.onSelect?.({ id: entry.id, line: isSelected ? selectedLyrics.line : 0 })
+                            const line = isSelected ? selectedLyrics.line : 0
+                            inlineActions?.onSelect?.({ id: entry.id, line })
+                            document.getElementById(`lyrics-selection-${entry.id}-${line}`)?.focus({ preventScroll: true })
                           }
                         }
                     }
