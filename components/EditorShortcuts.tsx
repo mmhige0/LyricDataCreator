@@ -19,7 +19,6 @@ export function EditorShortcuts() {
             { keys: ['PageDown'], description: '次のページへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
             { keys: ['Ctrl', 'Enter'], description: 'ページを追加' },
-            { keys: ['Ctrl', 'C'], description: 'ページの歌詞をコピー（文字選択時は選択部分）' },
             { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
             { keys: ['Ctrl', 'Z'], description: '元に戻す' },
             { keys: ['Ctrl', 'Y'], description: 'やり直す' },
