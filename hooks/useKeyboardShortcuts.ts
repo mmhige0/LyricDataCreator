@@ -12,6 +12,7 @@ interface KeyboardShortcutsProps {
   toggleMute?: () => void
   timestampOffset?: number
   pasteLyrics?: () => void
+  copyLyrics?: () => void
   undoLastOperation?: () => void
   redoLastOperation?: () => void
   deleteSelectedPage?: () => void
@@ -32,6 +33,7 @@ export const useKeyboardShortcuts = ({
   toggleMute: _toggleMute,
   timestampOffset: _timestampOffset = 0,
   pasteLyrics,
+  copyLyrics,
   undoLastOperation,
   redoLastOperation,
   deleteSelectedPage,
@@ -75,6 +77,18 @@ export const useKeyboardShortcuts = ({
         event.preventDefault()
         deleteSelectedPage()
       }
+      return
+    }
+
+    // Preserve native selection copying and copying from unrelated text fields.
+    if (event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'c') {
+      if (!copyLyrics || window.getSelection()?.toString()) return
+      if (activeElement instanceof HTMLElement && activeElement.closest('[role="dialog"], [popover]:popover-open, [contenteditable]:not([contenteditable="false"])')) return
+      if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+        if (!activeElement.hasAttribute('data-inline-lyrics') || activeElement.selectionStart !== activeElement.selectionEnd) return
+      }
+      event.preventDefault()
+      if (!event.repeat) copyLyrics()
       return
     }
 
