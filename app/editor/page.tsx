@@ -100,7 +100,12 @@ export default function LyricsTypingApp() {
     if (id) updateInlineTimestamp(getCurrentTimestamp(timestampOffset), id)
   }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp])
 
-  const { pasteLyricsFromClipboard } = useLyricsCopyPaste()
+  const { copyLyricsToClipboard, pasteLyricsFromClipboard } = useLyricsCopyPaste()
+  const focusedPageId = () => document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id
+  const handleCopyLyrics = () => {
+    const entry = scoreEntries.find(item => item.id === focusedPageId())
+    if (entry) void copyLyricsToClipboard(entry.lyrics)
+  }
   const pasteTargetRef = useRef(replacePageLyrics)
   useEffect(() => { pasteTargetRef.current = replacePageLyrics }, [replacePageLyrics])
   const handlePasteLyrics = useCallback(async () => {
@@ -161,6 +166,7 @@ export default function LyricsTypingApp() {
     seekForward1Second,
     timestampOffset,
     pasteLyrics: handlePasteLyrics,
+    copyLyrics: selectedLyrics ? handleCopyLyrics : undefined,
     undoLastOperation,
     redoLastOperation,
   })
