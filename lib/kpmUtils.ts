@@ -1,6 +1,6 @@
 import { buildTypingMap, type WordChunk } from 'lyrics-typing-engine'
 import { buildPageTypingData, ensureIntroPage } from './typingEngineAdapter'
-import { preprocessAndConvertLyrics } from './textUtils'
+import { convertKatakanaToHiragana, preprocessAndConvertLyrics } from './textUtils'
 import type { ScoreEntry } from './types'
 
 export interface LineKpmInfo {
@@ -129,7 +129,7 @@ const buildFromTypingMap = (target: string) => {
 const buildRomajiAndCount = async (
   line: string
 ): Promise<{ romaji: string; kana: string; charCount: { roma: number; kana: number } }> => {
-  const processed = preprocessAndConvertLyrics(line).replace(/ヴ/g, 'ゔ')
+  const processed = convertKatakanaToHiragana(preprocessAndConvertLyrics(line))
   if (!processed) return { romaji: '', kana: '', charCount: { roma: 0, kana: 0 } }
 
   if (!isKanjiChar(processed)) {
@@ -181,7 +181,7 @@ export const buildPageKpmMap = async ({ scoreEntries, totalDuration }: BuildKpmP
   if (scoreEntries.length === 0) return map
 
   const originalIds = new Set(scoreEntries.map((entry) => entry.id))
-  const normalizedEntries = ensureIntroPage(scoreEntries)
+  const normalizedEntries = ensureIntroPage(scoreEntries.map(entry => ({ ...entry, lyrics: entry.lyrics.map((line, i) => entry.decorations?.[i] ? '' : line) as ScoreEntry['lyrics'] })))
   const { builtMapLines } = buildPageTypingData({
     scoreEntries: normalizedEntries,
     totalDuration,

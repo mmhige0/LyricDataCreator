@@ -76,9 +76,13 @@ export function PageLyricsActions({ entry, onReplace }: {
     setConverting(true)
     const original = [...entry.lyrics] as LyricsArray
     try {
-      const converted = await convertLyricsArrayToHiragana(original)
+      const converted = await convertLyricsArrayToHiragana(original, entry.decorations)
       if (!mounted.current) return
       // Do not overwrite typing, clear, undo, or an imported page during the request.
+      if (JSON.stringify(latest.current.entry.decorations) !== JSON.stringify(entry.decorations)) {
+        toast.info('変換中に行の種類が変更されたため、変換結果を反映しませんでした。')
+        return
+      }
       if (!latest.current.onReplace(entry.id, converted, original)) {
         toast.info('変換中に歌詞が変更されたため、変換結果を反映しませんでした。')
       }
@@ -89,7 +93,7 @@ export function PageLyricsActions({ entry, onReplace }: {
       if (mounted.current) setConverting(false)
     }
   }
-  const empty = entry.lyrics.every(line => !line.trim())
+  const empty = entry.lyrics.every((line, index) => entry.decorations?.[index] || !line.trim())
   return (
     <Button variant="outline" size="sm" className="text-xs" disabled={converting || empty} onClick={convert}>
       <Languages className="h-3 w-3 mr-1" />{converting ? '変換中…' : 'かな変換'}

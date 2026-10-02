@@ -24,7 +24,7 @@ const entries: ScoreEntry[] = [
 
 function Harness() {
   const state = useScoreManagement({ currentTime: 0, currentPlayer: null })
-  const autoSave = useDraftAutoSave({ youtubeUrl: '', scoreEntries: state.scoreEntries, songTitle: 'テスト', isComposing: composing, enabled })
+  const autoSave = useDraftAutoSave({ youtubeUrl: '', scoreEntries: state.scoreEntries, centralPops: state.centralPops, songTitle: 'テスト', isComposing: composing, enabled })
   useLayoutEffect(() => { score = state; persistence = autoSave })
   return null
 }
@@ -62,7 +62,7 @@ describe('inline editing and recovery', () => {
     expect(persistence.status).toBe('saved')
     await act(async () => score.finishInlineEdit('one', 0, 'カナ abc!'))
     await act(async () => persistence.flush())
-    expect(loadDraft('test-session')?.scoreEntries[0].lyrics[0]).toBe('かな　ａｂｃ')
+    expect(loadDraft('test-session')?.scoreEntries[0].lyrics[0]).toBe('カナ　ａｂｃ')
   })
 
   it('groups continuous typing as one undo and preserves redo', async () => {
@@ -138,7 +138,7 @@ describe('inline editing and recovery', () => {
     await act(async () => score.startInlineEdit('one', 0))
     await act(async () => score.replaceInlineLyrics('one', ['カナ', 'ABC!', '', '']))
     await act(async () => score.finishInlineEdit('one', 0, 'カナ'))
-    expect(score.scoreEntries[0].lyrics).toEqual(['かな', 'ＡＢＣ', '', ''])
+    expect(score.scoreEntries[0].lyrics).toEqual(['カナ', 'ＡＢＣ', '', ''])
     await act(async () => score.undoLastOperation())
     expect(score.scoreEntries[0].lyrics).toEqual(entries[0].lyrics)
   })
@@ -181,4 +181,42 @@ describe('page controls', () => {
     expect(score.scoreEntries).toEqual(entries)
     expect(score.canUndo).toBe(false)
   })
+})
+
+
+it('persists decoration kinds and pops, and undoes targeted timing changes together', async () => {
+  await act(async () => score.toggleDecoration('one', 0))
+  await act(async () => score.addCentralPop())
+  const id = score.centralPops[0].id
+  await act(async () => score.updateCentralPop(id, { text: 'Hey!', timestamp: 12, color: '#123456' }))
+  await act(async () => vi.advanceTimersByTime(1000))
+  expect(loadDraft('test-session')?.centralPops?.[0]).toMatchObject({ text: 'Hey!', timestamp: 12, color: '#123456' })
+  expect(loadDraft('test-session')?.scoreEntries[0].decorations?.[0]).toBe(true)
+  await act(async () => score.adjustTimings(2, 'both'))
+  expect(score.scoreEntries[0].timestamp).toBe(12)
+  expect(score.centralPops[0].timestamp).toBe(14)
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0].timestamp).toBe(10)
+  expect(score.centralPops[0].timestamp).toBe(12)
+  await act(async () => score.redoLastOperation())
+  expect(score.centralPops[0].timestamp).toBe(14)
+  await act(async () => score.adjustTimings(-1, 'pops'))
+  expect(score.scoreEntries[0].timestamp).toBe(12)
+  expect(score.centralPops[0].timestamp).toBe(13)
+  await act(async () => score.deleteCentralPop(id))
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops[0].text).toBe('Hey!')
+})
+
+it('normalizes decoration text without lyric conversion and can undo changing its kind', async () => {
+  await act(async () => score.toggleDecoration('one', 0))
+  await act(async () => score.startInlineEdit('one', 0))
+  await act(async () => score.changeInlineLyrics('one', 0, '漢字カナ abc/!★'))
+  await act(async () => score.finishInlineEdit('one', 0, '漢字カナ abc/!★'))
+  expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ abc/!★')
+  await act(async () => score.toggleDecoration('one', 0))
+  expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ　ａｂｃ')
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ abc/!★')
+  expect(score.scoreEntries[0].decorations?.[0]).toBe(true)
 })

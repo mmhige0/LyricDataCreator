@@ -1,4 +1,5 @@
 import type { LyricsArray } from './types'
+import { normalizeDecoration } from './decorationText'
 
 /**
  * 半角文字を全角文字に変換する
@@ -23,7 +24,7 @@ const removeSymbols = (text: string): string => {
  * @param text 変換対象のテキスト
  * @returns ひらがなに変換されたテキスト
  */
-const convertKatakanaToHiragana = (text: string): string => {
+export const convertKatakanaToHiragana = (text: string): string => {
   if (!text) return text
   return text.replace(/[\u30A1-\u30F6]/g, (match) => {
     const code = match.charCodeAt(0)
@@ -32,24 +33,21 @@ const convertKatakanaToHiragana = (text: string): string => {
 }
 
 /**
- * 歌詞の前処理とカタカナ→ひらがな変換（記号削除、前後スペース削除、全角変換、カタカナ→ひらがな変換）
+ * 通常歌詞の前処理（カタカナを保持し、半角カナと例外文字を正規化）
  * @param text 処理対象のテキスト
- * @returns 前処理とカタカナ変換が完了したテキスト
+ * @returns 前処理が完了したテキスト
  */
 export const preprocessAndConvertLyrics = (text: string): string => {
-  return convertKatakanaToHiragana(halfWidthToFullWidth(removeSymbols((text || "").replace(/[〜～]/g, 'ー')).trim()))
+  const fullKana = (text || '').replace(/[\uFF66-\uFF9F]+/g, value => value.normalize('NFKC')).normalize('NFC')
+  return halfWidthToFullWidth(removeSymbols(fullKana.replace(/[〜～]/g, 'ー')).trim())
+    .replace(/ヰ/g, 'ゐ').replace(/ヱ/g, 'ゑ')
     .replace(/ゔ/g, 'ヴ')
     .replace(/\s{2,}/g, '　')
 }
 
 /**
- * 歌詞配列の各行を処理して返す（記号削除、前後スペース削除、全角変換、カタカナ→ひらがな変換）
+ * 行の種類に応じて通常歌詞または装飾文字列を整える
  */
-export const processLyricsForSave = (lyrics: LyricsArray): LyricsArray => {
-  return [
-    preprocessAndConvertLyrics(lyrics[0]),
-    preprocessAndConvertLyrics(lyrics[1]),
-    preprocessAndConvertLyrics(lyrics[2]),
-    preprocessAndConvertLyrics(lyrics[3])
-  ]
+export const processLyricsForSave = (lyrics: LyricsArray, decorations?: boolean[]): LyricsArray => {
+  return lyrics.map((line, index) => decorations?.[index] ? normalizeDecoration(line) : preprocessAndConvertLyrics(line)) as LyricsArray
 }

@@ -15,7 +15,7 @@ const buildHiraganaFromWords = (words: YahooWord[]): string => {
     if (Array.isArray(word.subword) && word.subword.length > 0) {
       return buildHiraganaFromWords(word.subword)
     }
-    return word.furigana ?? word.surface ?? ''
+    return containsKanji(word.surface ?? '') ? word.furigana ?? word.surface ?? '' : word.surface ?? ''
   }).join('')
 }
 
@@ -81,13 +81,16 @@ export async function POST(request: Request) {
     const converted = await Promise.all(
       lines.map(async (line: string) => {
         if (line.trim() === '' || !containsKanji(line)) return line
-        return fetchHiragana(line, appId)
+        // Keep katakana spans out of the reading API, including mixed-script words.
+        const parts = line.split(/([\u30A0-\u30FF\uFF66-\uFF9F]+)/u)
+        const converted = await Promise.all(parts.map(part => containsKanji(part) ? fetchHiragana(part, appId) : part))
+        return converted.join('')
       })
     )
 
     return NextResponse.json({ lines: converted })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'ひらがな変換中にエラーが発生しました'
+    const message = error instanceof Error ? error.message : 'かな変換中にエラーが発生しました'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

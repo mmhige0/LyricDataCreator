@@ -43,6 +43,9 @@ export const useKeyboardShortcuts = ({
   useLayoutEffect(() => { addPageRef.current = addPage }, [addPage])
   return (event: KeyboardEvent) => {
     if (event.defaultPrevented) return
+    const inPopEditor = document.activeElement?.closest('[data-pop-editor]')
+    if (inPopEditor && (isAddPageShortcut(event) || event.key === 'F2' || event.key === 'Delete'
+      || (event.ctrlKey && ['c', 'v'].includes(event.key.toLowerCase())))) return
     if (isAddPageShortcut(event) && addPageRef.current) {
       event.preventDefault()
       event.stopPropagation()
@@ -59,7 +62,7 @@ export const useKeyboardShortcuts = ({
       event.preventDefault()
       if (event.isComposing) return
       if (event.shiftKey) {
-        playSelectedPage?.()
+        if (!inPopEditor) playSelectedPage?.()
       } else if (player) {
         if (player.getPlayerState() === window.YT.PlayerState.PLAYING) player.pauseVideo()
         else player.playVideo()

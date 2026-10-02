@@ -11,6 +11,7 @@ import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
+import { CentralPopEditor } from '@/components/CentralPopEditor'
 import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { EditorShortcuts } from "@/components/EditorShortcuts"
@@ -68,6 +69,14 @@ export default function LyricsTypingApp() {
   } = useYouTube()
 
   const {
+    centralPops,
+    setCentralPops,
+    addCentralPop,
+    updateCentralPop,
+    deleteCentralPop,
+    resetPopEdit,
+    toggleDecoration,
+    adjustTimings,
     selectedLyrics,
     selectLyricsPosition,
     inlineEditing,
@@ -116,22 +125,6 @@ export default function LyricsTypingApp() {
       toast.info('歌詞が変更されたため、貼り付けを中止しました。')
     }
   }, [pasteLyricsFromClipboard, scoreEntries, selectedLyrics])
-
-  const handleBulkTimingAdjust = useCallback(
-    (offsetSeconds: number) => {
-      saveCurrentState()
-      const adjustedEntries = scoreEntries.map((entry) => ({
-        ...entry,
-        timestamp: Math.max(0, entry.timestamp + offsetSeconds),
-      }))
-      setScoreEntries(adjustedEntries)
-      const sign = offsetSeconds > 0 ? "+" : ""
-      toast.success(
-        `${scoreEntries.length}件のページのタイミングを${sign}${offsetSeconds.toFixed(2)}秒ずらしました`,
-      )
-    },
-    [saveCurrentState, scoreEntries, setScoreEntries],
-  )
 
   const handlePlay = useCallback(() => {
     if (scoreEntries.length === 0) {
@@ -241,7 +234,9 @@ export default function LyricsTypingApp() {
       const draft = loadDraft(sessionId)
       if (draft) {
         setYoutubeUrl(draft.youtubeUrl)
+        saveCurrentState()
         setScoreEntries(draft.scoreEntries)
+        setCentralPops(draft.centralPops ?? [])
         setSongTitle(draft.songTitle)
         toast.success("下書きを復元しました")
         // DOM要素の準備を待ってからロード
@@ -252,7 +247,7 @@ export default function LyricsTypingApp() {
         }
       }
     },
-    [setYoutubeUrl, setScoreEntries, setSongTitle, loadYouTubeVideo],
+    [setYoutubeUrl, setScoreEntries, setCentralPops, saveCurrentState, setSongTitle, loadYouTubeVideo],
   )
 
   const handleCloseRestoreDialog = useCallback(() => {
@@ -265,6 +260,7 @@ export default function LyricsTypingApp() {
   useDraftAutoSave({
     youtubeUrl,
     scoreEntries,
+    centralPops,
     songTitle,
     enabled: isInitialized && !isRestoreDialogOpen,
     isComposing,
@@ -273,6 +269,9 @@ export default function LyricsTypingApp() {
   const { fileInputRef, exportScoreData, importScoreData, handleFileImport } = useFileOperations({
     scoreEntries,
     setScoreEntries,
+    centralPops,
+    setCentralPops,
+    onBeforeImport: saveCurrentState,
     duration,
     setDuration,
     songTitle,
@@ -427,6 +426,8 @@ export default function LyricsTypingApp() {
                 />
 
                 <TimestampOffsetControl value={timestampOffset} onChange={setTimestampOffset} />
+                <CentralPopEditor pops={centralPops} onAdd={addCentralPop} onUpdate={updateCentralPop} onDelete={deleteCentralPop}
+                  onEditBoundary={resetPopEdit} captureTime={player ? () => Number(getCurrentTimestamp(timestampOffset)) : undefined} onCompositionChange={setIsComposing} />
                 <EditorShortcuts />
                 <HelpSection />
               </div>
@@ -436,6 +437,7 @@ export default function LyricsTypingApp() {
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
                   inlineActions={{
+                    onToggleDecoration: toggleDecoration,
                     onAppendPage: appendPageFromNavigation,
                     onSelect: selectLyricsPosition,
                     onNavigate: (position, direction, unit) => adjacentLyricsPosition(scoreEntries, position, direction, unit),
@@ -458,7 +460,8 @@ export default function LyricsTypingApp() {
                   deleteScoreEntry={deleteScoreEntry}
                   clearAllScoreEntries={clearAllScoreEntries}
                   seekToAndPlay={seekToAndPlay}
-                  bulkAdjustTimings={handleBulkTimingAdjust}
+                  centralPopCount={centralPops.length}
+                  bulkAdjustTimings={adjustTimings}
                   undoLastOperation={undoLastOperation}
                   redoLastOperation={redoLastOperation}
                   canUndo={canUndo}

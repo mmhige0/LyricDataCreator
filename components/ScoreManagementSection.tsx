@@ -1,3 +1,4 @@
+import type { TimingTarget } from '@/lib/types'
 import { memo, useState, type FC, type MouseEvent } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
@@ -76,7 +77,8 @@ interface ScoreManagementSectionProps {
   deleteScoreEntry: (id: string) => void
   clearAllScoreEntries: () => void
   seekToAndPlay: (time: number) => void
-  bulkAdjustTimings: (offsetSeconds: number) => void
+  centralPopCount?: number
+  bulkAdjustTimings: (offsetSeconds: number, target: TimingTarget) => void
   undoLastOperation: () => void
   redoLastOperation: () => void
   canUndo: boolean
@@ -111,6 +113,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   clearAllScoreEntries,
   seekToAndPlay,
   bulkAdjustTimings,
+  centralPopCount = 0,
   undoLastOperation,
   redoLastOperation,
   canUndo,
@@ -122,6 +125,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
 }) => {
   const { copyLyricsToClipboard } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries, duration)
+  const [timingTarget, setTimingTarget] = useState<TimingTarget>('both')
   const [adjustValue, setAdjustValue] = useState<string>('0')
   const [isLyricsFocused, setIsLyricsFocused] = useState(false)
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
@@ -138,8 +142,8 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const selectedPageNumber = selectedEntry ? scoreEntries.indexOf(selectedEntry) + 1 - pageNumberOffset : null
 
   const handleBulkTimingAdjust = () => {
-    const value = parseFloat(adjustValue)
-    if (isNaN(value)) {
+    const value = adjustValue.trim() ? Number(adjustValue) : NaN
+    if (!Number.isFinite(value)) {
       toast.error('正しい数値を入力してください。')
       return
     }
@@ -149,7 +153,8 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
       return
     }
 
-    bulkAdjustTimings(value)
+    bulkAdjustTimings(value, timingTarget)
+    toast.success('選択した対象の時刻を調整しました。')
   }
 
   return (
@@ -168,7 +173,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 <Upload className="h-4 w-4 mr-2" />
                 インポート
               </Button>
-              <Button variant="outline" size="sm" onClick={exportScoreData} disabled={scoreEntries.length === 0}>
+              <Button variant="outline" size="sm" onClick={exportScoreData} disabled={scoreEntries.length === 0 && centralPopCount === 0}>
                 <Download className="h-4 w-4 mr-2" />
                 エクスポート
               </Button>
@@ -341,7 +346,10 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
             {!readOnly && (
               <div className="mt-2 pt-2 border-t flex flex-wrap gap-2 justify-between items-center">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">全ページタイム調整</span>
+                  <span className="text-sm font-medium text-muted-foreground">時刻の一括調整</span>
+                  <select aria-label="時刻調整の対象" className="h-7 rounded border bg-background text-xs" value={timingTarget} onChange={event => setTimingTarget(event.target.value as TimingTarget)}>
+                    <option value="both">歌詞とポップ</option><option value="pages">歌詞ページのみ</option><option value="pops">中央ポップのみ</option>
+                  </select>
                   <Input
                     type="number"
                     step="0.01"
@@ -351,11 +359,11 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                     onChange={(e) => setAdjustValue(e.target.value)}
                     placeholder="秒"
                     className="w-20 text-xs h-7"
-                    disabled={scoreEntries.length === 0}
+                    disabled={scoreEntries.length === 0 && centralPopCount === 0}
                   />
                   <Button
                     onClick={handleBulkTimingAdjust}
-                    disabled={scoreEntries.length === 0}
+                    disabled={scoreEntries.length === 0 && centralPopCount === 0}
                     variant="outline"
                     size="sm"
                     className="px-3 text-xs h-7"

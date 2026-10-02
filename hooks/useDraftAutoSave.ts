@@ -1,11 +1,12 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
-import type { ScoreEntry } from '@/lib/types'
+import type { ScoreEntry, CentralPop } from '@/lib/types'
 import { saveDraft } from '@/lib/draftStorage'
 import { getSessionId } from '@/lib/sessionStorage'
 
 interface UseDraftAutoSaveProps {
   youtubeUrl: string
   scoreEntries: ScoreEntry[]
+  centralPops?: CentralPop[]
   songTitle: string
   enabled?: boolean
   isComposing?: boolean
@@ -14,12 +15,13 @@ interface UseDraftAutoSaveProps {
 export function useDraftAutoSave({
   youtubeUrl,
   scoreEntries,
+  centralPops = [],
   songTitle,
   enabled = true,
   isComposing = false,
 }: UseDraftAutoSaveProps) {
-  const serialized = JSON.stringify({ youtubeUrl, scoreEntries, songTitle })
-  const latest = useRef({ youtubeUrl, scoreEntries, songTitle, enabled, serialized })
+  const serialized = JSON.stringify({ youtubeUrl, scoreEntries, centralPops, songTitle })
+  const latest = useRef({ youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized })
   const saved = useRef<string | null>(null)
   const [savedValue, setSavedValue] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
@@ -29,9 +31,9 @@ export function useDraftAutoSave({
     const snapshot = latest.current
     if (!snapshot.enabled || saved.current === snapshot.serialized) return
     // Preserve clearing the final page too, so an old draft cannot reappear.
-    if (!snapshot.youtubeUrl && snapshot.scoreEntries.length === 0 && !hadContent.current) return
+    if (!snapshot.youtubeUrl && snapshot.scoreEntries.length === 0 && snapshot.centralPops.length === 0 && !hadContent.current) return
     const sessionId = getSessionId()
-    const success = sessionId !== null && saveDraft(sessionId, snapshot.youtubeUrl, snapshot.scoreEntries, snapshot.songTitle)
+    const success = sessionId !== null && saveDraft(sessionId, snapshot.youtubeUrl, snapshot.scoreEntries, snapshot.songTitle, snapshot.centralPops)
     setFailed(!success)
     if (success) {
       saved.current = snapshot.serialized
@@ -41,12 +43,12 @@ export function useDraftAutoSave({
 
   // Browser persistence: publish the latest committed render before blur/pagehide.
   useLayoutEffect(() => {
-    latest.current = { youtubeUrl, scoreEntries, songTitle, enabled, serialized }
-    if (enabled && (youtubeUrl || scoreEntries.length > 0)) hadContent.current = true
+    latest.current = { youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized }
+    if (enabled && (youtubeUrl || scoreEntries.length > 0 || centralPops.length > 0)) hadContent.current = true
     if (!enabled || isComposing) return
     const timeout = window.setTimeout(flush, 1000)
     return () => window.clearTimeout(timeout)
-  }, [youtubeUrl, scoreEntries, songTitle, enabled, serialized, isComposing, flush])
+  }, [youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized, isComposing, flush])
 
   useLayoutEffect(() => {
     let blurTimeout: ReturnType<typeof setTimeout> | undefined
@@ -73,6 +75,6 @@ export function useDraftAutoSave({
   }, [flush])
 
   const status = failed ? 'error' : savedValue === serialized ? 'saved' :
-    (youtubeUrl || scoreEntries.length > 0 || savedValue !== null) ? 'pending' : 'idle'
+    (youtubeUrl || scoreEntries.length > 0 || centralPops.length > 0 || savedValue !== null) ? 'pending' : 'idle'
   return { status, flush }
 }

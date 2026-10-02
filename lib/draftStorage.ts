@@ -1,4 +1,4 @@
-import type { LyricDraft, DraftListEntry, ScoreEntry } from './types'
+import type { LyricDraft, DraftListEntry, ScoreEntry, CentralPop } from './types'
 
 const DRAFT_LIST_KEY = 'lyric-draft-list'
 const DRAFT_KEY_PREFIX = 'lyric-draft-'
@@ -59,7 +59,8 @@ export function saveDraft(
   sessionId: string,
   youtubeUrl: string,
   scoreEntries: ScoreEntry[],
-  songTitle: string
+  songTitle: string,
+  centralPops: CentralPop[] = [],
 ): boolean {
   if (typeof window === 'undefined') return false
 
@@ -67,6 +68,7 @@ export function saveDraft(
     sessionId,
     youtubeUrl,
     scoreEntries,
+    centralPops,
     songTitle,
     lastModified: Date.now()
   }
