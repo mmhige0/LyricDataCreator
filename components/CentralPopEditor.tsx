@@ -4,13 +4,16 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { CentralPop } from '@/lib/types'
+import type { CentralPop, TimingTarget } from '@/lib/types'
 import { normalizeDecoration } from '@/lib/decorationText'
 import { PageTimestampInput } from './PageEditControls'
 import { POP_DURATIONS } from '@/lib/scoreFormat'
+import { POP_FADE_IN_SECONDS, POP_FADE_OUT_SECONDS } from '@/lib/popPreview'
+import { PopPreview } from './PopPreview'
 
-export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBoundary, titleAction, onPlay, onCompositionChange, selectedId, onSelect, onAdjust, onClear }: {
-  onAdjust?: (offset: number) => void
+export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBoundary, titleAction, onPlay, onCompositionChange, selectedId, onSelect, onAdjust, onClear, pageCount = 0 }: {
+  onAdjust?: (offset: number, target: TimingTarget) => void
+  pageCount?: number
   onClear?: () => void
   selectedId?: string | null
   onSelect?: (id: string) => void
@@ -24,10 +27,12 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
   onCompositionChange: (value: boolean) => void
 }) {
   const [adjustValue, setAdjustValue] = useState('0')
+  const [timingTarget, setTimingTarget] = useState<TimingTarget>('pops')
+  const hasAdjustmentTarget = timingTarget === 'pages' ? pageCount > 0 : timingTarget === 'pops' ? pops.length > 0 : pageCount + pops.length > 0
   const applyAdjustment = () => {
     const value = adjustValue.trim() ? Number(adjustValue) : NaN
     if (!Number.isFinite(value) || Math.abs(value) > 10) { toast.error('調整値は-10秒から+10秒の範囲で入力してください。'); return }
-    onAdjust?.(value)
+    onAdjust?.(value, timingTarget)
   }
   return <Card data-pop-editor className="flex h-full min-h-0 flex-col">
     <CardHeader className="flex flex-row items-center justify-between gap-2">
@@ -45,7 +50,7 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
             event.preventDefault(); event.stopPropagation(); event.currentTarget.focus()
           }
         }}>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="shrink-0 text-xs text-muted-foreground">#{index + 1}</span>
           <PageTimestampInput timestamp={pop.timestamp} pageNumber={index + 1} ariaLabel="ポップ開始時刻（秒）" onCommit={value => {
             const timestamp = Number(value)
@@ -53,7 +58,7 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
             onUpdate(pop.id, { timestamp }); return true
           }} />
           <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" aria-label={`ポップ${index + 1}から再生`} title="この時刻から再生" disabled={!onPlay} onClick={() => onPlay?.(pop.timestamp)}><Play className="h-4 w-4" aria-hidden="true" /></Button>
-          <Input id={`pop-text-${pop.id}`} aria-label={`ポップ${index + 1}の文字列`} className="h-8 min-w-0 text-sm" placeholder="Hey!" value={pop.text}
+          <Input id={`pop-text-${pop.id}`} aria-label={`ポップ${index + 1}の文字列`} className="h-8 w-0 min-w-0 flex-1 text-sm" placeholder="Hey!" value={pop.text}
             onChange={event => onUpdate(pop.id, { text: event.target.value })}
             onCompositionStart={() => onCompositionChange(true)} onCompositionEnd={() => onCompositionChange(false)}
             onPaste={event => { if (/[\r\n]/.test(event.clipboardData.getData('text'))) { event.preventDefault(); toast.error('ポップに改行は貼り付けできません。') } }}
@@ -65,10 +70,11 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
               onEditBoundary()
             }} />
           <Button variant="ghost" size="sm" aria-label={`ポップ${index + 1}を削除`} onClick={() => onDelete(pop.id)} className="h-8 px-2 text-destructive hover:text-destructive">削除</Button>
+          <PopPreview pop={pop} number={index + 1} />
         </div>
         <div className="flex flex-wrap items-center gap-3 pl-6 text-sm">
           <label className="flex items-center gap-2">表示時間<select aria-label="表示時間" className="h-9 rounded border bg-background px-2" value={pop.duration} onChange={event => onUpdate(pop.id, { duration: event.target.value as CentralPop['duration'] })}>
-            {Object.entries(POP_DURATIONS).map(([value, seconds]) => <option key={value} value={value}>{seconds.toFixed(1)}秒</option>)}
+            {Object.entries(POP_DURATIONS).map(([value, seconds]) => <option key={value} value={value}>{(seconds + POP_FADE_IN_SECONDS + POP_FADE_OUT_SECONDS).toFixed(1)}秒</option>)}
           </select></label>
           <label className="flex items-center gap-2">寄せ<select aria-label="寄せ" className="h-9 rounded border bg-background px-2" value={pop.align} onChange={event => onUpdate(pop.id, { align: event.target.value as CentralPop['align'] })}>
             <option value="l">左</option><option value="c">中央</option><option value="r">右</option>
@@ -87,8 +93,11 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
       <div className="mt-2 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t pt-2">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">時刻の一括調整</span>
-          <Input aria-label="ポップの一括調整（秒）" type="number" step="0.01" min="-10" max="10" placeholder="秒" value={adjustValue} onChange={event => setAdjustValue(event.target.value)} className="h-7 w-20 text-xs" disabled={!pops.length} />
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={applyAdjustment} disabled={!pops.length || !onAdjust}>適用</Button>
+          <select aria-label="ポップ一覧の時刻調整の対象" className="h-7 rounded border bg-background text-xs" value={timingTarget} onChange={event => setTimingTarget(event.target.value as TimingTarget)}>
+            <option value="both">歌詞とポップ</option><option value="pages">歌詞ページのみ</option><option value="pops">ポップのみ</option>
+          </select>
+          <Input aria-label="ポップの一括調整（秒）" type="number" step="0.01" min="-10" max="10" placeholder="秒" value={adjustValue} onChange={event => setAdjustValue(event.target.value)} className="h-7 w-20 text-xs" disabled={!hasAdjustmentTarget} />
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={applyAdjustment} disabled={!hasAdjustmentTarget || !onAdjust}>適用</Button>
         </div>
         <Button variant="outline" size="sm" className="text-xs text-muted-foreground hover:text-destructive" onClick={onClear} disabled={!pops.length || !onClear}><Trash2 className="h-3 w-3" />全ポップ削除</Button>
       </div>

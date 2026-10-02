@@ -101,7 +101,7 @@ export const HelpSection: React.FC = () => {
         </div>
         <div className="mb-6">
           <div className="mb-2 text-sm font-medium text-foreground">ポップ</div>
-          <p className="text-sm text-muted-foreground">タイトル横の切り替えボタンで、ページ一覧をポップ一覧に切り替えられます。ポップはゲーム内での表示のみで、タイピング対象にはなりません。</p>
+          <p className="text-sm text-muted-foreground">ページ一覧をポップ一覧に切り替えられます。ポップはゲーム内での表示のみで、タイピング対象にはなりません。</p>
         </div>
       </div>
       </div>

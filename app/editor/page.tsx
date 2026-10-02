@@ -493,7 +493,7 @@ export default function LyricsTypingApp() {
               <div id="right-column" className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
                 <div id="pops-list-panel" aria-label="ポップ一覧" hidden={listView !== 'pops'} className="min-h-0 flex-1">
                   <CentralPopEditor titleAction={<Button variant="ghost" size="sm" className="h-7 gap-1 px-1 text-xs font-normal" title="ページ一覧に切り替え" onClick={() => setListView('pages')} aria-label="ページ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /><span>ページ一覧</span></Button>} pops={centralPops} selectedId={selectedPopId} onSelect={setSelectedPopId}
-                    onAdd={addPop} onAdjust={offset => adjustTimings(offset, 'pops')} onClear={() => { clearAllCentralPops(); setSelectedPopId(null) }} onUpdate={updateCentralPop} onDelete={deletePop}
+                    onAdd={addPop} onAdjust={adjustTimings} pageCount={scoreEntries.length} onClear={() => { clearAllCentralPops(); setSelectedPopId(null) }} onUpdate={updateCentralPop} onDelete={deletePop}
                     onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} onCompositionChange={setIsComposing} />
                 </div>
                 <div id="pages-list-panel" aria-label="ページ一覧" hidden={listView !== 'pages'} className="min-h-0 flex-1">
