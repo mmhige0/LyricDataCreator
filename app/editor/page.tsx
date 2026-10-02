@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, type MouseEvent, type KeyboardEvent } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Edit3, Keyboard } from "lucide-react"
+import { Edit3, Keyboard, ArrowLeftRight } from "lucide-react"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts, registerEditorKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
@@ -183,10 +183,21 @@ export default function LyricsTypingApp() {
     player,
     popShortcuts: selectedPop ? {
       capture: handleGetCurrentTimestamp,
+      navigate: direction => {
+        const index = centralPops.findIndex(pop => pop.id === selectedPop.id)
+        const next = centralPops[index + direction]
+        if (!next) return
+        setSelectedPopId(next.id)
+        requestAnimationFrame(() => {
+          const row = document.getElementById(`pop-row-${next.id}`)
+          row?.focus({ preventScroll: true }); row?.scrollIntoView({ block: 'nearest' })
+        })
+      },
       copy: () => { void copyPop() }, paste: () => { void pastePop() },
       delete: () => deletePop(selectedPop.id),
     } : undefined,
     playSelectedPage: () => {
+      if (listView === 'pops') { if (player && selectedPop) seekToAndPlay(selectedPop.timestamp); return }
       const focused = document.activeElement
       if (!player || !(focused instanceof Element)) return
       const time = pagePlaybackTimestamp(scoreEntries, focused.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id ?? null)
@@ -471,19 +482,14 @@ export default function LyricsTypingApp() {
               </div>
 
               <div id="right-column" className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
-                <div role="tablist" aria-label="編集する一覧" className="flex shrink-0 gap-2">
-                  {(['pages', 'pops'] as const).map(view => <Button key={view} id={`${view}-list-tab`} role="tab" aria-selected={listView === view} aria-controls={`${view}-list-panel`} tabIndex={listView === view ? 0 : -1}
-                    variant={listView === view ? 'default' : 'outline'} onClick={() => setListView(view)}
-                    onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? 'pages' : event.key === 'End' ? 'pops' : listView === 'pages' ? 'pops' : 'pages'; setListView(next); document.getElementById(`${next}-list-tab`)?.focus() } }}>
-                    {view === 'pages' ? 'ページ一覧' : 'ポップ'}</Button>)}
-                </div>
-                <div id="pops-list-panel" role="tabpanel" aria-labelledby="pops-list-tab" hidden={listView !== 'pops'} className="min-h-0 flex-1">
-                  <CentralPopEditor pops={centralPops} selectedId={selectedPopId} onSelect={setSelectedPopId}
+                <div id="pops-list-panel" aria-label="ポップ一覧" hidden={listView !== 'pops'} className="min-h-0 flex-1">
+                  <CentralPopEditor titleAction={<Button variant="ghost" size="icon" className="h-7 w-7" title="ページ一覧に切り替え" onClick={() => setListView('pages')} aria-label="ページ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /></Button>} pops={centralPops} selectedId={selectedPopId} onSelect={setSelectedPopId}
                     onAdd={() => setSelectedPopId(addCentralPop())} onUpdate={updateCentralPop} onDelete={deletePop}
-                    onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} captureTime={player ? () => Number(getCurrentTimestamp(timestampOffset)) : undefined} onCompositionChange={setIsComposing} />
+                    onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} onCompositionChange={setIsComposing} />
                 </div>
-                <div id="pages-list-panel" role="tabpanel" aria-labelledby="pages-list-tab" hidden={listView !== 'pages'} className="min-h-0 flex-1">
+                <div id="pages-list-panel" aria-label="ページ一覧" hidden={listView !== 'pages'} className="min-h-0 flex-1">
                 <ScoreManagementSection
+                  titleAction={<Button variant="ghost" size="icon" className="h-7 w-7" title="ポップ一覧に切り替え" onClick={() => setListView('pops')} aria-label="ポップ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /></Button>}
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
                   inlineActions={{

@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom'
 import type { YouTubePlayer } from '@/lib/types'
 
 interface KeyboardShortcutsProps {
-  popShortcuts?: { capture: () => void; copy: () => void; paste: () => void; delete: () => void }
+  popShortcuts?: { capture: () => void; navigate?: (direction: -1 | 1) => void; copy: () => void; paste: () => void; delete: () => void }
   player: YouTubePlayer | null
   playSelectedPage?: () => void
   getCurrentTimestamp: () => void
@@ -64,7 +64,7 @@ export const useKeyboardShortcuts = ({
       event.preventDefault()
       if (event.isComposing) return
       if (event.shiftKey) {
-        if (!inPopEditor) playSelectedPage?.()
+        playSelectedPage?.()
       } else if (player) {
         if (player.getPlayerState() === window.YT.PlayerState.PLAYING) player.pauseVideo()
         else player.playVideo()
@@ -82,6 +82,9 @@ export const useKeyboardShortcuts = ({
         && activeElement.selectionStart !== activeElement.selectionEnd
       const plain = !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey
       let action: (() => void) | undefined
+      if (plain && (event.key === 'PageUp' || event.key === 'PageDown') && popShortcuts.navigate) {
+        event.preventDefault(); popShortcuts.navigate(event.key === 'PageUp' ? -1 : 1); return
+      }
       if (plain && event.key === 'F2') action = popShortcuts.capture
       else if (plain && event.key === 'Delete') {
         if (!isInputFocused && !element?.isContentEditable && !unrelatedField) action = popShortcuts.delete

@@ -55,10 +55,7 @@ export const useFileOperations = ({
 
     let txtContent: string
     try {
-      if (format === 'lrc' && (centralPops.length || scoreEntries.some(entry => entry.decorations?.some(Boolean)))) {
-        throw new Error('装飾行・ポップはLRCに保存できません。TXTで出力してください。')
-      }
-      txtContent = createScoreTxt(duration, scoreEntries, centralPops)
+      txtContent = format === 'txt' ? createScoreTxt(duration, scoreEntries, centralPops) : ''
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '出力できませんでした。')
       return

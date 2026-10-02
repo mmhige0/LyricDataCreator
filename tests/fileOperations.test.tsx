@@ -8,6 +8,7 @@ import type { CentralPop, ScoreEntry } from '../lib/types'
 import { POP_DEFAULTS } from '../lib/scoreFormat'
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
+const NativeFileReader = window.FileReader
 let root: Root
 let host: HTMLDivElement
 let state: { pages: ScoreEntry[]; pops: CentralPop[]; title: string; duration: number }
@@ -36,7 +37,7 @@ beforeEach(async () => {
   root = createRoot(host)
   await act(async () => root.render(createElement(Harness)))
 })
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); vi.clearAllMocks() })
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.clearAllMocks() })
 async function importText(text: string, filename: string) {
   content = text
   const target = { files: [new File([text], filename, { type: 'text/plain' })], value: filename }
@@ -60,10 +61,25 @@ it('imports new pages and pops atomically with one history checkpoint', async ()
   expect(state.pops[0]).toMatchObject({ text: 'Wow!', duration: 'x', align: 'r', size: 'l', color: '#123456' })
   expect(checkpoint).toHaveBeenCalledTimes(1)
 })
-it('does not silently lose pops through LRC export', async () => {
+it('exports only ordinary lyrics to LRC without mutating pages or pops', async () => {
+  await importText('30\n!飾り/カナ/!/!/0\n!装飾だけ/!/!/!/10\n_\nWow!/2', 'mixed.txt')
+  const downloads: Blob[] = []
+  Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:test' }) })
+  Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() })
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
   await act(async () => files.exportScoreData('lrc'))
-  expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('TXT'))
-  expect(prompt).not.toHaveBeenCalled()
+  const exported = await new Promise<string>(resolve => {
+    // Use jsdom's native reader rather than the import mock.
+    const reader = new NativeFileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.readAsText(downloads[0])
+  })
+  expect(exported).toContain('[00:00.00]/カナ//')
+  expect(exported).toContain('[00:10.00]///')
+  expect(exported).not.toMatch(/飾り|装飾だけ|Wow!|_/)
+  expect(state.pages[0].lyrics[0]).toBe('飾り')
+  expect(state.pops[0].text).toBe('Wow!')
+  expect(toast.error).not.toHaveBeenCalled()
 })
 it('clears old pops when replacing the document with legacy LRC', async () => {
   await importText('[00:01.00]カナ', 'legacy.lrc')

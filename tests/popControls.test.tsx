@@ -18,7 +18,7 @@ function Harness() {
   useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
   return <CentralPopEditor pops={[{ id: 'pop', text: 'Hey!', timestamp: 12.34, ...POP_DEFAULTS }]}
     onAdd={() => {}} onUpdate={update} onDelete={() => {}} onEditBoundary={() => {}}
-    onCompositionChange={() => {}} captureTime={() => 23.45} onPlay={play} />
+    onCompositionChange={() => {}} onPlay={play} />
 }
 beforeEach(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
@@ -27,11 +27,10 @@ beforeEach(async () => {
   await act(async () => root.render(<Harness />))
 })
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.unstubAllGlobals() })
-it('seeks to the pop timestamp and captures time independently', async () => {
+it('seeks to the pop timestamp', async () => {
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="ポップ1から再生"]')!.click())
   expect(play).toHaveBeenCalledExactlyOnceWith(12.34)
-  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="ポップ1の現在時刻を取得"]')!.click())
-  expect(update).toHaveBeenCalledExactlyOnceWith('pop', { timestamp: 23.45 })
+
 })
 it('allows F2 from a focused pop field and ignores it during composition', async () => {
   const input = host.querySelector<HTMLInputElement>('[aria-label="ポップ1の文字列"]')!
@@ -77,4 +76,27 @@ it('routes selected-pop shortcuts after focus leaves the pop, preserving native 
   host.querySelector<HTMLInputElement>('[aria-label="unrelated"]')!.focus()
   expect((await press('c', { ctrlKey: true })).defaultPrevented).toBe(false)
   expect(actions.copy).toHaveBeenCalledOnce()
+})
+
+it('supports pop PageUp/PageDown and Ctrl+Shift+Space while a field is focused', async () => {
+  const navigate = vi.fn()
+  const restart = vi.fn()
+  function NavigationHarness() {
+    const handler = useKeyboardShortcuts({ player: null, getCurrentTimestamp: () => {},
+      popShortcuts: { capture: () => {}, copy: () => {}, paste: () => {}, delete: () => {}, navigate },
+      playSelectedPage: restart, seekBackward1Second: () => {}, seekForward1Second: () => {},
+    })
+    useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
+    return <div data-pop-editor><input /></div>
+  }
+  await act(async () => root.render(<NavigationHarness />))
+  const input = host.querySelector('input')!; input.focus()
+  for (const key of ['PageDown', 'PageUp']) {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true })
+    await act(async () => input.dispatchEvent(event))
+    expect(event.defaultPrevented).toBe(true)
+  }
+  expect(navigate.mock.calls).toEqual([[1], [-1]])
+  await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true })))
+  expect(restart).toHaveBeenCalledOnce()
 })

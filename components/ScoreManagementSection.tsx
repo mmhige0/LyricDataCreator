@@ -1,5 +1,5 @@
 import type { TimingTarget } from '@/lib/types'
-import { memo, useState, type FC, type MouseEvent } from 'react'
+import { memo, useState, type FC, type MouseEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,6 +61,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
+  titleAction?: ReactNode
   addEmptyScoreEntry?: () => void
   selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
@@ -96,6 +97,7 @@ interface ScoreManagementSectionProps {
 }
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
+  titleAction,
   addEmptyScoreEntry,
   selectedLyrics,
   inlineActions,
@@ -166,6 +168,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
               <Clock className="h-5 w-5" />
             </div>
             ページ一覧
+            {titleAction}
           </CardTitle>
           {!readOnly && (
             <div className="flex gap-2">
