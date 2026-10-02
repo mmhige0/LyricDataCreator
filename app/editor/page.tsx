@@ -14,6 +14,8 @@ import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
 import { CentralPopEditor } from '@/components/CentralPopEditor'
 import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
+import { EditorShortcuts } from "@/components/EditorShortcuts"
+import { popContent, serializePopClipboard, parsePopClipboard } from "@/lib/popClipboard"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
@@ -31,6 +33,8 @@ export default function LyricsTypingApp() {
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [activeView, setActiveView] = useState<"editor" | "play">("editor")
+  const [listView, setListView] = useState<'pages' | 'pops'>('pages')
+  const [selectedPopId, setSelectedPopId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<DraftListEntry[]>([])
   const hasRestoredDraftRef = useRef(false)
   const autoTitleRef = useRef<string | null>(null)
@@ -101,14 +105,44 @@ export default function LyricsTypingApp() {
     saveCurrentState,
   } = useScoreManagement({ currentTime, currentPlayer: player })
 
+  const selectedPop = listView === 'pops' ? centralPops.find(pop => pop.id === selectedPopId) : undefined
+  const popStateRef = useRef({ centralPops, updateCentralPop, resetPopEdit })
+  useEffect(() => { popStateRef.current = { centralPops, updateCentralPop, resetPopEdit } }, [centralPops, updateCentralPop, resetPopEdit])
+  const deletePop = (id: string) => {
+    const index = centralPops.findIndex(pop => pop.id === id)
+    if (index < 0) return
+    deleteCentralPop(id)
+    if (id === selectedPopId) setSelectedPopId((centralPops[index + 1] ?? centralPops[index - 1])?.id ?? null)
+  }
+  const copyPop = async () => {
+    if (!selectedPop) return
+    try { await navigator.clipboard.writeText(serializePopClipboard(selectedPop)) }
+    catch { toast.error('ポップをコピーできませんでした。') }
+  }
+  const pastePop = async () => {
+    if (!selectedPop) return
+    const expected = JSON.stringify(popContent(selectedPop))
+    try {
+      const content = parsePopClipboard(await navigator.clipboard.readText())
+      const current = popStateRef.current.centralPops.find(pop => pop.id === selectedPop.id)
+      if (!current || JSON.stringify(popContent(current)) !== expected) { toast.info('ポップが変更されたため、貼り付けを中止しました。'); return }
+      popStateRef.current.resetPopEdit()
+      popStateRef.current.updateCentralPop(current.id, content)
+      popStateRef.current.resetPopEdit()
+    } catch { toast.error('ポップをコピーしたデータを貼り付けてください。') }
+  }
+
   const handleGetCurrentTimestamp = useCallback(() => {
     if (!player) return
-    const popId = document.activeElement?.closest('[data-pop-id]')?.getAttribute('data-pop-id')
-    if (popId) { updateCentralPop(popId, { timestamp: Number(getCurrentTimestamp(timestampOffset)) }); return }
+    const popId = listView === 'pops' ? selectedPop?.id : undefined
+    if (listView === 'pops') {
+      if (popId) updateCentralPop(popId, { timestamp: Number(getCurrentTimestamp(timestampOffset)) })
+      return
+    }
     const focusedPage = document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id')
     const id = focusedPage ?? selectedLyrics?.id
     if (id) updateInlineTimestamp(getCurrentTimestamp(timestampOffset), id)
-  }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp, updateCentralPop])
+  }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp, updateCentralPop, listView, selectedPop])
 
   const { copyLyricsToClipboard, pasteLyricsFromClipboard } = useLyricsCopyPaste()
   const focusedPageId = () => document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id
@@ -147,20 +181,25 @@ export default function LyricsTypingApp() {
 
   const handleKeyDown = useKeyboardShortcuts({
     player,
+    popShortcuts: selectedPop ? {
+      capture: handleGetCurrentTimestamp,
+      copy: () => { void copyPop() }, paste: () => { void pastePop() },
+      delete: () => deletePop(selectedPop.id),
+    } : undefined,
     playSelectedPage: () => {
       const focused = document.activeElement
       if (!player || !(focused instanceof Element)) return
       const time = pagePlaybackTimestamp(scoreEntries, focused.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id ?? null)
       if (time !== null) seekToAndPlay(time)
     },
-    addPage: () => addEmptyScoreEntry(),
-    deleteSelectedPage: () => { if (selectedLyrics) deleteScoreEntry(selectedLyrics.id) },
+    addPage: listView === 'pages' ? () => addEmptyScoreEntry() : undefined,
+    deleteSelectedPage: listView === 'pages' ? () => { if (selectedLyrics) deleteScoreEntry(selectedLyrics.id) } : undefined,
     getCurrentTimestamp: handleGetCurrentTimestamp,
     seekBackward1Second,
     seekForward1Second,
     timestampOffset,
-    pasteLyrics: handlePasteLyrics,
-    copyLyrics: selectedLyrics ? handleCopyLyrics : undefined,
+    pasteLyrics: listView === 'pages' ? handlePasteLyrics : undefined,
+    copyLyrics: listView === 'pages' && selectedLyrics ? handleCopyLyrics : undefined,
     undoLastOperation,
     redoLastOperation,
   })
@@ -427,12 +466,23 @@ export default function LyricsTypingApp() {
                 />
 
                 <TimestampOffsetControl value={timestampOffset} onChange={setTimestampOffset} />
-                <CentralPopEditor pops={centralPops} onAdd={addCentralPop} onUpdate={updateCentralPop} onDelete={deleteCentralPop}
-                  onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} captureTime={player ? () => Number(getCurrentTimestamp(timestampOffset)) : undefined} onCompositionChange={setIsComposing} />
+                <EditorShortcuts />
                 <HelpSection />
               </div>
 
-              <div className="min-w-0 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+              <div id="right-column" className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+                <div role="tablist" aria-label="編集する一覧" className="flex shrink-0 gap-2">
+                  {(['pages', 'pops'] as const).map(view => <Button key={view} id={`${view}-list-tab`} role="tab" aria-selected={listView === view} aria-controls={`${view}-list-panel`} tabIndex={listView === view ? 0 : -1}
+                    variant={listView === view ? 'default' : 'outline'} onClick={() => setListView(view)}
+                    onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? 'pages' : event.key === 'End' ? 'pops' : listView === 'pages' ? 'pops' : 'pages'; setListView(next); document.getElementById(`${next}-list-tab`)?.focus() } }}>
+                    {view === 'pages' ? 'ページ一覧' : 'ポップ'}</Button>)}
+                </div>
+                <div id="pops-list-panel" role="tabpanel" aria-labelledby="pops-list-tab" hidden={listView !== 'pops'} className="min-h-0 flex-1">
+                  <CentralPopEditor pops={centralPops} selectedId={selectedPopId} onSelect={setSelectedPopId}
+                    onAdd={() => setSelectedPopId(addCentralPop())} onUpdate={updateCentralPop} onDelete={deletePop}
+                    onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} captureTime={player ? () => Number(getCurrentTimestamp(timestampOffset)) : undefined} onCompositionChange={setIsComposing} />
+                </div>
+                <div id="pages-list-panel" role="tabpanel" aria-labelledby="pages-list-tab" hidden={listView !== 'pages'} className="min-h-0 flex-1">
                 <ScoreManagementSection
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
@@ -467,6 +517,7 @@ export default function LyricsTypingApp() {
                   canUndo={canUndo}
                   canRedo={canRedo}
                 />
+                </div>
               </div>
             </div>
 

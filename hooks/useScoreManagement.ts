@@ -134,7 +134,9 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const addCentralPop = () => {
     saveCurrentState()
     const timestamp = currentPlayer ? captureTimestamp(currentPlayer.getCurrentTime(), timestampOffset, currentPlayer.getDuration()) : 0
-    setCentralPops(prev => [...prev, { id: `pop_${crypto.randomUUID()}`, text: '', timestamp, ...POP_DEFAULTS }].sort((a, b) => a.timestamp - b.timestamp))
+    const pop: CentralPop = { id: `pop_${crypto.randomUUID()}`, text: '', timestamp, ...POP_DEFAULTS }
+    setCentralPops(prev => [...prev, pop].sort((a, b) => a.timestamp - b.timestamp))
+    return pop.id
   }
 
   const updateCentralPop = (id: string, changes: Partial<Omit<CentralPop, 'id'>>) => {

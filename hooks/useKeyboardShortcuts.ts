@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import type { YouTubePlayer } from '@/lib/types'
 
 interface KeyboardShortcutsProps {
+  popShortcuts?: { capture: () => void; copy: () => void; paste: () => void; delete: () => void }
   player: YouTubePlayer | null
   playSelectedPage?: () => void
   getCurrentTimestamp: () => void
@@ -25,6 +26,7 @@ interface KeyboardShortcutsProps {
  */
 export const useKeyboardShortcuts = ({
   player,
+  popShortcuts,
   playSelectedPage,
   getCurrentTimestamp,
   seekBackward1Second,
@@ -44,7 +46,7 @@ export const useKeyboardShortcuts = ({
   return (event: KeyboardEvent) => {
     if (event.defaultPrevented) return
     const inPopEditor = document.activeElement?.closest('[data-pop-editor]')
-    if (inPopEditor && (isAddPageShortcut(event) || event.key === 'Delete'
+    if (inPopEditor && !popShortcuts && (isAddPageShortcut(event) || event.key === 'Delete'
       || (event.ctrlKey && ['c', 'v'].includes(event.key.toLowerCase())))) return
     if (isAddPageShortcut(event) && addPageRef.current) {
       event.preventDefault()
@@ -72,6 +74,27 @@ export const useKeyboardShortcuts = ({
     if (event.isComposing || event.keyCode === 229) return
     const activeElement = document.activeElement
     const isInputFocused = activeElement?.tagName === "INPUT" || activeElement?.tagName === "TEXTAREA"
+
+    if (popShortcuts) {
+      const element = activeElement instanceof HTMLElement ? activeElement : null
+      const unrelatedField = element?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]') && !inPopEditor
+      const selectedText = (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement)
+        && activeElement.selectionStart !== activeElement.selectionEnd
+      const plain = !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey
+      let action: (() => void) | undefined
+      if (plain && event.key === 'F2') action = popShortcuts.capture
+      else if (plain && event.key === 'Delete') {
+        if (!isInputFocused && !element?.isContentEditable && !unrelatedField) action = popShortcuts.delete
+        else return
+      } else if (event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'c' && !event.shiftKey) {
+        if (!unrelatedField && !selectedText && !window.getSelection()?.toString()) action = popShortcuts.copy
+        else return
+      } else if (event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'v') {
+        if (!unrelatedField && (event.shiftKey || !isInputFocused)) action = popShortcuts.paste
+        else return
+      }
+      if (action) { event.preventDefault(); if (!event.repeat) action(); return }
+    }
 
     // Keep native text deletion while editing. Esc leaves the lyric input.
     if (event.key === 'Delete' && !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {

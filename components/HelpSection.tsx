@@ -1,5 +1,4 @@
 import React from 'react'
-import { EditorShortcuts } from './EditorShortcuts'
 import { HelpCircle, ChevronDown } from 'lucide-react'
 
 export const HelpSection: React.FC = () => {
@@ -11,7 +10,6 @@ export const HelpSection: React.FC = () => {
         <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
       </summary>
       <div className="mt-6">
-      <div className="mb-8"><EditorShortcuts /></div>
 
       {/* 1. Basic Usage */}
       <div className="mb-8">

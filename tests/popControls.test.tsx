@@ -44,3 +44,37 @@ it('allows F2 from a focused pop field and ignores it during composition', async
   await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true, isComposing: true })))
   expect(capture).toHaveBeenCalledOnce()
 })
+
+it('routes selected-pop shortcuts after focus leaves the pop, preserving native editing', async () => {
+  const actions = { capture: vi.fn(), copy: vi.fn(), paste: vi.fn(), delete: vi.fn() }
+  function SelectedHarness() {
+    const handler = useKeyboardShortcuts({ player: null, getCurrentTimestamp: vi.fn(), popShortcuts: actions,
+      seekBackward1Second: () => {}, seekForward1Second: () => {},
+    })
+    useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
+    return <><fieldset data-pop-editor tabIndex={0}><input defaultValue="Hey!" /><select><option>中</option></select></fieldset><button>outside</button><input aria-label="unrelated" /></>
+  }
+  await act(async () => root.render(<SelectedHarness />))
+  const press = async (key: string, init: KeyboardEventInit = {}) => {
+    const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init })
+    await act(async () => (document.activeElement ?? document.body).dispatchEvent(event))
+    return event
+  }
+  host.querySelector('button')!.focus()
+  for (const [key, init] of [['F2', {}], ['Delete', {}], ['c', { ctrlKey: true }], ['v', { ctrlKey: true, shiftKey: true }]] as const) {
+    expect((await press(key, init)).defaultPrevented).toBe(true)
+  }
+  Object.values(actions).forEach(action => expect(action).toHaveBeenCalledOnce())
+  const input = host.querySelector('input')!
+  input.focus(); input.setSelectionRange(0, 3)
+  expect((await press('c', { ctrlKey: true })).defaultPrevented).toBe(false)
+  expect((await press('Delete')).defaultPrevented).toBe(false)
+  expect((await press('v', { ctrlKey: true })).defaultPrevented).toBe(false)
+  expect((await press('v', { ctrlKey: true, shiftKey: true })).defaultPrevented).toBe(true)
+  expect(actions.paste).toHaveBeenCalledTimes(2)
+  await press('Delete', { isComposing: true })
+  expect(actions.delete).toHaveBeenCalledOnce()
+  host.querySelector<HTMLInputElement>('[aria-label="unrelated"]')!.focus()
+  expect((await press('c', { ctrlKey: true })).defaultPrevented).toBe(false)
+  expect(actions.copy).toHaveBeenCalledOnce()
+})

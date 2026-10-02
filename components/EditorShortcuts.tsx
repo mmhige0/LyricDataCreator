@@ -13,7 +13,10 @@ export function EditorShortcuts() {
             { keys: ['Ctrl', '→'], description: '1秒早送り' },
           ] },
           { title: 'ポップ操作', shortcuts: [
-            { keys: ['F2'], description: '編集中のポップに現在時刻を設定' },
+            { keys: ['Delete'], description: '選択中のポップを削除（文字編集中は文字削除）' },
+            { keys: ['Ctrl', 'C'], description: '開始時刻以外のポップ設定をコピー' },
+            { keys: ['Ctrl', 'Shift', 'V'], description: '選択中のポップに貼り付け（開始時刻は保持）' },
+            { keys: ['F2'], description: '選択中のポップに現在時刻を設定' },
           ] },
           { title: 'ページ操作', shortcuts: [
             { keys: ['Ctrl', '↑'], description: '最初のページの1行目へ移動' },

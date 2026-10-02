@@ -28,7 +28,9 @@ function PopTime({ pop, onChange }: { pop: CentralPop; onChange: (value: number)
     }} />
 }
 
-export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBoundary, captureTime, onPlay, onCompositionChange }: {
+export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBoundary, captureTime, onPlay, onCompositionChange, selectedId, onSelect }: {
+  selectedId?: string | null
+  onSelect?: (id: string) => void
   pops: CentralPop[]
   onAdd: () => void
   onUpdate: (id: string, changes: Partial<Omit<CentralPop, 'id'>>) => void
@@ -38,15 +40,18 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
   onPlay?: (timestamp: number) => void
   onCompositionChange: (value: boolean) => void
 }) {
-  return <Card data-pop-editor>
+  return <Card data-pop-editor className="flex h-full min-h-0 flex-col">
     <CardHeader className="flex flex-row items-center justify-between gap-2">
       <CardTitle className="flex items-center gap-2 text-lg"><div className="rounded-lg bg-violet-500 p-2 text-white"><MessageSquare className="h-5 w-5" aria-hidden="true" /></div>ポップ <span className="text-sm text-muted-foreground">{pops.length}件</span></CardTitle>
       <Button variant="outline" size="sm" onClick={onAdd}>ポップを追加</Button>
     </CardHeader>
-    <CardContent className="space-y-4">
+    <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
       <p className="text-xs text-muted-foreground">歌詞ページとは別のタイミングで表示します。半角0.5・全角1で25文字まで。絵文字・改行は使用できません。</p>
       {!pops.length && <p className="text-sm text-muted-foreground">ポップはありません。</p>}
-      {pops.map((pop, index) => <fieldset key={pop.id} data-pop-id={pop.id} className="space-y-2 rounded-lg border p-3" onFocusCapture={onEditBoundary}>
+      {pops.map((pop, index) => <fieldset key={pop.id} data-pop-id={pop.id} tabIndex={0} aria-label={`ポップ${index + 1}を選択`} data-selected={selectedId === pop.id}
+        className={`space-y-2 rounded-lg border p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring ${selectedId === pop.id ? 'border-primary bg-primary/5' : ''}`}
+        onPointerDown={event => { onSelect?.(pop.id); if (!(event.target instanceof Element) || !event.target.closest('input, select, button, label')) event.currentTarget.focus() }}
+        onFocusCapture={() => { onSelect?.(pop.id); onEditBoundary() }}>
         <legend className="px-1 text-sm">ポップ {index + 1}</legend>
         <div className="flex items-center gap-2">
           <Input aria-label={`ポップ${index + 1}の文字列`} placeholder="Hey!" value={pop.text}
