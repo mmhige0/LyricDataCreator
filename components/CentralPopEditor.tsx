@@ -69,8 +69,10 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
               onUpdate(pop.id, { text })
               onEditBoundary()
             }} />
-          <Button variant="ghost" size="sm" aria-label={`ポップ${index + 1}を削除`} onClick={() => onDelete(pop.id)} className="h-8 px-2 text-destructive hover:text-destructive">削除</Button>
-          <PopPreview pop={pop} number={index + 1} />
+          <div className="flex w-72 max-w-full shrink-0 items-center gap-2 max-sm:w-full">
+            <PopPreview pop={pop} number={index + 1} />
+            <Button variant="ghost" size="sm" aria-label={`ポップ${index + 1}を削除`} onClick={() => onDelete(pop.id)} className="h-8 shrink-0 px-2 text-destructive hover:text-destructive">削除</Button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 pl-6 text-sm">
           <label className="flex items-center gap-2">表示時間<select aria-label="表示時間" className="h-9 rounded border bg-background px-2" value={pop.duration} onChange={event => onUpdate(pop.id, { duration: event.target.value as CentralPop['duration'] })}>

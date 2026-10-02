@@ -15,9 +15,10 @@ export function PopPreview({ pop, number }: { pop: CentralPop; number: number })
     animation.current = text.current.animate(timing.keyframes, { duration: timing.total * 1000, easing: 'linear', fill: 'forwards' })
   }
   return <button type="button" aria-label={`ポップ${number}のプレビューを再生`} title="クリックしてプレビューを再生"
-    className="relative flex h-16 w-40 shrink-0 items-center overflow-hidden rounded bg-black px-2 max-sm:w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={replay}>
+    style={{ containerType: 'size' }} className="relative flex aspect-[24/5] min-w-0 flex-1 items-center overflow-hidden rounded bg-black px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={replay}>
     <span ref={text} data-pop-preview-text className="block w-full whitespace-pre font-bold" style={{
-      fontSize: POP_GAME_FONT_SIZES[pop.size] / 10,
+      fontSize: `${POP_GAME_FONT_SIZES[pop.size] / 300 * 100}cqh`,
+      lineHeight: 1,
       opacity: POP_OPACITY,
       color: pop.color || POP_DEFAULTS.color,
       textAlign: pop.align === 'l' ? 'left' : pop.align === 'r' ? 'right' : 'center',
