@@ -1,4 +1,5 @@
 import React from 'react'
+import { EditorShortcuts } from './EditorShortcuts'
 import { HelpCircle, ChevronDown } from 'lucide-react'
 
 export const HelpSection: React.FC = () => {
@@ -10,6 +11,7 @@ export const HelpSection: React.FC = () => {
         <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-open:rotate-180" />
       </summary>
       <div className="mt-6">
+      <div className="mb-8"><EditorShortcuts /></div>
 
       {/* 1. Basic Usage */}
       <div className="mb-8">
@@ -95,8 +97,8 @@ export const HelpSection: React.FC = () => {
               <li>半角カタカナは全角化。カタカナ表記は保持（ヰ・ヱはゐ・ゑ、ゔはヴ）</li>
             </ul>
             <p className="mt-2">「かな変換」は漢字だけをひらがなに変換し、カタカナを保持します。装飾行には適用しません。</p>
-            <p className="mt-2">各行の「歌詞／装飾」で行の種類を切り替えます。装飾行と中央ポップは全角25文字・半角50文字まで。絵文字・改行は禁止で、編集終了時に禁止文字の除去・超過分の切り取りを行います。</p>
-            <p className="mt-2">中央ポップは別一覧で時刻・表示時間・寄せ・サイズ・色を設定します。初期値は0.3秒・中央・中・白です。TXTに保存でき、装飾行やポップを含む場合はLRC出力できません。</p>
+            <p className="mt-2">各行の「歌詞／装飾」で行の種類を切り替えます。4行コピー・貼り付けでは装飾指定も引き継ぎます。装飾行とポップは全角25文字・半角50文字まで。絵文字・改行は禁止で、編集終了時に禁止文字の除去・超過分の切り取りを行います。</p>
+            <p className="mt-2">ポップは別一覧で時刻・表示時間・寄せ・サイズ・色を設定します。再生ボタンで開始時刻から再生でき、時計ボタンまたは編集中のF2で現在時刻を取得できます。初期値は0.3秒・中央・中・白です。TXTに保存でき、装飾行やポップを含む場合はLRC出力できません。</p>
             <p className="mt-2">TXTでは装飾行に ! を付け、ポップは終端行の後の _ で区切ります。文字列中のスラッシュとバックスラッシュは自動でエスケープされます。エディターでは表示したい文字をそのまま入力してください。</p>
           </div>
         </div>

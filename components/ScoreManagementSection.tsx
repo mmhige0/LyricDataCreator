@@ -325,7 +325,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                       </div>
                       {!readOnly && <div className="col-start-2 row-start-1 sm:col-start-3">
                         <PageActionsMenu pageNumber={displayPageNumber} empty={entry.lyrics.every(line => !line.trim())}
-                          onCopy={() => { void copyLyricsToClipboard(entry.lyrics) }}
+                          onCopy={() => { void copyLyricsToClipboard(entry.lyrics, entry.decorations) }}
                           onClear={onReplacePageLyrics ? () => onReplacePageLyrics(entry.id, ['', '', '', '']) : undefined}
                           onDelete={() => deleteScoreEntry(entry.id)} />
                       </div>}
@@ -348,7 +348,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground">時刻の一括調整</span>
                   <select aria-label="時刻調整の対象" className="h-7 rounded border bg-background text-xs" value={timingTarget} onChange={event => setTimingTarget(event.target.value as TimingTarget)}>
-                    <option value="both">歌詞とポップ</option><option value="pages">歌詞ページのみ</option><option value="pops">中央ポップのみ</option>
+                    <option value="both">歌詞とポップ</option><option value="pages">歌詞ページのみ</option><option value="pops">ポップのみ</option>
                   </select>
                   <Input
                     type="number"

@@ -97,7 +97,7 @@ export const useTypingGame = ({
       }
 
       const targetLineIndexes = getPracticeLineIndexes(
-        scoreEntries[pageIndex]?.lyrics ?? [],
+        scoreEntries[pageIndex]?.lyrics.map((line, index) => scoreEntries[pageIndex].decorations?.[index] ? '' : line) ?? [],
         practiceLineSettings
       )
       const typingWord = skipSpaces(

@@ -3,7 +3,6 @@ import { flushSync } from 'react-dom'
 import type { LyricsArray, ScoreEntry } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import { toast } from 'sonner'
-import { decorationLength } from '@/lib/decorationText'
 import { splitLyricsLine } from '@/lib/inlineLyrics'
 
 export interface InlineLyricsActions {
@@ -180,7 +179,6 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
           focusLine(last, next[last].length)
         }}
       />
-      {decorated && <span className={`shrink-0 text-[10px] tabular-nums ${decorationLength(entry.lyrics[line]) > 25 ? 'text-destructive' : 'text-muted-foreground'}`}>{decorationLength(entry.lyrics[line])}/25</span>}
       </div>
     </div>
   )

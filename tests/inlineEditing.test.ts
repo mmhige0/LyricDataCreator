@@ -220,3 +220,21 @@ it('normalizes decoration text without lyric conversion and can undo changing it
   expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ abc/!★')
   expect(score.scoreEntries[0].decorations?.[0]).toBe(true)
 })
+
+it('pastes decoration kinds and text together, and restores both with Undo', async () => {
+  await act(async () => {
+    expect(score.replacePageLyrics('one', ['カタカナ', '漢字/\\!★', '', ''], entries[0].lyrics, [false, true, false, false])).toBe(true)
+  })
+  expect(score.scoreEntries[0].lyrics).toEqual(['カタカナ', '漢字/\\!★', '', ''])
+  expect(score.scoreEntries[0].decorations).toEqual([false, true, false, false])
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0]).toEqual(entries[0])
+})
+
+it('cancels delayed paste when a row kind changed while reading the clipboard', async () => {
+  await act(async () => score.toggleDecoration('one', 0))
+  await act(async () => {
+    expect(score.replacePageLyrics('one', ['カタカナ', '飾り', '', ''], entries[0].lyrics, [false, true, false, false])).toBe(false)
+  })
+  expect(score.scoreEntries[0].decorations?.[0]).toBe(true)
+})

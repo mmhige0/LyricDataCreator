@@ -56,7 +56,7 @@ export const useFileOperations = ({
     let txtContent: string
     try {
       if (format === 'lrc' && (centralPops.length || scoreEntries.some(entry => entry.decorations?.some(Boolean)))) {
-        throw new Error('装飾行・中央ポップはLRCに保存できません。TXTで出力してください。')
+        throw new Error('装飾行・ポップはLRCに保存できません。TXTで出力してください。')
       }
       txtContent = createScoreTxt(duration, scoreEntries, centralPops)
     } catch (error) {
@@ -216,7 +216,7 @@ export const useFileOperations = ({
         setDuration(fileDuration)
         if (importedTitle !== undefined) setSongTitle(importedTitle)
         for (const warning of parsed.warnings) toast.info(warning)
-        toast.success(`${parsed.scoreEntries.length}ページ・${parsed.centralPops.length}件の中央ポップをインポートしました。`)
+        toast.success(`${parsed.scoreEntries.length}ページ・${parsed.centralPops.length}件のポップをインポートしました。`)
       } catch (error) {
         console.error('File import error:', error)
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"

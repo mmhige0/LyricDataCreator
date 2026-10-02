@@ -14,7 +14,6 @@ import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
 import { CentralPopEditor } from '@/components/CentralPopEditor'
 import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
-import { EditorShortcuts } from "@/components/EditorShortcuts"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
@@ -104,16 +103,18 @@ export default function LyricsTypingApp() {
 
   const handleGetCurrentTimestamp = useCallback(() => {
     if (!player) return
+    const popId = document.activeElement?.closest('[data-pop-id]')?.getAttribute('data-pop-id')
+    if (popId) { updateCentralPop(popId, { timestamp: Number(getCurrentTimestamp(timestampOffset)) }); return }
     const focusedPage = document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id')
     const id = focusedPage ?? selectedLyrics?.id
     if (id) updateInlineTimestamp(getCurrentTimestamp(timestampOffset), id)
-  }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp])
+  }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp, updateCentralPop])
 
   const { copyLyricsToClipboard, pasteLyricsFromClipboard } = useLyricsCopyPaste()
   const focusedPageId = () => document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id
   const handleCopyLyrics = () => {
     const entry = scoreEntries.find(item => item.id === focusedPageId())
-    if (entry) void copyLyricsToClipboard(entry.lyrics)
+    if (entry) void copyLyricsToClipboard(entry.lyrics, entry.decorations)
   }
   const pasteTargetRef = useRef(replacePageLyrics)
   useEffect(() => { pasteTargetRef.current = replacePageLyrics }, [replacePageLyrics])
@@ -121,7 +122,7 @@ export default function LyricsTypingApp() {
     const entry = scoreEntries.find(item => item.id === selectedLyrics?.id)
     if (!entry) return
     const pastedLyrics = await pasteLyricsFromClipboard()
-    if (pastedLyrics && !pasteTargetRef.current(entry.id, pastedLyrics, entry.lyrics)) {
+    if (pastedLyrics && !pasteTargetRef.current(entry.id, pastedLyrics.lyrics, entry.lyrics, pastedLyrics.decorations, entry.decorations)) {
       toast.info('歌詞が変更されたため、貼り付けを中止しました。')
     }
   }, [pasteLyricsFromClipboard, scoreEntries, selectedLyrics])
@@ -427,8 +428,7 @@ export default function LyricsTypingApp() {
 
                 <TimestampOffsetControl value={timestampOffset} onChange={setTimestampOffset} />
                 <CentralPopEditor pops={centralPops} onAdd={addCentralPop} onUpdate={updateCentralPop} onDelete={deleteCentralPop}
-                  onEditBoundary={resetPopEdit} captureTime={player ? () => Number(getCurrentTimestamp(timestampOffset)) : undefined} onCompositionChange={setIsComposing} />
-                <EditorShortcuts />
+                  onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} captureTime={player ? () => Number(getCurrentTimestamp(timestampOffset)) : undefined} onCompositionChange={setIsComposing} />
                 <HelpSection />
               </div>
 

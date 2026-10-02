@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { Clock, Play, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CentralPop } from '@/lib/types'
-import { decorationLength, normalizeDecoration } from '@/lib/decorationText'
+import { normalizeDecoration } from '@/lib/decorationText'
 import { POP_DURATIONS } from '@/lib/scoreFormat'
 
 function PopTime({ pop, onChange }: { pop: CentralPop; onChange: (value: number) => void }) {
@@ -27,30 +28,31 @@ function PopTime({ pop, onChange }: { pop: CentralPop; onChange: (value: number)
     }} />
 }
 
-export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBoundary, captureTime, onCompositionChange }: {
+export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBoundary, captureTime, onPlay, onCompositionChange }: {
   pops: CentralPop[]
   onAdd: () => void
   onUpdate: (id: string, changes: Partial<Omit<CentralPop, 'id'>>) => void
   onDelete: (id: string) => void
   onEditBoundary: () => void
   captureTime?: () => number
+  onPlay?: (timestamp: number) => void
   onCompositionChange: (value: boolean) => void
 }) {
   return <Card data-pop-editor>
     <CardHeader className="flex flex-row items-center justify-between gap-2">
-      <CardTitle className="text-lg">中央ポップ <span className="text-sm text-muted-foreground">{pops.length}件</span></CardTitle>
+      <CardTitle className="flex items-center gap-2 text-lg"><div className="rounded-lg bg-violet-500 p-2 text-white"><MessageSquare className="h-5 w-5" aria-hidden="true" /></div>ポップ <span className="text-sm text-muted-foreground">{pops.length}件</span></CardTitle>
       <Button variant="outline" size="sm" onClick={onAdd}>ポップを追加</Button>
     </CardHeader>
     <CardContent className="space-y-4">
       <p className="text-xs text-muted-foreground">歌詞ページとは別のタイミングで表示します。半角0.5・全角1で25文字まで。絵文字・改行は使用できません。</p>
-      {!pops.length && <p className="text-sm text-muted-foreground">中央ポップはありません。</p>}
-      {pops.map((pop, index) => <fieldset key={pop.id} className="space-y-2 rounded-lg border p-3" onFocusCapture={onEditBoundary}>
+      {!pops.length && <p className="text-sm text-muted-foreground">ポップはありません。</p>}
+      {pops.map((pop, index) => <fieldset key={pop.id} data-pop-id={pop.id} className="space-y-2 rounded-lg border p-3" onFocusCapture={onEditBoundary}>
         <legend className="px-1 text-sm">ポップ {index + 1}</legend>
         <div className="flex items-center gap-2">
           <Input aria-label={`ポップ${index + 1}の文字列`} placeholder="Hey!" value={pop.text}
             onChange={event => onUpdate(pop.id, { text: event.target.value })}
             onCompositionStart={() => onCompositionChange(true)} onCompositionEnd={() => onCompositionChange(false)}
-            onPaste={event => { if (/[\r\n]/.test(event.clipboardData.getData('text'))) { event.preventDefault(); toast.error('中央ポップに改行は貼り付けできません。') } }}
+            onPaste={event => { if (/[\r\n]/.test(event.clipboardData.getData('text'))) { event.preventDefault(); toast.error('ポップに改行は貼り付けできません。') } }}
             onBlur={event => {
               onCompositionChange(false)
               const text = normalizeDecoration(event.target.value)
@@ -58,12 +60,12 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
               onUpdate(pop.id, { text })
               onEditBoundary()
             }} />
-          <span className={`shrink-0 text-xs tabular-nums ${decorationLength(pop.text) > 25 ? 'text-destructive' : 'text-muted-foreground'}`}>{decorationLength(pop.text)}/25</span>
           <Button variant="ghost" size="sm" aria-label={`ポップ${index + 1}を削除`} onClick={() => onDelete(pop.id)}>削除</Button>
         </div>
         <div className="flex flex-wrap items-end gap-3 text-xs">
           <label className="space-y-1"><span>開始時刻（秒）</span><PopTime pop={pop} onChange={timestamp => onUpdate(pop.id, { timestamp })} /></label>
-          <Button size="sm" variant="outline" disabled={!captureTime} onClick={() => { if (captureTime) onUpdate(pop.id, { timestamp: captureTime() }) }}>現在時刻を取得</Button>
+          <Button size="icon" variant="outline" className="h-9 w-9" aria-label={`ポップ${index + 1}の現在時刻を取得`} title="現在時刻を取得（F2）" disabled={!captureTime} onClick={() => { if (captureTime) onUpdate(pop.id, { timestamp: captureTime() }) }}><Clock className="h-4 w-4" aria-hidden="true" /></Button>
+          <Button size="icon" variant="outline" className="h-9 w-9" aria-label={`ポップ${index + 1}から再生`} title="この時刻から再生" disabled={!onPlay} onClick={() => onPlay?.(pop.timestamp)}><Play className="h-4 w-4" aria-hidden="true" /></Button>
           <label className="grid gap-1">表示時間<select aria-label="表示時間" className="h-9 rounded border bg-background px-2" value={pop.duration} onChange={event => onUpdate(pop.id, { duration: event.target.value as CentralPop['duration'] })}>
             {Object.entries(POP_DURATIONS).map(([value, seconds]) => <option key={value} value={value}>{seconds.toFixed(1)}秒</option>)}
           </select></label>

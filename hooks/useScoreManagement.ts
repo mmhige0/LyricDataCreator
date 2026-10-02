@@ -176,13 +176,15 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   // Page-level actions each receive their own undo checkpoint.
-  const replacePageLyrics = (id: string, next: LyricsArray, expected?: LyricsArray) => {
+  const replacePageLyrics = (id: string, next: LyricsArray, expected?: LyricsArray, decorations?: ScoreEntry['decorations'], expectedDecorations?: ScoreEntry['decorations']) => {
     const entry = scoreEntries.find(item => item.id === id)
     if (!entry || (expected && entry.lyrics.some((line, i) => line !== expected[i]))) return false
-    const normalized = processLyricsForSave(next, entry.decorations)
-    if (entry.lyrics.every((line, i) => line === normalized[i])) return true
+    if (decorations && [0, 1, 2, 3].some(i => !!entry.decorations?.[i] !== !!expectedDecorations?.[i])) return false
+    const nextDecorations = decorations ?? entry.decorations
+    const normalized = processLyricsForSave(next, nextDecorations)
+    if (entry.lyrics.every((line, i) => line === normalized[i]) && [0, 1, 2, 3].every(i => !!entry.decorations?.[i] === !!nextDecorations?.[i])) return true
     saveCurrentState()
-    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, lyrics: normalized } : item))
+    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, lyrics: normalized, decorations: nextDecorations } : item))
     return true
   }
 

@@ -12,6 +12,9 @@ export function EditorShortcuts() {
             { keys: ['Ctrl', '←'], description: '1秒巻き戻し' },
             { keys: ['Ctrl', '→'], description: '1秒早送り' },
           ] },
+          { title: 'ポップ操作', shortcuts: [
+            { keys: ['F2'], description: '編集中のポップに現在時刻を設定' },
+          ] },
           { title: 'ページ操作', shortcuts: [
             { keys: ['Ctrl', '↑'], description: '最初のページの1行目へ移動' },
             { keys: ['Ctrl', '↓'], description: '最後のページの4行目へ移動' },

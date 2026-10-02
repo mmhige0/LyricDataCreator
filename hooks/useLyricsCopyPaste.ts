@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import type { LyricsArray } from '@/lib/types'
+import type { LyricsArray, ScoreEntry } from '@/lib/types'
 
 export const useLyricsCopyPaste = () => {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
-  const copyLyricsToClipboard = async (lyrics: LyricsArray) => {
+  const copyLyricsToClipboard = async (lyrics: LyricsArray, decorations?: ScoreEntry['decorations']) => {
     try {
-      const lyricsText = lyrics.join('\n')
+      const lyricsText = lyrics.map((line, index) => decorations?.[index] ? `!${line}` : line).join('\n')
       await navigator.clipboard.writeText(lyricsText)
       setCopyStatus('success')
       setTimeout(() => setCopyStatus('idle'), 2000)
@@ -17,7 +17,7 @@ export const useLyricsCopyPaste = () => {
     }
   }
 
-  const pasteLyricsFromClipboard = async (): Promise<LyricsArray | null> => {
+  const pasteLyricsFromClipboard = async (): Promise<{ lyrics: LyricsArray; decorations: NonNullable<ScoreEntry['decorations']> } | null> => {
     try {
       const text = await navigator.clipboard.readText()
       // Handle both CRLF and LF line endings, and trim CR characters
@@ -31,7 +31,10 @@ export const useLyricsCopyPaste = () => {
         lines[3] || ''
       ]
 
-      return lyricsArray
+      return {
+        lyrics: lyricsArray.map(line => line.startsWith('!') ? line.slice(1) : line) as LyricsArray,
+        decorations: lyricsArray.map(line => line.startsWith('!')) as NonNullable<ScoreEntry['decorations']>,
+      }
     } catch (error) {
       console.error('Failed to paste lyrics:', error)
       setCopyStatus('error')

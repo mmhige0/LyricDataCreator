@@ -63,7 +63,7 @@ export function parseScoreTxt(content: string): { duration: number; scoreEntries
       }
       const fields = splitScoreFields(line)
       if (inPops) {
-        if (fields.length !== 2 && fields.length !== 6) throw new Error('中央ポップは2項目または6項目で指定してください。')
+        if (fields.length !== 2 && fields.length !== 6) throw new Error('ポップは2項目または6項目で指定してください。')
         const pop: CentralPop = {
           id: `pop_${crypto.randomUUID()}`,
           text: decoratedText(fields[0], i + 1),
@@ -82,7 +82,7 @@ export function parseScoreTxt(content: string): { duration: number; scoreEntries
         if (fields.length !== 5) throw new Error('歌詞ページは4行と時刻の5項目で指定してください。')
         const timestamp = parseTime(fields[4])
         if (timestamp === 999.9 && fields.slice(0, 4).every(value => value === '!')) { ended = true; continue }
-        if (ended) throw new Error('終端行の後には中央ポップの区切り行が必要です。')
+        if (ended) throw new Error('終端行の後にはポップの区切り行が必要です。')
         const decorations = fields.slice(0, 4).map(value => value.startsWith('!') && value !== '!') as NonNullable<ScoreEntry['decorations']>
         const lyrics = fields.slice(0, 4).map((value, index) => value === '!' ? '' : decorations[index] ? decoratedText(value.slice(1), i + 1) : preprocessAndConvertLyrics(value)) as LyricsArray
         scoreEntries.push({ id: `entry_${crypto.randomUUID()}`, timestamp, lyrics, ...(decorations.some(Boolean) ? { decorations } : {}) })

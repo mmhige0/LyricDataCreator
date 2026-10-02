@@ -95,8 +95,8 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
 
             <div className="space-y-3 p-4 control-panel">
               {/* 1段目: 再生コントロールボタン + 時間表示 */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button variant="outline" size="sm" onClick={seekToBeginning}>
                     <SkipBack className="h-4 w-4" />
                   </Button>
@@ -127,10 +127,10 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
               </div>
 
               {/* 2段目: 再生速度 + 音量コントロール */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Label className="text-sm">速度:</Label>
+                    <Label className="shrink-0 text-sm">速度:</Label>
                     <select
                       value={playbackRate}
                       onChange={(e) => changePlaybackRate(Number(e.target.value))}
@@ -157,7 +157,7 @@ export const YouTubeVideoSection: React.FC<YouTubeVideoSectionProps> = ({
                   >
                     {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                   </Button>
-                  <Label className="text-sm">音量:</Label>
+                  <Label className="shrink-0 text-sm">音量:</Label>
                   <input
                     type="range"
                     min="0"
