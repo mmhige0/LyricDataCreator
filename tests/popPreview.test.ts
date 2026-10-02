@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { popPreviewTiming, POP_GAME_FONT_SIZES, POP_OPACITY } from '../lib/popPreview'
+import { popPreviewTiming, POP_OPACITY } from '../lib/popPreview'
 
 it.each([['s', 0.1, 0.4], ['m', 0.3, 0.6], ['l', 0.5, 0.8], ['x', 1, 1.3]] as const)('uses fixed fade timings around the %s hold period', (code, hold, total) => {
   const timing = popPreviewTiming(code)
@@ -10,7 +10,6 @@ it.each([['s', 0.1, 0.4], ['m', 0.3, 0.6], ['l', 0.5, 0.8], ['x', 1, 1.3]] as co
   expect(timing.keyframes.map(frame => frame.opacity)).toEqual([0, 0.5, 0.5, 0])
   expect(timing.keyframes.map(frame => frame.transform)).toEqual(['scale(0.6)', 'scale(1)', 'scale(1)', 'scale(0.6)'])
 })
-it('keeps the game font ratios and shared fixed opacity', () => {
-  expect(POP_GAME_FONT_SIZES).toEqual({ s: 150, m: 200, l: 250 })
+it('uses the shared fixed opacity', () => {
   expect(POP_OPACITY).toBe(0.5)
 })

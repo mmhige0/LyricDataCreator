@@ -4,7 +4,6 @@ import { POP_DURATIONS } from './scoreFormat'
 export const POP_FADE_IN_SECONDS = 0.1
 export const POP_FADE_OUT_SECONDS = 0.2
 export const POP_OPACITY = 0.5
-export const POP_GAME_FONT_SIZES = { s: 150, m: 200, l: 250 } as const
 
 export function popPreviewTiming(duration: CentralPop['duration']) {
   const hold = POP_DURATIONS[duration]
