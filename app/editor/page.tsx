@@ -77,6 +77,7 @@ export default function LyricsTypingApp() {
     addCentralPop,
     updateCentralPop,
     deleteCentralPop,
+    clearAllCentralPops,
     resetPopEdit,
     toggleDecoration,
     adjustTimings,
@@ -108,6 +109,14 @@ export default function LyricsTypingApp() {
   const selectedPop = listView === 'pops' ? centralPops.find(pop => pop.id === selectedPopId) : undefined
   const popStateRef = useRef({ centralPops, updateCentralPop, resetPopEdit })
   useEffect(() => { popStateRef.current = { centralPops, updateCentralPop, resetPopEdit } }, [centralPops, updateCentralPop, resetPopEdit])
+  const addPop = () => {
+    const id = addCentralPop()
+    setSelectedPopId(id)
+    requestAnimationFrame(() => {
+      const input = document.getElementById(`pop-text-${id}`)
+      input?.focus({ preventScroll: true }); input?.scrollIntoView({ block: 'nearest' })
+    })
+  }
   const deletePop = (id: string) => {
     const index = centralPops.findIndex(pop => pop.id === id)
     if (index < 0) return
@@ -203,7 +212,7 @@ export default function LyricsTypingApp() {
       const time = pagePlaybackTimestamp(scoreEntries, focused.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id ?? null)
       if (time !== null) seekToAndPlay(time)
     },
-    addPage: listView === 'pages' ? () => addEmptyScoreEntry() : undefined,
+    addPage: listView === 'pages' ? () => addEmptyScoreEntry() : addPop,
     deleteSelectedPage: listView === 'pages' ? () => { if (selectedLyrics) deleteScoreEntry(selectedLyrics.id) } : undefined,
     getCurrentTimestamp: handleGetCurrentTimestamp,
     seekBackward1Second,
@@ -483,13 +492,13 @@ export default function LyricsTypingApp() {
 
               <div id="right-column" className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
                 <div id="pops-list-panel" aria-label="ポップ一覧" hidden={listView !== 'pops'} className="min-h-0 flex-1">
-                  <CentralPopEditor titleAction={<Button variant="ghost" size="icon" className="h-7 w-7" title="ページ一覧に切り替え" onClick={() => setListView('pages')} aria-label="ページ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /></Button>} pops={centralPops} selectedId={selectedPopId} onSelect={setSelectedPopId}
-                    onAdd={() => setSelectedPopId(addCentralPop())} onUpdate={updateCentralPop} onDelete={deletePop}
+                  <CentralPopEditor titleAction={<Button variant="ghost" size="sm" className="h-7 gap-1 px-1 text-xs font-normal" title="ページ一覧に切り替え" onClick={() => setListView('pages')} aria-label="ページ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /><span>ページ一覧</span></Button>} pops={centralPops} selectedId={selectedPopId} onSelect={setSelectedPopId}
+                    onAdd={addPop} onAdjust={offset => adjustTimings(offset, 'pops')} onClear={() => { clearAllCentralPops(); setSelectedPopId(null) }} onUpdate={updateCentralPop} onDelete={deletePop}
                     onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} onCompositionChange={setIsComposing} />
                 </div>
                 <div id="pages-list-panel" aria-label="ページ一覧" hidden={listView !== 'pages'} className="min-h-0 flex-1">
                 <ScoreManagementSection
-                  titleAction={<Button variant="ghost" size="icon" className="h-7 w-7" title="ポップ一覧に切り替え" onClick={() => setListView('pops')} aria-label="ポップ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /></Button>}
+                  titleAction={<Button variant="ghost" size="sm" className="h-7 gap-1 px-1 text-xs font-normal" title="ポップ一覧に切り替え" onClick={() => setListView('pops')} aria-label="ポップ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /><span>ポップ一覧</span></Button>}
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
                   inlineActions={{

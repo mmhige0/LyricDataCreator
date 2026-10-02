@@ -46,7 +46,7 @@ export const useKeyboardShortcuts = ({
   return (event: KeyboardEvent) => {
     if (event.defaultPrevented) return
     const inPopEditor = document.activeElement?.closest('[data-pop-editor]')
-    if (inPopEditor && !popShortcuts && (isAddPageShortcut(event) || event.key === 'Delete'
+    if (inPopEditor && !popShortcuts && (event.key === 'Delete'
       || (event.ctrlKey && ['c', 'v'].includes(event.key.toLowerCase())))) return
     if (isAddPageShortcut(event) && addPageRef.current) {
       event.preventDefault()

@@ -151,6 +151,14 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     setCentralPops(prev => prev.filter(pop => pop.id !== id))
   }
 
+  const clearAllCentralPops = () => {
+    if (!centralPops.length) return
+    saveCurrentState()
+    setCentralPops([])
+    popHistorySaved.current = false
+    toast.success(`${centralPops.length}件のポップを削除しました (Ctrl+Zで元に戻せます)`)
+  }
+
   const adjustTimings = (offset: number, target: TimingTarget) => {
     if (!Number.isFinite(offset)) return
     saveCurrentState()
@@ -325,6 +333,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     updateCentralPop,
     resetPopEdit: () => { popHistorySaved.current = false },
     deleteCentralPop,
+    clearAllCentralPops,
     toggleDecoration,
     adjustTimings,
     selectedLyrics,

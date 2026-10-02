@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { convertLyricsArrayToHiragana } from '@/lib/hiraganaUtils'
 import type { LyricsArray, ScoreEntry } from '@/lib/types'
 
-export function PageTimestampInput({ timestamp, pageNumber, onCommit }: {
+export function PageTimestampInput({ timestamp, pageNumber, onCommit, ariaLabel }: {
+  ariaLabel?: string
   timestamp: number
   pageNumber: number
   onCommit: (value: string) => boolean | undefined
@@ -25,7 +26,7 @@ export function PageTimestampInput({ timestamp, pageNumber, onCommit }: {
       type="number"
       min="0"
       step="0.01"
-      aria-label={`ページ${pageNumber}の時刻（秒）`}
+      aria-label={ariaLabel ?? `ページ${pageNumber}の時刻（秒）`}
       aria-invalid={invalid}
       title="秒数を入力し、Enterまたはフォーカス移動で確定。Escで取り消し"
       className="h-8 w-28 shrink-0 px-2 text-sm tabular-nums font-mono [@media(pointer:coarse)]:h-11"

@@ -238,3 +238,15 @@ it('cancels delayed paste when a row kind changed while reading the clipboard', 
   })
   expect(score.scoreEntries[0].decorations?.[0]).toBe(true)
 })
+
+it('clears only pops and restores them with Undo', async () => {
+  await act(async () => { score.addCentralPop(); score.addCentralPop() })
+  const pops = score.centralPops
+  expect(pops).toHaveLength(2)
+  await act(async () => score.clearAllCentralPops())
+  expect(score.centralPops).toEqual([])
+  expect(score.scoreEntries).toEqual(entries)
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops).toEqual(pops)
+  expect(score.scoreEntries).toEqual(entries)
+})

@@ -100,3 +100,39 @@ it('supports pop PageUp/PageDown and Ctrl+Shift+Space while a field is focused',
   await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true })))
   expect(restart).toHaveBeenCalledOnce()
 })
+
+it('leaves text editing with Esc so Delete removes the selected pop', async () => {
+  const remove = vi.fn()
+  function EscapeHarness() {
+    const handler = useKeyboardShortcuts({ player: null, getCurrentTimestamp: () => {},
+      popShortcuts: { capture: () => {}, copy: () => {}, paste: () => {}, delete: remove },
+      seekBackward1Second: () => {}, seekForward1Second: () => {},
+    })
+    useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
+    return <CentralPopEditor pops={[{ id: 'pop', text: 'Hey!', timestamp: 12.34, ...POP_DEFAULTS }]}
+      onAdd={() => {}} onUpdate={update} onDelete={remove} onEditBoundary={() => {}} onCompositionChange={() => {}} />
+  }
+  await act(async () => root.render(<EscapeHarness />))
+  const input = host.querySelector<HTMLInputElement>('[aria-label="ポップ1の文字列"]')!
+  input.focus()
+  await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+  expect(document.activeElement).toBe(input.closest('[data-pop-id]'))
+  await act(async () => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true })))
+  expect(remove).toHaveBeenCalledOnce()
+})
+
+it('adds a pop with Ctrl+Enter even when no pop has been selected', async () => {
+  const add = vi.fn()
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 0 })
+  function AddHarness() {
+    const handler = useKeyboardShortcuts({ player: null, getCurrentTimestamp: () => {}, addPage: add,
+      seekBackward1Second: () => {}, seekForward1Second: () => {},
+    })
+    useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
+    return <div data-pop-editor><button>+</button></div>
+  }
+  await act(async () => root.render(<AddHarness />))
+  const button = host.querySelector('button')!; button.focus()
+  await act(async () => button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true })))
+  expect(add).toHaveBeenCalledOnce()
+})

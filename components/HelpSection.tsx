@@ -92,13 +92,16 @@ export const HelpSection: React.FC = () => {
               <li>前後のスペース削除</li>
               <li>記号削除</li>
               <li>半角 → 全角変換</li>
-              <li>半角カタカナは全角化。カタカナ表記は保持（ヰ・ヱはゐ・ゑ、ゔはヴ）</li>
             </ul>
-            <p className="mt-2">「かな変換」は漢字だけをひらがなに変換し、カタカナを保持します。装飾行には適用しません。</p>
-            <p className="mt-2">各行の「歌詞／装飾」で行の種類を切り替えます。4行コピー・貼り付けでは装飾指定も引き継ぎます。装飾行とポップは全角25文字・半角50文字まで。絵文字・改行は禁止で、編集終了時に禁止文字の除去・超過分の切り取りを行います。</p>
-            <p className="mt-2">ポップは別一覧で時刻・表示時間・寄せ・サイズ・色を設定します。再生ボタンで開始時刻から再生でき、選択中のF2で現在時刻を取得できます。初期値は0.3秒・中央・中・白です。TXTに保存でき、LRC出力では装飾行とポップを除き、通常歌詞のみを書き出します。</p>
-            <p className="mt-2">TXTでは装飾行に ! を付け、ポップは終端行の後の _ で区切ります。文字列中のスラッシュとバックスラッシュは自動でエスケープされます。エディターでは表示したい文字をそのまま入力してください。</p>
           </div>
+        </div>
+        <div className="mb-6">
+          <div className="mb-2 text-sm font-medium text-foreground">装飾行</div>
+          <p className="text-sm text-muted-foreground">各行の「歌詞／装飾」で行の種類を切り替えられます。装飾行は表示のみで、タイピング対象にはなりません。</p>
+        </div>
+        <div className="mb-6">
+          <div className="mb-2 text-sm font-medium text-foreground">ポップ</div>
+          <p className="text-sm text-muted-foreground">タイトル横の切り替えボタンで、ページ一覧をポップ一覧に切り替えられます。ポップはゲーム内での表示のみで、タイピング対象にはなりません。</p>
         </div>
       </div>
       </div>
