@@ -59,6 +59,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
   // Save current state before modification
   const saveCurrentState = () => {
+    // Any new operation ends the preceding continuous pop edit.
+    popHistorySaved.current = false
     const currentState: AppState = {
       scoreEntries: [...scoreEntries],
       centralPops: [...centralPops],
@@ -139,10 +141,14 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     return pop.id
   }
 
-  const updateCentralPop = (id: string, changes: Partial<Omit<CentralPop, 'id'>>) => {
+  const updateCentralPop = (id: string, changes: Partial<Omit<CentralPop, 'id'>>, history: 'operation' | 'edit' = 'operation') => {
     const current = centralPops.find(pop => pop.id === id)
     if (!current || Object.entries(changes).every(([key, value]) => current[key as keyof CentralPop] === value)) return
-    if (!popHistorySaved.current) { saveCurrentState(); popHistorySaved.current = true }
+    // F2 and paste are independent operations; only continuous field editing is grouped.
+    if (history === 'operation' || !popHistorySaved.current) {
+      saveCurrentState()
+      popHistorySaved.current = history === 'edit'
+    }
     setCentralPops(prev => prev.map(pop => pop.id === id ? { ...pop, ...changes } : pop).sort((a, b) => a.timestamp - b.timestamp))
   }
 
