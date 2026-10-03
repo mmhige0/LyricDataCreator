@@ -8,15 +8,15 @@ import { buildPageKpmMap } from '../lib/kpmUtils'
 import type { ScoreEntry } from '../lib/types'
 
 const page: ScoreEntry = { id: 'page', timestamp: 0, lyrics: ['　　カ漢★１２ａ　　ナ　', '　漢字１２？！　', '　　', ''] }
-it('preserves fullwidth characters and leading, trailing and repeated spaces through TXT and LRC', () => {
-  expect(preprocessAndConvertLyrics(page.lyrics[0])).toBe(page.lyrics[0])
-  expect(preprocessAndConvertLyrics('  ｶﾞ Ａ１！？　')).toBe('　　ガ　Ａ１！？　')
+it('preserves fullwidth characters and leading and repeated spaces while removing trailing spaces through TXT and LRC', () => {
+  expect(preprocessAndConvertLyrics(page.lyrics[0])).toBe(page.lyrics[0].trimEnd())
+  expect(preprocessAndConvertLyrics('  ｶﾞ Ａ１！？　')).toBe('　　ガ　Ａ１！？')
   const txt = createScoreTxt(30, [page], [])
-  expect(parseScoreTxt(txt).scoreEntries[0].lyrics).toEqual(page.lyrics)
-  expect(parseLrcToScoreEntries(createLrcFromScoreEntries([page]))[0].lyrics).toEqual(page.lyrics)
+  expect(parseScoreTxt(txt).scoreEntries[0].lyrics).toEqual(page.lyrics.map(line => line.trimEnd()))
+  expect(parseLrcToScoreEntries(createLrcFromScoreEntries([page]))[0].lyrics).toEqual(page.lyrics.map(line => line.trimEnd()))
 })
 it('keeps unsupported characters as individual spaces on the play screen', () => {
-  expect(normalizeTypingDisplay(page.lyrics[0])).toBe('　　カ　　　　ａ　　ナ　')
+  expect(normalizeTypingDisplay(page.lyrics[0])).toBe('　　カ　　　　ａ　　ナ')
   const data = buildPageTypingData({ scoreEntries: [page], totalDuration: 30 })
   expect(data.pageLyrics[0]).toEqual(page.lyrics.map(normalizeTypingDisplay))
   expect(data.builtMapLines[0].wordChunks.map(chunk => chunk.kana).join('').replace(/[ 　]/g, '')).toBe('かａな')
@@ -36,4 +36,15 @@ it('excludes display-only characters and repeated spaces from KPM counts', async
   expect(map.get('page')?.lines[0].charCount).toEqual({ roma: 5, kana: 3 })
   expect(map.get('page')?.lines[1].charCount).toEqual({ roma: 0, kana: 0 })
   expect(map.get('page')?.totalKpm).toEqual({ roma: 5, kana: 3 })
+})
+
+it('converts ASCII digits and punctuation and halfwidth punctuation without changing decoration text', () => {
+  const ascii = Array.from({ length: 94 }, (_, index) => String.fromCharCode(index + 33)).join('')
+  const fullwidth = Array.from({ length: 94 }, (_, index) => String.fromCharCode(index + 0xFF01)).join('')
+  expect(preprocessAndConvertLyrics(ascii)).toBe(fullwidth)
+  expect(preprocessAndConvertLyrics('¢£¬¯¦¥₩')).toBe('￠￡￢￣￤￥￦')
+  expect(preprocessAndConvertLyrics(' 123!?/\\~｡｢｣､･ ')).toBe('　１２３！？／＼～。「」、・')
+  const mixed: ScoreEntry = { id: 'mixed', timestamp: 0, lyrics: [' 123!? ', '123!? ', '', ''], decorations: [false, true, false, false] }
+  const restored = parseScoreTxt(createScoreTxt(30, [mixed], [])).scoreEntries[0]
+  expect(restored.lyrics.slice(0, 2)).toEqual(['　１２３！？', '123!? '])
 })

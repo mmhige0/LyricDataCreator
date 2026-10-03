@@ -62,7 +62,7 @@ describe('inline editing and recovery', () => {
     expect(persistence.status).toBe('saved')
     await act(async () => score.finishInlineEdit('one', 0, 'カナ abc!'))
     await act(async () => persistence.flush())
-    expect(loadDraft('test-session')?.scoreEntries[0].lyrics[0]).toBe('カナ　ａｂｃ')
+    expect(loadDraft('test-session')?.scoreEntries[0].lyrics[0]).toBe('カナ　ａｂｃ！')
   })
 
   it('groups continuous typing as one undo and preserves redo', async () => {
@@ -138,7 +138,7 @@ describe('inline editing and recovery', () => {
     await act(async () => score.startInlineEdit('one', 0))
     await act(async () => score.replaceInlineLyrics('one', ['カナ', 'ABC!', '', '']))
     await act(async () => score.finishInlineEdit('one', 0, 'カナ'))
-    expect(score.scoreEntries[0].lyrics).toEqual(['カナ', 'ＡＢＣ', '', ''])
+    expect(score.scoreEntries[0].lyrics).toEqual(['カナ', 'ＡＢＣ！', '', ''])
     await act(async () => score.undoLastOperation())
     expect(score.scoreEntries[0].lyrics).toEqual(entries[0].lyrics)
   })
@@ -215,7 +215,7 @@ it('normalizes decoration text without lyric conversion and can undo changing it
   await act(async () => score.finishInlineEdit('one', 0, '漢字カナ abc/!★'))
   expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ abc/!★')
   await act(async () => score.toggleDecoration('one', 0))
-  expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ　ａｂｃ★')
+  expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ　ａｂｃ／！★')
   await act(async () => score.undoLastOperation())
   expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ abc/!★')
   expect(score.scoreEntries[0].decorations?.[0]).toBe(true)
@@ -282,15 +282,15 @@ it('pastes alignment with decorations and rejects delayed paste after alignment 
   await act(async () => score.undoLastOperation())
   expect(score.scoreEntries[0]).toEqual(current)
 })
-it('keeps ordinary fullwidth text and all spaces after blur and draft restoration', async () => {
+it('keeps leading and repeated spaces and trims trailing spaces after blur and draft restoration', async () => {
   const value = '　　カ漢★１２ａ　　ナ　'
   await act(async () => score.startInlineEdit('one', 0))
   await act(async () => score.changeInlineLyrics('one', 0, value))
   await act(async () => score.finishInlineEdit('one', 0, value))
   await act(async () => vi.advanceTimersByTime(1000))
-  expect(loadDraft('test-session')?.scoreEntries[0].lyrics[0]).toBe(value)
+  expect(loadDraft('test-session')?.scoreEntries[0].lyrics[0]).toBe(value.trimEnd())
   await act(async () => score.undoLastOperation())
   expect(score.scoreEntries[0].lyrics[0]).toBe('はじめ')
   await act(async () => score.redoLastOperation())
-  expect(score.scoreEntries[0].lyrics[0]).toBe(value)
+  expect(score.scoreEntries[0].lyrics[0]).toBe(value.trimEnd())
 })

@@ -108,11 +108,6 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
       {actions.onToggleDecoration && <button type="button" className={`shrink-0 rounded border px-1 text-xs ${decorated ? 'border-amber-500 text-amber-700 dark:text-amber-300' : 'text-muted-foreground'}`}
         aria-label={`ページ${pageNumber} ${line + 1}行目を${decorated ? '通常行' : '装飾行'}に変更`} aria-pressed={decorated}
         onClick={() => actions.onToggleDecoration?.(entry.id, line)}>{decorated ? '装飾' : '歌詞'}</button>}
-      {decorated && actions.onDecorationAlign && <select className="h-6 shrink-0 rounded border bg-background px-1 text-xs"
-        aria-label={`ページ${pageNumber} ${line + 1}行目の装飾の寄せ`} value={entry.decorationAligns?.[line] ?? 'l'}
-        onChange={event => actions.onDecorationAlign?.(entry.id, line, event.target.value as TextAlign)}>
-        <option value="l">左</option><option value="c">中央</option><option value="r">右</option>
-      </select>}
       <input
         ref={inputRef}
         id={`lyrics-${entry.id}-${line}`}
@@ -186,6 +181,11 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
           focusLine(last, next[last].length)
         }}
       />
+      {decorated && actions.onDecorationAlign && <select className="h-6 shrink-0 rounded border bg-background px-1 text-xs"
+        aria-label={`ページ${pageNumber} ${line + 1}行目の装飾の寄せ`} value={entry.decorationAligns?.[line] ?? 'l'}
+        onChange={event => actions.onDecorationAlign?.(entry.id, line, event.target.value as TextAlign)}>
+        <option value="l">左</option><option value="c">中央</option><option value="r">右</option>
+      </select>}
       </div>
     </div>
   )

@@ -6,16 +6,16 @@ import { characterWidth, normalizeDecoration } from './decorationText'
  */
 const halfWidthToFullWidth = (text: string): string => {
   return text
-    .replace(/[a-z]/g, (char) => String.fromCharCode(char.charCodeAt(0) - "a".charCodeAt(0) + "ａ".charCodeAt(0)))
-    .replace(/[A-Z]/g, (char) => String.fromCharCode(char.charCodeAt(0) - "A".charCodeAt(0) + "Ａ".charCodeAt(0)))
-    .replace(/ /g, "　")
+    .replace(/[!-~]/g, char => String.fromCharCode(char.charCodeAt(0) + 0xFEE0))
+    .replace(/[¢£¬¯¦¥₩]/g, char => ({ '¢': '￠', '£': '￡', '¬': '￢', '¯': '￣', '¦': '￤', '¥': '￥', '₩': '￦' })[char]!)
+    .replace(/ /g, '　')
 }
 
 /**
- * 通常行では全角文字と英字・スペースを保持する
+ * 通常行では全角文字と全角化できる文字を保持する
  */
 const removeSymbols = (text: string): string => {
-  return Array.from(text).filter(char => /^[a-zA-Z ]$/.test(char)
+  return Array.from(text).filter(char => /^[ -~]$/.test(char)
     || (characterWidth(char) === 1 && !/[\p{C}\p{Zl}\p{Zp}]/u.test(char))).join('')
 }
 
@@ -38,10 +38,11 @@ export const convertKatakanaToHiragana = (text: string): string => {
  * @returns 前処理が完了したテキスト
  */
 export const preprocessAndConvertLyrics = (text: string): string => {
-  const fullKana = (text || '').replace(/[\uFF66-\uFF9F]+/g, value => value.normalize('NFKC')).normalize('NFC')
-  return halfWidthToFullWidth(removeSymbols(fullKana))
+  const fullKana = (text || '').replace(/[\uFF61-\uFF9F]+/g, value => value.normalize('NFKC')).normalize('NFC')
+  return removeSymbols(halfWidthToFullWidth(fullKana))
     .replace(/ヰ/g, 'ゐ').replace(/ヱ/g, 'ゑ')
     .replace(/ゔ/g, 'ヴ')
+    .replace(/　+$/g, '')
 }
 
 // Retain one space for each display-only character; do not collapse layout spacing.

@@ -89,8 +89,7 @@ export const HelpSection: React.FC = () => {
           <div className="text-sm text-muted-foreground">
             <div>歌詞の編集終了時に以下の変換が自動で行われます：</div>
             <ul className="ml-4 mt-1 list-disc">
-              <li>半角英字・カタカナ・スペースを全角に変換</li>
-              <li>全角文字と、連続・前後の全角スペースを保持</li>
+              <li>半角英字・数字・記号・カタカナ・スペースを全角に変換</li>
             </ul>
           </div>
         </div>
