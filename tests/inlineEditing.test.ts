@@ -215,7 +215,7 @@ it('normalizes decoration text without lyric conversion and can undo changing it
   await act(async () => score.finishInlineEdit('one', 0, '漢字カナ abc/!★'))
   expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ abc/!★')
   await act(async () => score.toggleDecoration('one', 0))
-  expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ　ａｂｃ')
+  expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ　ａｂｃ★')
   await act(async () => score.undoLastOperation())
   expect(score.scoreEntries[0].lyrics[0]).toBe('漢字カナ abc/!★')
   expect(score.scoreEntries[0].decorations?.[0]).toBe(true)
@@ -249,4 +249,48 @@ it('clears only pops and restores them with Undo', async () => {
   await act(async () => score.undoLastOperation())
   expect(score.centralPops).toEqual(pops)
   expect(score.scoreEntries).toEqual(entries)
+})
+
+it('saves decoration alignment to drafts and restores it independently with Undo and Redo', async () => {
+  await act(async () => score.toggleDecoration('one', 0))
+  await act(async () => score.updateDecorationAlign('one', 0, 'c'))
+  await act(async () => score.updateDecorationAlign('one', 0, 'r'))
+  await act(async () => vi.advanceTimersByTime(1000))
+  expect(loadDraft('test-session')?.scoreEntries[0].decorationAligns?.[0]).toBe('r')
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0].decorationAligns?.[0]).toBe('c')
+  await act(async () => score.redoLastOperation())
+  expect(score.scoreEntries[0].decorationAligns?.[0]).toBe('r')
+  await act(async () => score.undoLastOperation())
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0].decorationAligns?.[0] ?? 'l').toBe('l')
+  expect(score.scoreEntries[0].decorations?.[0]).toBe(true)
+})
+it('pastes alignment with decorations and rejects delayed paste after alignment changed', async () => {
+  const decorations: NonNullable<ScoreEntry['decorations']> = [true, false, false, false]
+  await act(async () => score.toggleDecoration('one', 0))
+  const original = score.scoreEntries[0]
+  await act(async () => score.updateDecorationAlign('one', 0, 'c'))
+  await act(async () => {
+    expect(score.replacePageLyrics('one', ['右', '', '', ''], original.lyrics, decorations, original.decorations, ['r', 'l', 'l', 'l'], original.decorationAligns)).toBe(false)
+  })
+  const current = score.scoreEntries[0]
+  await act(async () => {
+    expect(score.replacePageLyrics('one', ['右', '', '', ''], current.lyrics, decorations, current.decorations, ['r', 'l', 'l', 'l'], current.decorationAligns)).toBe(true)
+  })
+  expect(score.scoreEntries[0].decorationAligns?.[0]).toBe('r')
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0]).toEqual(current)
+})
+it('keeps ordinary fullwidth text and all spaces after blur and draft restoration', async () => {
+  const value = '　　カ漢★１２ａ　　ナ　'
+  await act(async () => score.startInlineEdit('one', 0))
+  await act(async () => score.changeInlineLyrics('one', 0, value))
+  await act(async () => score.finishInlineEdit('one', 0, value))
+  await act(async () => vi.advanceTimersByTime(1000))
+  expect(loadDraft('test-session')?.scoreEntries[0].lyrics[0]).toBe(value)
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0].lyrics[0]).toBe('はじめ')
+  await act(async () => score.redoLastOperation())
+  expect(score.scoreEntries[0].lyrics[0]).toBe(value)
 })

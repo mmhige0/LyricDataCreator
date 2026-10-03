@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import type { PracticeLineSettings, ScoreEntry } from '@/lib/types'
 import type { BuiltMapLine, TypingWord, InputMode } from 'lyrics-typing-engine'
 import { evaluateKanaInput, evaluateRomaInput, isTypingKey } from 'lyrics-typing-engine'
-import { createTypingWordForPageLines, skipSpaces } from '@/lib/typingEngineAdapter'
+import { createTypingWordForPageLines, normalizeTypingLine, skipSpaces } from '@/lib/typingEngineAdapter'
 import { DEFAULT_PRACTICE_LINE_SETTINGS, getPracticeLineIndexes } from '@/lib/practiceLineSettings'
 import {
   createBeforeFirstPageState,
@@ -97,7 +97,7 @@ export const useTypingGame = ({
       }
 
       const targetLineIndexes = getPracticeLineIndexes(
-        scoreEntries[pageIndex]?.lyrics.map((line, index) => scoreEntries[pageIndex].decorations?.[index] ? '' : line) ?? [],
+        scoreEntries[pageIndex]?.lyrics.map((line, index) => scoreEntries[pageIndex].decorations?.[index] ? '' : normalizeTypingLine(line)) ?? [],
         practiceLineSettings
       )
       const typingWord = skipSpaces(

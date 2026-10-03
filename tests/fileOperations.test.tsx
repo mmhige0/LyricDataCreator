@@ -54,7 +54,7 @@ it('keeps pages, pops, duration and title unchanged when an import fails', async
   expect(toast.error).toHaveBeenCalled()
 })
 it('imports new pages and pops atomically with one history checkpoint', async () => {
-  await importText('30\n!飾り/カナ/!/!/0\n!/!/!/!/999.9\n_\nWow!/2/x/r/l/#123456', 'new_2026-10-02_00-00-00.txt')
+  await importText('30\n![l]飾り/カナ/!/!/0\n!/!/!/!/999.9\n_\nWow!/2/x/r/l/#123456', 'new_2026-10-02_00-00-00.txt')
   expect(state.title).toBe('new')
   expect(state.pages[0].decorations).toEqual([true, false, false, false])
   expect(state.pages[0].lyrics).toEqual(['飾り', 'カナ', '', ''])
@@ -62,7 +62,7 @@ it('imports new pages and pops atomically with one history checkpoint', async ()
   expect(checkpoint).toHaveBeenCalledTimes(1)
 })
 it('exports only ordinary lyrics to LRC without mutating pages or pops', async () => {
-  await importText('30\n!飾り/カナ/!/!/0\n!装飾だけ/!/!/!/10\n_\nWow!/2', 'mixed.txt')
+  await importText('30\n![l]飾り/カナ/!/!/0\n![l]装飾だけ/!/!/!/10\n_\nWow!/2', 'mixed.txt')
   const downloads: Blob[] = []
   Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn((blob: Blob) => { downloads.push(blob); return 'blob:test' }) })
   Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() })
@@ -89,7 +89,7 @@ it('clears old pops when replacing the document with legacy LRC', async () => {
 })
 
 it('imports decoration markup as literal text rather than treating it as executable content', async () => {
-  await importText('30\n!<script>data:<\\/script>/!/!/!/0', 'literal.txt')
+  await importText('30\n![l]<script>data:<\\/script>/!/!/!/0', 'literal.txt')
   expect(state.pages[0].lyrics[0]).toBe('<script>data:</script>')
   expect(state.pages[0].decorations?.[0]).toBe(true)
 })

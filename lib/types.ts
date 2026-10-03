@@ -3,7 +3,10 @@ export interface ScoreEntry {
   timestamp: number
   lyrics: [string, string, string, string]
   decorations?: [boolean, boolean, boolean, boolean]
+  decorationAligns?: [TextAlign, TextAlign, TextAlign, TextAlign]
 }
+
+export type TextAlign = 'l' | 'c' | 'r'
 
 export interface CentralPop {
   id: string

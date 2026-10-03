@@ -41,7 +41,7 @@ const parseLrcContent = (content: string): LrcEntry[] => {
 
       entries.push({
         timestamp,
-        lyrics: lyrics.trim()
+        lyrics
       })
     }
   }
@@ -55,7 +55,7 @@ const parseLrcContent = (content: string): LrcEntry[] => {
  */
 const convertLrcToScoreEntries = (lrcEntries: LrcEntry[]): ScoreEntry[] => {
   return lrcEntries.map((entry, index) => {
-    const parts = entry.lyrics.split('/').map(part => preprocessAndConvertLyrics(part.trim()))
+    const parts = entry.lyrics.split('/').map(part => preprocessAndConvertLyrics(part))
     const lyrics: LyricsArray = [
       parts[0] ?? '',
       parts[1] ?? '',

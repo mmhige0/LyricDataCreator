@@ -87,10 +87,10 @@ it('copies and pastes decoration markers, including leading ! and literal slash/
   await act(async () => root.render(<ClipboardHarness />))
   const lyrics: [string, string, string, string] = ['カタカナ', '!飾り/\\★', '', '']
   const decorations: [boolean, boolean, boolean, boolean] = [false, true, false, false]
-  await act(async () => clipboard!.copyLyricsToClipboard(lyrics, decorations))
-  expect(writeText).toHaveBeenCalledExactlyOnceWith('カタカナ\n!!飾り/\\★\n\n')
+  await act(async () => clipboard!.copyLyricsToClipboard(lyrics, decorations, ['l', 'r', 'l', 'l']))
+  expect(writeText).toHaveBeenCalledExactlyOnceWith('カタカナ\n![r]!飾り/\\★\n\n')
   Object.defineProperty(navigator, 'clipboard', { configurable: true, value: {
     readText: vi.fn().mockResolvedValue(writeText.mock.calls[0][0]), writeText,
   } })
-  expect(await clipboard!.pasteLyricsFromClipboard()).toEqual({ lyrics, decorations })
+  expect(await clipboard!.pasteLyricsFromClipboard()).toEqual({ lyrics, decorations, decorationAligns: ['l', 'r', 'l', 'l'] })
 })

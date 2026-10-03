@@ -80,6 +80,7 @@ export default function LyricsTypingApp() {
     clearAllCentralPops,
     resetPopEdit,
     toggleDecoration,
+    updateDecorationAlign,
     adjustTimings,
     selectedLyrics,
     selectLyricsPosition,
@@ -157,7 +158,7 @@ export default function LyricsTypingApp() {
   const focusedPageId = () => document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id
   const handleCopyLyrics = () => {
     const entry = scoreEntries.find(item => item.id === focusedPageId())
-    if (entry) void copyLyricsToClipboard(entry.lyrics, entry.decorations)
+    if (entry) void copyLyricsToClipboard(entry.lyrics, entry.decorations, entry.decorationAligns)
   }
   const pasteTargetRef = useRef(replacePageLyrics)
   useEffect(() => { pasteTargetRef.current = replacePageLyrics }, [replacePageLyrics])
@@ -165,7 +166,7 @@ export default function LyricsTypingApp() {
     const entry = scoreEntries.find(item => item.id === selectedLyrics?.id)
     if (!entry) return
     const pastedLyrics = await pasteLyricsFromClipboard()
-    if (pastedLyrics && !pasteTargetRef.current(entry.id, pastedLyrics.lyrics, entry.lyrics, pastedLyrics.decorations, entry.decorations)) {
+    if (pastedLyrics && !pasteTargetRef.current(entry.id, pastedLyrics.lyrics, entry.lyrics, pastedLyrics.decorations, entry.decorations, pastedLyrics.decorationAligns, entry.decorationAligns)) {
       toast.info('歌詞が変更されたため、貼り付けを中止しました。')
     }
   }, [pasteLyricsFromClipboard, scoreEntries, selectedLyrics])
@@ -503,6 +504,7 @@ export default function LyricsTypingApp() {
                   selectedLyrics={selectedLyrics}
                   inlineActions={{
                     onToggleDecoration: toggleDecoration,
+                    onDecorationAlign: updateDecorationAlign,
                     onAppendPage: appendPageFromNavigation,
                     onSelect: selectLyricsPosition,
                     onNavigate: (position, direction, unit) => adjacentLyricsPosition(scoreEntries, position, direction, unit),

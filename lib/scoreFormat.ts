@@ -2,6 +2,7 @@ import type { CentralPop, LyricsArray, ScoreEntry } from './types'
 import { normalizeDecoration, validateDecoration, validateDecorationCharacters } from './decorationText'
 import { preprocessAndConvertLyrics } from './textUtils'
 import { POP_TEXT_LIMIT, validatePopText } from './popText'
+import { formatDecorationField, parseDecorationField } from './decorationFormat'
 
 export const POP_DEFAULTS = { duration: 'm', align: 'c', size: 'm', color: '#FFFFFF' } as const
 export const POP_DURATIONS = { s: 0.1, m: 0.3, l: 0.5, x: 1 } as const
@@ -84,9 +85,11 @@ export function parseScoreTxt(content: string): { duration: number; scoreEntries
         const timestamp = parseTime(fields[4])
         if (timestamp === 999.9 && fields.slice(0, 4).every(value => value === '!')) { ended = true; continue }
         if (ended) throw new Error('終端行の後にはポップの区切り行が必要です。')
-        const decorations = fields.slice(0, 4).map(value => value.startsWith('!') && value !== '!') as NonNullable<ScoreEntry['decorations']>
-        const lyrics = fields.slice(0, 4).map((value, index) => value === '!' ? '' : decorations[index] ? decoratedText(value.slice(1), i + 1) : preprocessAndConvertLyrics(value)) as LyricsArray
-        scoreEntries.push({ id: `entry_${crypto.randomUUID()}`, timestamp, lyrics, ...(decorations.some(Boolean) ? { decorations } : {}) })
+        const parsed = fields.slice(0, 4).map(parseDecorationField)
+        const decorations = parsed.map(value => value.decorated) as NonNullable<ScoreEntry['decorations']>
+        const decorationAligns = parsed.map(value => value.align) as NonNullable<ScoreEntry['decorationAligns']>
+        const lyrics = parsed.map(value => value.decorated ? decoratedText(value.text, i + 1) : preprocessAndConvertLyrics(value.text)) as LyricsArray
+        scoreEntries.push({ id: `entry_${crypto.randomUUID()}`, timestamp, lyrics, ...(decorations.some(Boolean) ? { decorations, decorationAligns } : {}) })
       }
     } catch (error) {
       throw new Error(`${i + 1}行目: ${error instanceof Error ? error.message : '不正なデータです。'}`)
@@ -103,7 +106,7 @@ export function createScoreTxt(duration: number, entries: ScoreEntry[], pops: Ce
     const fields = entry.lyrics.map((text, index) => {
       if (entry.decorations?.[index]) {
         validateDecoration(text)
-        return `!${escapeScoreText(text)}`
+        return formatDecorationField(escapeScoreText(text), entry.decorationAligns?.[index] ?? 'l')
       }
       return escapeScoreText(preprocessAndConvertLyrics(text)) || '!'
     })

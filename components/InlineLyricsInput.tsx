@@ -1,12 +1,13 @@
 import { useRef, useLayoutEffect, type KeyboardEvent } from 'react'
 import { flushSync } from 'react-dom'
-import type { LyricsArray, ScoreEntry } from '@/lib/types'
+import type { LyricsArray, ScoreEntry, TextAlign } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import { toast } from 'sonner'
 import { splitLyricsLine } from '@/lib/inlineLyrics'
 
 export interface InlineLyricsActions {
   onToggleDecoration?: (id: string, line: number) => void
+  onDecorationAlign?: (id: string, line: number, align: TextAlign) => void
   onAppendPage?: (lastId: string, line: number, editing: boolean) => void
   onSelect?: (position: LyricsPosition) => void
   onNavigate?: (position: LyricsPosition, direction: -1 | 1, unit: 'line' | 'page' | 'document') => LyricsPosition | null
@@ -107,6 +108,11 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
       {actions.onToggleDecoration && <button type="button" className={`shrink-0 rounded border px-1 text-xs ${decorated ? 'border-amber-500 text-amber-700 dark:text-amber-300' : 'text-muted-foreground'}`}
         aria-label={`ページ${pageNumber} ${line + 1}行目を${decorated ? '通常行' : '装飾行'}に変更`} aria-pressed={decorated}
         onClick={() => actions.onToggleDecoration?.(entry.id, line)}>{decorated ? '装飾' : '歌詞'}</button>}
+      {decorated && actions.onDecorationAlign && <select className="h-6 shrink-0 rounded border bg-background px-1 text-xs"
+        aria-label={`ページ${pageNumber} ${line + 1}行目の装飾の寄せ`} value={entry.decorationAligns?.[line] ?? 'l'}
+        onChange={event => actions.onDecorationAlign?.(entry.id, line, event.target.value as TextAlign)}>
+        <option value="l">左</option><option value="c">中央</option><option value="r">右</option>
+      </select>}
       <input
         ref={inputRef}
         id={`lyrics-${entry.id}-${line}`}
@@ -114,6 +120,7 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
         aria-label={`ページ${pageNumber} ${line + 1}行目`}
         className="w-full min-w-0 rounded border border-transparent bg-transparent px-1 text-inherit hover:border-border focus:border-primary focus:bg-background focus:outline-none focus:ring-1 focus:ring-primary"
         value={entry.lyrics[line]}
+        style={decorated ? { textAlign: entry.decorationAligns?.[line] === 'c' ? 'center' : entry.decorationAligns?.[line] === 'r' ? 'right' : 'left' } : undefined}
         placeholder="!"
         onFocus={() => actions.onStart(entry.id, line)}
         onChange={event => actions.onChange(entry.id, line, event.target.value)}

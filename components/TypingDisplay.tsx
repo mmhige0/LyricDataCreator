@@ -1,4 +1,7 @@
 import type { TypingWord } from 'lyrics-typing-engine'
+import type { TextAlign } from '@/lib/types'
+
+const alignment = (align?: TextAlign) => align === 'c' ? 'center' : align === 'r' ? 'right' : 'left'
 
 interface TypingDisplayProps {
   lines: string[]
@@ -7,6 +10,8 @@ interface TypingDisplayProps {
   overlayText?: string
   overlayLines?: string[]
   hideBaseLines?: boolean
+  lineAligns?: TextAlign[]
+  overlayLineAligns?: TextAlign[]
 }
 
 export const TypingDisplay = ({
@@ -16,6 +21,8 @@ export const TypingDisplay = ({
   overlayText,
   overlayLines,
   hideBaseLines = false,
+  lineAligns,
+  overlayLineAligns,
 }: TypingDisplayProps) => {
   const typedKanaLength = typingWord?.correct.kana.length ?? 0
   const effectiveTargetLineIndexes = targetLineIndexes ?? lines
@@ -43,7 +50,8 @@ export const TypingDisplay = ({
         ? overlayLines!.map((line, lineIndex) => (
           <p
             key={lineIndex}
-            className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 text-muted-foreground/60"
+            className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 whitespace-pre text-muted-foreground/60"
+            style={{ textAlign: alignment(overlayLineAligns?.[lineIndex]) }}
           >
             {line || '\u00A0'}
           </p>
@@ -68,6 +76,7 @@ export const TypingDisplay = ({
             <p
               key={lineIndex}
               className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 whitespace-pre"
+              style={{ textAlign: alignment(lineAligns?.[lineIndex]) }}
             >
               {!isTargetLine ? (
                 <span className="text-muted-foreground/40">{line || '\u00A0'}</span>

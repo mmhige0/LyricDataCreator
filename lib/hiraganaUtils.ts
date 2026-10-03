@@ -57,7 +57,6 @@ export const convertLyricsArrayToHiragana = async (
 ): Promise<[string, string, string, string]> => {
   const preprocessedLines = lyrics.map((line, index) => {
     if (decorations?.[index]) return ''
-    if (line.trim() === '') return ''
     return preprocessAndConvertLyrics(line)
   })
 

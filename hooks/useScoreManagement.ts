@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import type { ScoreEntry, LyricsArray, YouTubePlayer, CentralPop, TimingTarget } from '@/lib/types'
+import type { ScoreEntry, LyricsArray, YouTubePlayer, CentralPop, TimingTarget, TextAlign } from '@/lib/types'
+import { defaultDecorationAligns } from '@/lib/decorationFormat'
 import { normalizeDecoration } from '@/lib/decorationText'
 import { POP_DEFAULTS } from '@/lib/scoreFormat'
 import { processLyricsForSave } from '@/lib/textUtils'
@@ -141,6 +142,16 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     return pop.id
   }
 
+  const updateDecorationAlign = (id: string, line: number, align: TextAlign) => {
+    const entry = scoreEntries.find(item => item.id === id)
+    if (!entry?.decorations?.[line] || !['l', 'c', 'r'].includes(align) || (entry.decorationAligns?.[line] ?? 'l') === align) return
+    const decorationAligns = [...(entry.decorationAligns ?? defaultDecorationAligns())] as NonNullable<ScoreEntry['decorationAligns']>
+    decorationAligns[line] = align
+    saveCurrentState()
+    inlineHistorySaved.current = false
+    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, decorationAligns } : item))
+  }
+
   const updateCentralPop = (id: string, changes: Partial<Omit<CentralPop, 'id'>>, history: 'operation' | 'edit' = 'operation') => {
     const current = centralPops.find(pop => pop.id === id)
     if (!current || Object.entries(changes).every(([key, value]) => current[key as keyof CentralPop] === value)) return
@@ -192,15 +203,17 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   // Page-level actions each receive their own undo checkpoint.
-  const replacePageLyrics = (id: string, next: LyricsArray, expected?: LyricsArray, decorations?: ScoreEntry['decorations'], expectedDecorations?: ScoreEntry['decorations']) => {
+  const replacePageLyrics = (id: string, next: LyricsArray, expected?: LyricsArray, decorations?: ScoreEntry['decorations'], expectedDecorations?: ScoreEntry['decorations'], decorationAligns?: ScoreEntry['decorationAligns'], expectedDecorationAligns?: ScoreEntry['decorationAligns']) => {
     const entry = scoreEntries.find(item => item.id === id)
     if (!entry || (expected && entry.lyrics.some((line, i) => line !== expected[i]))) return false
     if (decorations && [0, 1, 2, 3].some(i => !!entry.decorations?.[i] !== !!expectedDecorations?.[i])) return false
+    if (decorationAligns && [0, 1, 2, 3].some(i => (entry.decorationAligns?.[i] ?? 'l') !== (expectedDecorationAligns?.[i] ?? 'l'))) return false
     const nextDecorations = decorations ?? entry.decorations
+    const nextAligns = decorationAligns ?? entry.decorationAligns
     const normalized = processLyricsForSave(next, nextDecorations)
-    if (entry.lyrics.every((line, i) => line === normalized[i]) && [0, 1, 2, 3].every(i => !!entry.decorations?.[i] === !!nextDecorations?.[i])) return true
+    if (entry.lyrics.every((line, i) => line === normalized[i]) && [0, 1, 2, 3].every(i => !!entry.decorations?.[i] === !!nextDecorations?.[i] && (entry.decorationAligns?.[i] ?? 'l') === (nextAligns?.[i] ?? 'l'))) return true
     saveCurrentState()
-    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, lyrics: normalized, decorations: nextDecorations } : item))
+    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, lyrics: normalized, decorations: nextDecorations, decorationAligns: nextAligns } : item))
     return true
   }
 
@@ -341,6 +354,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     deleteCentralPop,
     clearAllCentralPops,
     toggleDecoration,
+    updateDecorationAlign,
     adjustTimings,
     selectedLyrics,
     selectLyricsPosition,

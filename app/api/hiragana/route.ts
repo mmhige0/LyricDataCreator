@@ -81,8 +81,8 @@ export async function POST(request: Request) {
     const converted = await Promise.all(
       lines.map(async (line: string) => {
         if (line.trim() === '' || !containsKanji(line)) return line
-        // Keep katakana spans out of the reading API, including mixed-script words.
-        const parts = line.split(/([\u30A0-\u30FF\uFF66-\uFF9F]+)/u)
+        // Preserve katakana and layout spaces independently of the reading API.
+        const parts = line.split(/([\u30A0-\u30FF\uFF66-\uFF9F]+|\u3000+)/u)
         const converted = await Promise.all(parts.map(part => containsKanji(part) ? fetchHiragana(part, appId) : part))
         return converted.join('')
       })

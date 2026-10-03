@@ -13,7 +13,7 @@ it.each([
   expect(() => validatePopText(input)).toThrow(/10文字/)
 })
 it('applies the pop limit to decoded imports while keeping decorations at 25', () => {
-  const parsed = parseScoreTxt(`30\n!${'あ'.repeat(25)}/!/!/!/0\n_\n${'a'.repeat(21)}/1`)
+  const parsed = parseScoreTxt(`30\n![l]${'あ'.repeat(25)}/!/!/!/0\n_\n${'a'.repeat(21)}/1`)
   expect(parsed.scoreEntries[0].lyrics[0]).toHaveLength(25)
   expect(parsed.centralPops[0].text).toHaveLength(20)
   expect(parsed.warnings).toEqual(['4行目: ポップ文字列を10文字以内に切り取りました。'])

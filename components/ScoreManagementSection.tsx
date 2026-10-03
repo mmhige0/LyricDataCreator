@@ -14,6 +14,7 @@ import { PageTimestampInput, PageLyricsActions } from '@/components/PageEditCont
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
+import { normalizeTypingDisplay } from '@/lib/textUtils'
 
 interface EntryDisplayProps {
   selectedLyrics?: LyricsPosition | null
@@ -22,10 +23,11 @@ interface EntryDisplayProps {
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
   showTotalKpm: boolean
+  readOnly: boolean
   kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics, showTotalKpm }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics, showTotalKpm, readOnly }) => {
   return (
     <div className="flex items-stretch gap-3">
       <div className="min-w-0 flex-1 space-y-0.5">
@@ -37,8 +39,9 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
               {inlineActions ? (
                 <InlineLyricsInput entry={entry} line={lineIndex} pageNumber={pageNumber} actions={inlineActions} selected={selectedLyrics?.id === entry.id && selectedLyrics.line === lineIndex} />
               ) : (
-                <div className={`select-text break-words ${line ? "text-foreground" : "text-muted-foreground"}`}>
-                  {line || "!"}
+                <div className={`select-text whitespace-pre-wrap break-words ${line ? "text-foreground" : "text-muted-foreground"}`}
+                  style={{ textAlign: entry.decorations?.[lineIndex] && entry.decorationAligns?.[lineIndex] === 'c' ? 'center' : entry.decorations?.[lineIndex] && entry.decorationAligns?.[lineIndex] === 'r' ? 'right' : 'left' }}>
+                  {(readOnly && !entry.decorations?.[lineIndex] ? normalizeTypingDisplay(line) : line) || "!"}
                 </div>
               )}
             </div>
@@ -324,11 +327,11 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         </div>}
                       </div>
                       <div className={`${readOnly ? 'text-base' : 'col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1'} min-w-0 ${isCurrentlyPlaying ? 'font-semibold text-primary' : ''}`}>
-                        <EntryDisplay showTotalKpm={!readOnly} selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
+                        <EntryDisplay readOnly={readOnly} showTotalKpm={!readOnly} selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
                       </div>
                       {!readOnly && <div className="col-start-2 row-start-1 sm:col-start-3">
                         <PageActionsMenu pageNumber={displayPageNumber} empty={entry.lyrics.every(line => !line.trim())}
-                          onCopy={() => { void copyLyricsToClipboard(entry.lyrics, entry.decorations) }}
+                          onCopy={() => { void copyLyricsToClipboard(entry.lyrics, entry.decorations, entry.decorationAligns) }}
                           onClear={onReplacePageLyrics ? () => onReplacePageLyrics(entry.id, ['', '', '', '']) : undefined}
                           onDelete={() => deleteScoreEntry(entry.id)} />
                       </div>}

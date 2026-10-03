@@ -43,3 +43,14 @@ it('does not add misses or input counts on a decoration-only page', async () => 
   expect(game.totalMiss).toBe(0)
   expect(game.totalTypes).toBe(0)
 })
+
+it.each(['all', 'random', 'selected'] as const)('ignores display-only ordinary lines in %s practice mode', async mode => {
+  await act(async () => root.render(<Harness mode={mode} entries={[{ id: 'page', timestamp: 0, lyrics: ['　カ漢★１２　', '漢字１２？！', '　　', ''] }]} />))
+  expect(game.pageState.targetLineIndexes).toEqual([0])
+  for (const key of 'ka') {
+    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key, code: `Key${key.toUpperCase()}`, keyCode: key.toUpperCase().charCodeAt(0) })))
+  }
+  expect(game.pageState.typingWord?.nextChunk.kana).toBe('')
+  expect(game.totalTypes).toBe(2)
+  expect(game.totalMiss).toBe(0)
+})

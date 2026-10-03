@@ -89,15 +89,14 @@ export const HelpSection: React.FC = () => {
           <div className="text-sm text-muted-foreground">
             <div>歌詞の編集終了時に以下の変換が自動で行われます：</div>
             <ul className="ml-4 mt-1 list-disc">
-              <li>前後のスペース削除</li>
-              <li>記号削除</li>
-              <li>半角 → 全角変換</li>
+              <li>半角英字・カタカナ・スペースを全角に変換</li>
+              <li>全角文字と、連続・前後の全角スペースを保持</li>
             </ul>
           </div>
         </div>
         <div className="mb-6">
           <div className="mb-2 text-sm font-medium text-foreground">装飾行</div>
-          <p className="text-sm text-muted-foreground">各行の「歌詞／装飾」で行の種類を切り替えられます。装飾行は表示のみで、タイピング対象にはなりません。</p>
+          <p className="text-sm text-muted-foreground">各行の「歌詞／装飾」で行の種類を切り替えられます。装飾行は左・中央・右寄せを選べます。表示のみで、タイピング対象にはなりません。</p>
         </div>
         <div className="mb-6">
           <div className="mb-2 text-sm font-medium text-foreground">ポップ</div>

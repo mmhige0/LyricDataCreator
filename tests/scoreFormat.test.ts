@@ -11,7 +11,7 @@ describe('new score format', () => {
   it('round trips katakana, decorations, escaped characters, empty lines, both pop formats and header', () => {
     const pops = [pop, { ...pop, id: 'other', text: 'A/B\\C!', timestamp: 14.5, duration: 'x' as const, align: 'r' as const, size: 'l' as const, color: '#123ABC' }]
     const txt = createScoreTxt(120.5, [page], pops)
-    expect(txt).toContain('!!A\\/B\\\\C')
+    expect(txt).toContain('![l]!A\\/B\\\\C')
     expect(txt).toContain('!/!/!/!/999.9\n_\nHey!/12.23\n')
     const parsed = parseScoreTxt(txt)
     expect(parsed.duration).toBe(120.5)
@@ -48,11 +48,11 @@ describe('new score format', () => {
   })
 
   it('truncates overlength imports with a warning and rejects forbidden characters', () => {
-    const parsed = parseScoreTxt(`30\n!${'a'.repeat(51)}/!/!/!/0\n_\n${'あ'.repeat(26)}/1`)
+    const parsed = parseScoreTxt(`30\n![l]${'a'.repeat(51)}/!/!/!/0\n_\n${'あ'.repeat(26)}/1`)
     expect(parsed.scoreEntries[0].lyrics[0]).toHaveLength(50)
     expect(parsed.centralPops[0].text).toHaveLength(10)
     expect(parsed.warnings).toHaveLength(2)
-    expect(() => parseScoreTxt('30\n!😀/!/!/!/0')).toThrow(/絵文字/)
+    expect(() => parseScoreTxt('30\n![l]😀/!/!/!/0')).toThrow(/絵文字/)
     expect(() => createScoreTxt(30, [], [{ ...pop, text: 'A\nB' }])).toThrow(/改行/)
   })
 })

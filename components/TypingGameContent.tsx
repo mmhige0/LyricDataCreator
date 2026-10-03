@@ -400,7 +400,7 @@ export function TypingGameContent({
     if (!nextEntry || !Array.isArray(nextEntry.lyrics)) return []
 
     // 空行も含めて先頭4行をそのまま使う
-    return nextEntry.lyrics.slice(0, 4)
+    return pageLyrics[nextPageIndex]?.slice(0, 4) ?? []
   })()
 
   const currentPageLines = pageLyrics[pageState.pageIndex]?.slice(0, 4) ?? ['', '', '', '']
@@ -680,6 +680,8 @@ export function TypingGameContent({
               <div className="mb-3">
                 <TypingDisplay
                   lines={currentPageLines}
+                  lineAligns={normalizedScoreEntries[pageState.pageIndex]?.decorationAligns?.map((align, i) => normalizedScoreEntries[pageState.pageIndex]?.decorations?.[i] ? align : 'l')}
+                  overlayLineAligns={normalizedScoreEntries[pageState.pageIndex + 1]?.decorationAligns?.map((align, i) => normalizedScoreEntries[pageState.pageIndex + 1]?.decorations?.[i] ? align : 'l')}
                   typingWord={currentTypingWord}
                   targetLineIndexes={pageState.targetLineIndexes}
                   overlayText={showStartHint ? "Escキー/動画をクリックして開始" : undefined}
