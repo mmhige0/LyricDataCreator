@@ -18,7 +18,9 @@ export function PopPreview({ pop, number }: { pop: CentralPop; number: number })
   }
   return <button type="button" aria-label={`ポップ${number}のプレビューを再生`} title="クリックしてプレビューを再生"
     style={{ containerType: 'size' }} className="relative flex aspect-[24/5] min-w-0 flex-1 items-center overflow-hidden rounded bg-black px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={replay}>
-    <span ref={text} data-pop-preview-text className="block w-full whitespace-pre font-bold" style={{
+    <span ref={text} data-pop-preview-text className="block w-full whitespace-pre" style={{
+      fontFamily: 'var(--font-pop-preview), sans-serif',
+      fontWeight: 400,
       fontSize: `${PREVIEW_FONT_HEIGHTS[pop.size]}cqh`,
       lineHeight: 1,
       opacity: POP_OPACITY,
