@@ -5,5 +5,5 @@ export function LyricsText({ text, decorated = false }: { text: string; decorate
   if (decorated) return <>{text}</>
   return <>{Array.from(text).map((char, index) => isTypingCharacter(char) || /\s/u.test(char)
     ? char
-    : <span key={index} className="text-muted-foreground" data-display-only>{char}</span>)}</>
+    : <span key={index} className="opacity-30" data-display-only>{char}</span>)}</>
 }
