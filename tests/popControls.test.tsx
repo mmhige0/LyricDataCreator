@@ -5,6 +5,9 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { CentralPopEditor } from '../components/CentralPopEditor'
 import { registerEditorKeyboardShortcuts, useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { POP_DEFAULTS } from '../lib/scoreFormat'
+import { useScoreManagement } from '../hooks/useScoreManagement'
+
+vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
 
 let root: Root
 let host: HTMLDivElement
@@ -135,4 +138,57 @@ it('adds a pop with Ctrl+Enter even when no pop has been selected', async () => 
   const button = host.querySelector('button')!; button.focus()
   await act(async () => button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true, cancelable: true })))
   expect(add).toHaveBeenCalledOnce()
+})
+
+it('undoes pop addition from the automatically focused text field and redoes it', async () => {
+  function HistoryHarness() {
+    const state = useScoreManagement({ currentTime: 0, currentPlayer: null })
+    const handler = useKeyboardShortcuts({ player: null, getCurrentTimestamp: () => {},
+      seekBackward1Second: () => {}, seekForward1Second: () => {},
+      undoLastOperation: state.undoLastOperation, redoLastOperation: state.redoLastOperation,
+    })
+    useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
+    useLayoutEffect(() => { if (state.centralPops.length) host.querySelector<HTMLInputElement>('[aria-label="ポップ1の文字列"]')?.focus() }, [state.centralPops.length])
+    return <CentralPopEditor pops={state.centralPops} onAdd={state.addCentralPop}
+      onUpdate={(id, changes) => state.updateCentralPop(id, changes, 'edit')}
+      onDelete={state.deleteCentralPop} onEditBoundary={state.resetPopEdit} onCompositionChange={() => {}} />
+  }
+  await act(async () => root.render(<HistoryHarness />))
+  await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="空ポップを追加"]')!.click())
+  expect(document.activeElement?.getAttribute('aria-label')).toBe('ポップ1の文字列')
+  const press = async (key: string, shiftKey = false) => {
+    const event = new KeyboardEvent('keydown', { key, ctrlKey: true, shiftKey, bubbles: true, cancelable: true })
+    await act(async () => document.activeElement!.dispatchEvent(event))
+    expect(event.defaultPrevented).toBe(true)
+  }
+  await press('z')
+  expect(host.querySelector('[data-pop-id]')).toBeNull()
+  await press('y')
+  expect(host.querySelector('[data-pop-id]')).not.toBeNull()
+  await press('z')
+  await press('z', true)
+  expect(host.querySelector('[data-pop-id]')).not.toBeNull()
+})
+
+it('preserves native undo in unrelated fields and pop bulk-adjustment inputs', async () => {
+  const undo = vi.fn()
+  const redo = vi.fn()
+  function NativeHistoryHarness() {
+    const handler = useKeyboardShortcuts({ player: null, getCurrentTimestamp: () => {},
+      seekBackward1Second: () => {}, seekForward1Second: () => {}, undoLastOperation: undo, redoLastOperation: redo,
+    })
+    useLayoutEffect(() => registerEditorKeyboardShortcuts(handler), [handler])
+    return <><input aria-label="title" /><div data-pop-editor><input aria-label="adjustment" /></div></>
+  }
+  await act(async () => root.render(<NativeHistoryHarness />))
+  for (const input of host.querySelectorAll('input')) {
+    input.focus()
+    for (const key of ['z', 'y']) {
+      const event = new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true })
+      await act(async () => input.dispatchEvent(event))
+      expect(event.defaultPrevented).toBe(false)
+    }
+  }
+  expect(undo).not.toHaveBeenCalled()
+  expect(redo).not.toHaveBeenCalled()
 })

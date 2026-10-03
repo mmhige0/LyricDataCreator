@@ -148,12 +148,13 @@ export const useKeyboardShortcuts = ({
       return
     }
 
-    // Inline lyrics span multiple inputs, so use the shared application history.
-    const isInlineLyrics = activeElement instanceof HTMLElement && activeElement.hasAttribute('data-inline-lyrics')
+    // Lyrics and pop fields use the same application history as their list operations.
+    const usesAppHistory = activeElement instanceof HTMLElement
+      && (activeElement.hasAttribute('data-inline-lyrics') || !!activeElement.closest('[data-pop-id]'))
 
     // Other text fields retain native undo.
     if (event.ctrlKey && (event.key === "z" || event.key === "Z")) {
-      if (isInputFocused && !isInlineLyrics) {
+      if (isInputFocused && !usesAppHistory) {
         // 入力フィールド内ではブラウザのデフォルト動作を許可
         return
       }
@@ -167,7 +168,7 @@ export const useKeyboardShortcuts = ({
 
     // Ctrl+Y: 入力フィールド内ではブラウザネイティブのRedo、それ以外ではアプリレベルのRedo
     if (event.ctrlKey && (event.key === "y" || event.key === "Y")) {
-      if (isInputFocused && !isInlineLyrics) {
+      if (isInputFocused && !usesAppHistory) {
         // 入力フィールド内ではブラウザのデフォルト動作を許可
         return
       }
