@@ -8,7 +8,7 @@ import type { CentralPop, TimingTarget } from '@/lib/types'
 import { normalizePopText } from '@/lib/popText'
 import { PageTimestampInput } from './PageEditControls'
 import { POP_DURATIONS } from '@/lib/scoreFormat'
-import { POP_FADE_IN_SECONDS, POP_FADE_OUT_SECONDS } from '@/lib/popPreview'
+import { POP_DURATION_LABELS, popPlaybackSeconds } from '@/lib/popPreview'
 import { PopPreview } from './PopPreview'
 
 export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBoundary, titleAction, onPlay, onCompositionChange, selectedId, onSelect, onAdjust, onClear, pageCount = 0 }: {
@@ -76,7 +76,7 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
         </div>
         <div className="flex flex-wrap items-center gap-3 pl-6 text-sm">
           <label className="flex items-center gap-2">表示時間<select aria-label="表示時間" className="h-9 rounded border bg-background px-2" value={pop.duration} onChange={event => onUpdate(pop.id, { duration: event.target.value as CentralPop['duration'] })}>
-            {Object.entries(POP_DURATIONS).map(([value, seconds]) => <option key={value} value={value}>{(seconds + POP_FADE_IN_SECONDS + POP_FADE_OUT_SECONDS).toFixed(1)}秒</option>)}
+            {(Object.keys(POP_DURATIONS) as CentralPop['duration'][]).map(value => <option key={value} value={value}>{POP_DURATION_LABELS[value]}：{popPlaybackSeconds(value).toFixed(2)}秒</option>)}
           </select></label>
           <label className="flex items-center gap-2">寄せ<select aria-label="寄せ" className="h-9 rounded border bg-background px-2" value={pop.align} onChange={event => onUpdate(pop.id, { align: event.target.value as CentralPop['align'] })}>
             <option value="l">左</option><option value="c">中央</option><option value="r">右</option>

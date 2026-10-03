@@ -49,7 +49,7 @@ it('restarts hovered playback with updated settings and cancels it on unmount', 
   const first = animate.mock.results[0].value
   await act(async () => root.render(<PopPreview pop={{ ...pop, duration: 'x' }} number={1} />))
   expect(first.cancel).toHaveBeenCalled()
-  expect(animate.mock.lastCall?.[1]).toMatchObject({ duration: 2300, iterations: Infinity })
+  expect(animate.mock.lastCall?.[1]).toMatchObject({ duration: 2400, iterations: Infinity })
   const last = animate.mock.results.at(-1)!.value
   await act(async () => root.render(null))
   expect(last.cancel).toHaveBeenCalledOnce()
