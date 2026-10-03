@@ -11,13 +11,13 @@ export function decorationLength(text: string): number {
   return Array.from(text).reduce((sum, char) => sum + characterWidth(char), 0)
 }
 
-export function normalizeDecoration(text: string): string {
+export function normalizeDecoration(text: string, limit = 25): string {
   const clean = text.replace(keycaps, '').replace(forbidden, '')
   let width = 0
   let result = ''
   for (const char of clean) {
     width += characterWidth(char)
-    if (width > 25) break
+    if (width > limit) break
     result += char
   }
   return result

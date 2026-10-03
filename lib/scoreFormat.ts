@@ -1,6 +1,7 @@
 import type { CentralPop, LyricsArray, ScoreEntry } from './types'
 import { normalizeDecoration, validateDecoration, validateDecorationCharacters } from './decorationText'
 import { preprocessAndConvertLyrics } from './textUtils'
+import { POP_TEXT_LIMIT, validatePopText } from './popText'
 
 export const POP_DEFAULTS = { duration: 'm', align: 'c', size: 'm', color: '#FFFFFF' } as const
 export const POP_DURATIONS = { s: 0.1, m: 0.3, l: 0.5, x: 1 } as const
@@ -29,7 +30,7 @@ const parseTime = (value: string, label = '時刻'): number => {
 }
 
 export function validatePop(pop: CentralPop): void {
-  validateDecoration(pop.text)
+  validatePopText(pop.text)
   if (!Number.isFinite(pop.timestamp) || pop.timestamp < 0) throw new Error('表示開始時刻は0以上の秒数で指定してください。')
   if (!['s', 'm', 'l', 'x'].includes(pop.duration)) throw new Error('表示時間が不正です。')
   if (!['l', 'c', 'r'].includes(pop.align)) throw new Error('寄せが不正です。')
@@ -45,11 +46,11 @@ export function parseScoreTxt(content: string): { duration: number; scoreEntries
   const warnings: string[] = []
   let inPops = false
   let ended = false
-  const decoratedText = (text: string, line: number) => {
-    const normalized = normalizeDecoration(text)
+  const decoratedText = (text: string, line: number, limit = 25, label = '装飾') => {
+    const normalized = normalizeDecoration(text, limit)
     // Overlength may be truncated; forbidden characters remain an import error.
     validateDecorationCharacters(text)
-    if (normalized !== text) warnings.push(`${line}行目: 装飾文字列を25文字以内に切り取りました。`)
+    if (normalized !== text) warnings.push(`${line}行目: ${label}文字列を${limit}文字以内に切り取りました。`)
     return normalized
   }
   for (let i = 1; i < lines.length; i++) {
@@ -66,7 +67,7 @@ export function parseScoreTxt(content: string): { duration: number; scoreEntries
         if (fields.length !== 2 && fields.length !== 6) throw new Error('ポップは2項目または6項目で指定してください。')
         const pop: CentralPop = {
           id: `pop_${crypto.randomUUID()}`,
-          text: decoratedText(fields[0], i + 1),
+          text: decoratedText(fields[0], i + 1, POP_TEXT_LIMIT, 'ポップ'),
           timestamp: parseTime(fields[1]),
           ...POP_DEFAULTS,
         }

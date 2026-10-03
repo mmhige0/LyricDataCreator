@@ -50,7 +50,7 @@ describe('new score format', () => {
   it('truncates overlength imports with a warning and rejects forbidden characters', () => {
     const parsed = parseScoreTxt(`30\n!${'a'.repeat(51)}/!/!/!/0\n_\n${'あ'.repeat(26)}/1`)
     expect(parsed.scoreEntries[0].lyrics[0]).toHaveLength(50)
-    expect(parsed.centralPops[0].text).toHaveLength(25)
+    expect(parsed.centralPops[0].text).toHaveLength(10)
     expect(parsed.warnings).toHaveLength(2)
     expect(() => parseScoreTxt('30\n!😀/!/!/!/0')).toThrow(/絵文字/)
     expect(() => createScoreTxt(30, [], [{ ...pop, text: 'A\nB' }])).toThrow(/改行/)

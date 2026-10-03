@@ -20,7 +20,7 @@ export function PopPreview({ pop, number }: { pop: CentralPop; number: number })
     if (hovering.current) replay()
     return () => { animation.current?.cancel() }
   }, [pop.text, pop.align, pop.size, pop.color, replay])
-  return <button type="button" aria-label={`ポップ${number}のプレビューを再生`} title="マウスを乗せている間は繰り返し再生／クリックして再生"
+  return <button type="button" aria-label={`ポップ${number}のプレビューを再生`}
     onPointerEnter={event => { if (event.pointerType === 'mouse') { hovering.current = true; replay() } }}
     onPointerLeave={() => { if (hovering.current) { hovering.current = false; animation.current?.cancel() } }}
     style={{ containerType: 'size' }} className="relative flex aspect-[24/5] min-w-0 flex-1 items-center overflow-hidden rounded bg-black px-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" onClick={replay}>

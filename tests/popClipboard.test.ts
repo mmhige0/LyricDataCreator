@@ -13,7 +13,7 @@ it('copies all pop content without the id or timestamp', () => {
 it('ignores injected timestamps and normalizes pasted text and colors', () => {
   const value = parsePopClipboard(JSON.stringify({ type: 'lyric-pop', ...pop, text: '★'.repeat(30) + '\n', color: '#abcdef' }))
   expect(value).not.toHaveProperty('timestamp')
-  expect(value.text).toBe('★'.repeat(25))
+  expect(value.text).toBe('★'.repeat(10))
   expect(value.color).toBe('#ABCDEF')
 })
 it.each(['plain lyrics', '{}', JSON.stringify({ type: 'lyric-pop', ...pop, duration: 'invalid' }), JSON.stringify({ type: 'lyric-pop', ...pop, color: '#bad' })])('rejects invalid clipboard data %s', data => {

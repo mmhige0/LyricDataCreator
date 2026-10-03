@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { CentralPop, TimingTarget } from '@/lib/types'
-import { normalizeDecoration } from '@/lib/decorationText'
+import { normalizePopText } from '@/lib/popText'
 import { PageTimestampInput } from './PageEditControls'
 import { POP_DURATIONS } from '@/lib/scoreFormat'
 import { POP_FADE_IN_SECONDS, POP_FADE_OUT_SECONDS } from '@/lib/popPreview'
@@ -64,8 +64,8 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
             onPaste={event => { if (/[\r\n]/.test(event.clipboardData.getData('text'))) { event.preventDefault(); toast.error('ポップに改行は貼り付けできません。') } }}
             onBlur={event => {
               onCompositionChange(false)
-              const text = normalizeDecoration(event.target.value)
-              if (text !== event.target.value) toast.info('禁止文字を除き、25文字以内に整えました。')
+              const text = normalizePopText(event.target.value)
+              if (text !== event.target.value) toast.info('禁止文字を除き、10文字以内に整えました。')
               onUpdate(pop.id, { text })
               onEditBoundary()
             }} />
