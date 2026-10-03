@@ -1,6 +1,6 @@
 import { buildTypingMap, createTypingWord, type BuiltMapLine, type RawMapLine, type TypingWord } from 'lyrics-typing-engine'
 import type { ScoreEntry } from './types'
-import { normalizeTypingDisplay, convertKatakanaToHiragana } from './textUtils'
+import { normalizeTypingDisplay, preprocessAndConvertLyrics, convertKatakanaToHiragana } from './textUtils'
 
 export const ensureIntroPage = (scoreEntries: ScoreEntry[]): ScoreEntry[] => {
   if (scoreEntries.length === 0) return scoreEntries
@@ -58,7 +58,7 @@ export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTy
       word,
     })
 
-    pageLyrics.push(entry.lyrics.map((line, index) => entry.decorations?.[index] ? line : normalizeTypingDisplay(line)))
+    pageLyrics.push(entry.lyrics.map((line, index) => entry.decorations?.[index] ? line : preprocessAndConvertLyrics(line)))
   }
 
   const lastTimestamp = normalizedEntries[normalizedEntries.length - 1]?.timestamp ?? 0

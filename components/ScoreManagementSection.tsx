@@ -14,7 +14,7 @@ import { PageTimestampInput, PageLyricsActions } from '@/components/PageEditCont
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
-import { normalizeTypingDisplay } from '@/lib/textUtils'
+import { LyricsText } from '@/components/LyricsText'
 
 interface EntryDisplayProps {
   selectedLyrics?: LyricsPosition | null
@@ -41,7 +41,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
               ) : (
                 <div className={`select-text whitespace-pre-wrap break-words ${line ? "text-foreground" : "text-muted-foreground"}`}
                   style={{ textAlign: entry.decorations?.[lineIndex] && entry.decorationAligns?.[lineIndex] === 'c' ? 'center' : entry.decorations?.[lineIndex] && entry.decorationAligns?.[lineIndex] === 'r' ? 'right' : 'left' }}>
-                  {(readOnly && !entry.decorations?.[lineIndex] ? normalizeTypingDisplay(line) : line) || "!"}
+                  {readOnly ? <LyricsText text={line || "!"} decorated={entry.decorations?.[lineIndex]} /> : line || "!"}
                 </div>
               )}
             </div>

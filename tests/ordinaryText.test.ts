@@ -15,10 +15,10 @@ it('preserves fullwidth characters and leading and repeated spaces while removin
   expect(parseScoreTxt(txt).scoreEntries[0].lyrics).toEqual(page.lyrics.map(line => line.trimEnd()))
   expect(parseLrcToScoreEntries(createLrcFromScoreEntries([page]))[0].lyrics).toEqual(page.lyrics.map(line => line.trimEnd()))
 })
-it('keeps unsupported characters as individual spaces on the play screen', () => {
+it('keeps unsupported characters visible while treating them as spaces for input', () => {
   expect(normalizeTypingDisplay(page.lyrics[0])).toBe('　　カ　　　　ａ　　ナ')
   const data = buildPageTypingData({ scoreEntries: [page], totalDuration: 30 })
-  expect(data.pageLyrics[0]).toEqual(page.lyrics.map(normalizeTypingDisplay))
+  expect(data.pageLyrics[0]).toEqual(page.lyrics.map(preprocessAndConvertLyrics))
   expect(data.builtMapLines[0].wordChunks.map(chunk => chunk.kana).join('').replace(/[ 　]/g, '')).toBe('かａな')
 })
 it('types only kana and fullwidth letters, automatically skipping non-target characters', () => {

@@ -45,10 +45,12 @@ export const preprocessAndConvertLyrics = (text: string): string => {
     .replace(/　+$/g, '')
 }
 
-// Retain one space for each display-only character; do not collapse layout spacing.
+export const isTypingCharacter = (char: string): boolean => /^[ぁ-ゖゝゞァ-ヺヽヾーＡ-Ｚａ-ｚ]$/.test(char)
+
+// The engine treats display-only characters as spaces; the UI keeps the original text.
 export const normalizeTypingDisplay = (text: string): string =>
   Array.from(preprocessAndConvertLyrics(text)).map(char =>
-    /^[ぁ-ゖゝゞァ-ヺヽヾーＡ-Ｚａ-ｚ　]$/.test(char) ? char : '　').join('')
+    isTypingCharacter(char) || char === '　' ? char : '　').join('')
 
 /**
  * 行の種類に応じて通常歌詞または装飾文字列を整える
