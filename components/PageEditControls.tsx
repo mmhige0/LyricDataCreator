@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { convertLyricsArrayToHiragana } from '@/lib/hiraganaUtils'
 import type { LyricsArray, ScoreEntry } from '@/lib/types'
 
-export function PageTimestampInput({ timestamp, pageNumber, onCommit }: {
+export function PageTimestampInput({ timestamp, pageNumber, onCommit, ariaLabel }: {
+  ariaLabel?: string
   timestamp: number
   pageNumber: number
   onCommit: (value: string) => boolean | undefined
@@ -25,7 +26,7 @@ export function PageTimestampInput({ timestamp, pageNumber, onCommit }: {
       type="number"
       min="0"
       step="0.01"
-      aria-label={`ページ${pageNumber}の時刻（秒）`}
+      aria-label={ariaLabel ?? `ページ${pageNumber}の時刻（秒）`}
       aria-invalid={invalid}
       title="秒数を入力し、Enterまたはフォーカス移動で確定。Escで取り消し"
       className="h-8 w-28 shrink-0 px-2 text-sm tabular-nums font-mono [@media(pointer:coarse)]:h-11"
@@ -76,9 +77,13 @@ export function PageLyricsActions({ entry, onReplace }: {
     setConverting(true)
     const original = [...entry.lyrics] as LyricsArray
     try {
-      const converted = await convertLyricsArrayToHiragana(original)
+      const converted = await convertLyricsArrayToHiragana(original, entry.decorations)
       if (!mounted.current) return
       // Do not overwrite typing, clear, undo, or an imported page during the request.
+      if (JSON.stringify(latest.current.entry.decorations) !== JSON.stringify(entry.decorations)) {
+        toast.info('変換中に行の種類が変更されたため、変換結果を反映しませんでした。')
+        return
+      }
       if (!latest.current.onReplace(entry.id, converted, original)) {
         toast.info('変換中に歌詞が変更されたため、変換結果を反映しませんでした。')
       }
@@ -89,7 +94,7 @@ export function PageLyricsActions({ entry, onReplace }: {
       if (mounted.current) setConverting(false)
     }
   }
-  const empty = entry.lyrics.every(line => !line.trim())
+  const empty = entry.lyrics.every((line, index) => entry.decorations?.[index] || !line.trim())
   return (
     <Button variant="outline" size="sm" className="text-xs" disabled={converting || empty} onClick={convert}>
       <Languages className="h-3 w-3 mr-1" />{converting ? '変換中…' : 'かな変換'}

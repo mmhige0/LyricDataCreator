@@ -87,14 +87,16 @@ export const HelpSection: React.FC = () => {
         <div className="mb-6">
           <div className="text-sm font-medium text-foreground mb-2">歌詞変換</div>
           <div className="text-sm text-muted-foreground">
-            <div>歌詞の編集終了時に以下の変換が自動で行われます：</div>
-            <ul className="ml-4 mt-1 list-disc">
-              <li>前後のスペース削除</li>
-              <li>記号削除</li>
-              <li>半角 → 全角変換</li>
-              <li>カタカナ → ひらがな変換</li>
-            </ul>
+            半角英字・数字・記号・カタカナ・スペースを全角に変換します。数字・記号は表示のみでタイピング対象にはなりません。
           </div>
+        </div>
+        <div className="mb-6">
+          <div className="mb-2 text-sm font-medium text-foreground">装飾行</div>
+          <p className="text-sm text-muted-foreground">各行の「歌詞／装飾」で行の種類を切り替えられます。装飾行は左・中央・右寄せを選べます。表示のみで、タイピング対象にはなりません。</p>
+        </div>
+        <div className="mb-6">
+          <div className="mb-2 text-sm font-medium text-foreground">ポップ</div>
+          <p className="text-sm text-muted-foreground">ページ一覧をポップ一覧に切り替えられます。ポップはゲーム内での表示のみで、タイピング対象にはなりません。</p>
         </div>
       </div>
       </div>

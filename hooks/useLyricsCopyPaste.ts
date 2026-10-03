@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import type { LyricsArray } from '@/lib/types'
+import type { LyricsArray, ScoreEntry } from '@/lib/types'
+import { formatDecorationField, parseDecorationField } from '@/lib/decorationFormat'
 
 export const useLyricsCopyPaste = () => {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
-  const copyLyricsToClipboard = async (lyrics: LyricsArray) => {
+  const copyLyricsToClipboard = async (lyrics: LyricsArray, decorations?: ScoreEntry['decorations'], decorationAligns?: ScoreEntry['decorationAligns']) => {
     try {
-      const lyricsText = lyrics.join('\n')
+      const lyricsText = lyrics.map((line, index) => decorations?.[index] ? formatDecorationField(line, decorationAligns?.[index] ?? 'l') : line).join('\n')
       await navigator.clipboard.writeText(lyricsText)
       setCopyStatus('success')
       setTimeout(() => setCopyStatus('idle'), 2000)
@@ -17,7 +18,7 @@ export const useLyricsCopyPaste = () => {
     }
   }
 
-  const pasteLyricsFromClipboard = async (): Promise<LyricsArray | null> => {
+  const pasteLyricsFromClipboard = async (): Promise<{ lyrics: LyricsArray; decorations: NonNullable<ScoreEntry['decorations']>; decorationAligns: NonNullable<ScoreEntry['decorationAligns']> } | null> => {
     try {
       const text = await navigator.clipboard.readText()
       // Handle both CRLF and LF line endings, and trim CR characters
@@ -31,7 +32,12 @@ export const useLyricsCopyPaste = () => {
         lines[3] || ''
       ]
 
-      return lyricsArray
+      const parsed = lyricsArray.map(parseDecorationField)
+      return {
+        lyrics: parsed.map(line => line.text) as LyricsArray,
+        decorations: parsed.map(line => line.decorated) as NonNullable<ScoreEntry['decorations']>,
+        decorationAligns: parsed.map(line => line.align) as NonNullable<ScoreEntry['decorationAligns']>,
+      }
     } catch (error) {
       console.error('Failed to paste lyrics:', error)
       setCopyStatus('error')

@@ -1,21 +1,22 @@
 import type { LyricsArray } from './types'
+import { characterWidth, normalizeDecoration } from './decorationText'
 
 /**
  * 半角文字を全角文字に変換する
  */
 const halfWidthToFullWidth = (text: string): string => {
   return text
-    .replace(/[a-z]/g, (char) => String.fromCharCode(char.charCodeAt(0) - "a".charCodeAt(0) + "ａ".charCodeAt(0)))
-    .replace(/[A-Z]/g, (char) => String.fromCharCode(char.charCodeAt(0) - "A".charCodeAt(0) + "Ａ".charCodeAt(0)))
-    .replace(/ /g, "　")
+    .replace(/[!-~]/g, char => String.fromCharCode(char.charCodeAt(0) + 0xFEE0))
+    .replace(/[¢£¬¯¦¥₩]/g, char => ({ '¢': '￠', '£': '￡', '¬': '￢', '¯': '￣', '¦': '￤', '¥': '￥', '₩': '￦' })[char]!)
+    .replace(/ /g, '　')
 }
 
 /**
- * アルファベット・スペース以外の記号を削除する
+ * 通常行では全角文字と全角化できる文字を保持する
  */
 const removeSymbols = (text: string): string => {
-  // 「々」は漢字ではないため明示的に許容する
-  return text.replace(/[^\u3040-\u309F\u30A0-\u30FF\u3005\u4E00-\u9FAF\uFF66-\uFF9F\uFF21-\uFF3A\uFF41-\uFF5Aa-zA-Z\s]/g, "")
+  return Array.from(text).filter(char => /^[ -~]$/.test(char)
+    || (characterWidth(char) === 1 && !/[\p{C}\p{Zl}\p{Zp}]/u.test(char))).join('')
 }
 
 /**
@@ -23,7 +24,7 @@ const removeSymbols = (text: string): string => {
  * @param text 変換対象のテキスト
  * @returns ひらがなに変換されたテキスト
  */
-const convertKatakanaToHiragana = (text: string): string => {
+export const convertKatakanaToHiragana = (text: string): string => {
   if (!text) return text
   return text.replace(/[\u30A1-\u30F6]/g, (match) => {
     const code = match.charCodeAt(0)
@@ -32,24 +33,28 @@ const convertKatakanaToHiragana = (text: string): string => {
 }
 
 /**
- * 歌詞の前処理とカタカナ→ひらがな変換（記号削除、前後スペース削除、全角変換、カタカナ→ひらがな変換）
+ * 通常歌詞の前処理（カタカナを保持し、半角カナと例外文字を正規化）
  * @param text 処理対象のテキスト
- * @returns 前処理とカタカナ変換が完了したテキスト
+ * @returns 前処理が完了したテキスト
  */
 export const preprocessAndConvertLyrics = (text: string): string => {
-  return convertKatakanaToHiragana(halfWidthToFullWidth(removeSymbols((text || "").replace(/[〜～]/g, 'ー')).trim()))
+  const fullKana = (text || '').replace(/[\uFF61-\uFF9F]+/g, value => value.normalize('NFKC')).normalize('NFC')
+  return removeSymbols(halfWidthToFullWidth(fullKana))
+    .replace(/ヰ/g, 'ゐ').replace(/ヱ/g, 'ゑ')
     .replace(/ゔ/g, 'ヴ')
-    .replace(/\s{2,}/g, '　')
+    .replace(/　+$/g, '')
 }
 
+export const isTypingCharacter = (char: string): boolean => /^[ぁ-ゖゝゞァ-ヺヽヾーＡ-Ｚａ-ｚ]$/.test(char)
+
+// The engine treats display-only characters as spaces; the UI keeps the original text.
+export const normalizeTypingDisplay = (text: string): string =>
+  Array.from(preprocessAndConvertLyrics(text)).map(char =>
+    isTypingCharacter(char) || char === '　' ? char : '　').join('')
+
 /**
- * 歌詞配列の各行を処理して返す（記号削除、前後スペース削除、全角変換、カタカナ→ひらがな変換）
+ * 行の種類に応じて通常歌詞または装飾文字列を整える
  */
-export const processLyricsForSave = (lyrics: LyricsArray): LyricsArray => {
-  return [
-    preprocessAndConvertLyrics(lyrics[0]),
-    preprocessAndConvertLyrics(lyrics[1]),
-    preprocessAndConvertLyrics(lyrics[2]),
-    preprocessAndConvertLyrics(lyrics[3])
-  ]
+export const processLyricsForSave = (lyrics: LyricsArray, decorations?: boolean[]): LyricsArray => {
+  return lyrics.map((line, index) => decorations?.[index] ? normalizeDecoration(line) : preprocessAndConvertLyrics(line)) as LyricsArray
 }

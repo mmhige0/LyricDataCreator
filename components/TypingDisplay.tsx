@@ -1,4 +1,9 @@
 import type { TypingWord } from 'lyrics-typing-engine'
+import { LyricsText } from '@/components/LyricsText'
+import { normalizeTypingDisplay } from '@/lib/textUtils'
+import type { TextAlign } from '@/lib/types'
+
+const alignment = (align?: TextAlign) => align === 'c' ? 'center' : align === 'r' ? 'right' : 'left'
 
 interface TypingDisplayProps {
   lines: string[]
@@ -7,6 +12,10 @@ interface TypingDisplayProps {
   overlayText?: string
   overlayLines?: string[]
   hideBaseLines?: boolean
+  lineAligns?: TextAlign[]
+  overlayLineAligns?: TextAlign[]
+  decorations?: boolean[]
+  overlayDecorations?: boolean[]
 }
 
 export const TypingDisplay = ({
@@ -16,13 +25,17 @@ export const TypingDisplay = ({
   overlayText,
   overlayLines,
   hideBaseLines = false,
+  lineAligns,
+  overlayLineAligns,
+  decorations,
+  overlayDecorations,
 }: TypingDisplayProps) => {
   const typedKanaLength = typingWord?.correct.kana.length ?? 0
   const effectiveTargetLineIndexes = targetLineIndexes ?? lines
-    .map((line, lineIndex) => line.trim().length > 0 ? lineIndex : -1)
+    .map((line, lineIndex) => !decorations?.[lineIndex] && normalizeTypingDisplay(line).trim().length > 0 ? lineIndex : -1)
     .filter((lineIndex) => lineIndex >= 0)
   const targetLineIndexSet = new Set(effectiveTargetLineIndexes)
-  const targetLines = effectiveTargetLineIndexes.map((lineIndex) => lines[lineIndex] ?? '')
+  const targetLines = effectiveTargetLineIndexes.map((lineIndex) => normalizeTypingDisplay(lines[lineIndex] ?? ''))
   const joinedTargetLines = targetLines.join(' ')
   const leadingWhitespaceLength = joinedTargetLines.length - joinedTargetLines.trimStart().length
   const trailingWhitespaceLength = joinedTargetLines.length - joinedTargetLines.trimEnd().length
@@ -43,16 +56,18 @@ export const TypingDisplay = ({
         ? overlayLines!.map((line, lineIndex) => (
           <p
             key={lineIndex}
-            className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 text-muted-foreground/60"
+            className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 whitespace-pre text-muted-foreground/60"
+            style={{ textAlign: alignment(overlayLineAligns?.[lineIndex]) }}
           >
-            {line || '\u00A0'}
+            <LyricsText text={line || '\u00A0'} decorated={overlayDecorations?.[lineIndex]} />
           </p>
         ))
         : lines.map((line, lineIndex) => {
           const isTargetLine = targetLineIndexSet.has(lineIndex)
           const lineStart = targetCursor
-          const lineEnd = targetCursor + line.length
-          const typedWithinLine = Math.max(0, Math.min(clampedTypedLength - lineStart, line.length))
+          const chars = Array.from(line)
+          const lineEnd = targetCursor + chars.length
+          const typedWithinLine = Math.max(0, Math.min(clampedTypedLength - lineStart, chars.length))
 
           const isCompletedLine = isTargetLine && clampedTypedLength > lineEnd
           const isCurrentLine = isTargetLine && clampedTypedLength >= lineStart && clampedTypedLength <= lineEnd
@@ -61,25 +76,26 @@ export const TypingDisplay = ({
             targetCursor = lineEnd + 1 // 次の対象行の先頭（行間スペース1文字分を想定）
           }
 
-          const typedPart = line.slice(0, typedWithinLine)
-          const remainingPart = line.slice(typedWithinLine)
+          const typedPart = chars.slice(0, typedWithinLine).join('')
+          const remainingPart = chars.slice(typedWithinLine).join('')
 
           return (
             <p
               key={lineIndex}
               className="text-3xl font-bold tracking-wider leading-tight h-12 mb-2 whitespace-pre"
+              style={{ textAlign: alignment(lineAligns?.[lineIndex]) }}
             >
               {!isTargetLine ? (
-                <span className="text-muted-foreground/40">{line || '\u00A0'}</span>
+                <span className="text-muted-foreground/40"><LyricsText text={line || '\u00A0'} decorated={decorations?.[lineIndex]} /></span>
               ) : isCompletedLine ? (
-                <span className="text-muted-foreground/60">{line || '\u00A0'}</span>
+                <span className="text-muted-foreground/60"><LyricsText text={line || '\u00A0'} decorated={decorations?.[lineIndex]} /></span>
               ) : isCurrentLine ? (
                 <>
-                  {typedPart && <span className="text-muted-foreground/60">{typedPart}</span>}
-                  <span className="text-primary">{remainingPart || '\u00A0'}</span>
+                  {typedPart && <span className="text-muted-foreground/60"><LyricsText text={typedPart} /></span>}
+                  <span className="text-primary"><LyricsText text={remainingPart || '\u00A0'} /></span>
                 </>
               ) : (
-                <span className="text-foreground">{line || '\u00A0'}</span>
+                <span className="text-foreground"><LyricsText text={line || '\u00A0'} decorated={decorations?.[lineIndex]} /></span>
               )}
             </p>
           )

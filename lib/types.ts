@@ -2,7 +2,23 @@ export interface ScoreEntry {
   id: string
   timestamp: number
   lyrics: [string, string, string, string]
+  decorations?: [boolean, boolean, boolean, boolean]
+  decorationAligns?: [TextAlign, TextAlign, TextAlign, TextAlign]
 }
+
+export type TextAlign = 'l' | 'c' | 'r'
+
+export interface CentralPop {
+  id: string
+  text: string
+  timestamp: number
+  duration: 's' | 'm' | 'l' | 'x'
+  align: 'l' | 'c' | 'r'
+  size: 's' | 'm' | 'l'
+  color: string
+}
+
+export type TimingTarget = 'pages' | 'pops' | 'both'
 
 export interface YouTubePlayer {
   pauseVideo(): void
@@ -41,6 +57,7 @@ export interface LyricDraft {
   sessionId: string
   youtubeUrl: string
   scoreEntries: ScoreEntry[]
+  centralPops?: CentralPop[]
   songTitle: string
   lastModified: number
 }

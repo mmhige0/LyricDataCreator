@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, type MouseEvent, type KeyboardEvent } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Edit3, Keyboard } from "lucide-react"
+import { Edit3, Keyboard, ArrowLeftRight } from "lucide-react"
 import { useYouTube } from "@/hooks/useYouTube"
 import { useScoreManagement } from "@/hooks/useScoreManagement"
 import { useKeyboardShortcuts, registerEditorKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts"
@@ -11,9 +11,11 @@ import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
+import { CentralPopEditor } from '@/components/CentralPopEditor'
 import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { EditorShortcuts } from "@/components/EditorShortcuts"
+import { popContent, serializePopClipboard, parsePopClipboard } from "@/lib/popClipboard"
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
@@ -31,6 +33,8 @@ export default function LyricsTypingApp() {
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [activeView, setActiveView] = useState<"editor" | "play">("editor")
+  const [listView, setListView] = useState<'pages' | 'pops'>('pages')
+  const [selectedPopId, setSelectedPopId] = useState<string | null>(null)
   const [drafts, setDrafts] = useState<DraftListEntry[]>([])
   const hasRestoredDraftRef = useRef(false)
   const autoTitleRef = useRef<string | null>(null)
@@ -68,6 +72,16 @@ export default function LyricsTypingApp() {
   } = useYouTube()
 
   const {
+    centralPops,
+    setCentralPops,
+    addCentralPop,
+    updateCentralPop,
+    deleteCentralPop,
+    clearAllCentralPops,
+    resetPopEdit,
+    toggleDecoration,
+    updateDecorationAlign,
+    adjustTimings,
     selectedLyrics,
     selectLyricsPosition,
     inlineEditing,
@@ -93,18 +107,58 @@ export default function LyricsTypingApp() {
     saveCurrentState,
   } = useScoreManagement({ currentTime, currentPlayer: player })
 
+  const selectedPop = listView === 'pops' ? centralPops.find(pop => pop.id === selectedPopId) : undefined
+  const popStateRef = useRef({ centralPops, updateCentralPop, resetPopEdit })
+  useEffect(() => { popStateRef.current = { centralPops, updateCentralPop, resetPopEdit } }, [centralPops, updateCentralPop, resetPopEdit])
+  const addPop = () => {
+    const id = addCentralPop()
+    setSelectedPopId(id)
+    requestAnimationFrame(() => {
+      const input = document.getElementById(`pop-text-${id}`)
+      input?.focus({ preventScroll: true }); input?.scrollIntoView({ block: 'nearest' })
+    })
+  }
+  const deletePop = (id: string) => {
+    const index = centralPops.findIndex(pop => pop.id === id)
+    if (index < 0) return
+    deleteCentralPop(id)
+    if (id === selectedPopId) setSelectedPopId((centralPops[index + 1] ?? centralPops[index - 1])?.id ?? null)
+  }
+  const copyPop = async () => {
+    if (!selectedPop) return
+    try { await navigator.clipboard.writeText(serializePopClipboard(selectedPop)) }
+    catch { toast.error('ポップをコピーできませんでした。') }
+  }
+  const pastePop = async () => {
+    if (!selectedPop) return
+    const expected = JSON.stringify(popContent(selectedPop))
+    try {
+      const content = parsePopClipboard(await navigator.clipboard.readText())
+      const current = popStateRef.current.centralPops.find(pop => pop.id === selectedPop.id)
+      if (!current || JSON.stringify(popContent(current)) !== expected) { toast.info('ポップが変更されたため、貼り付けを中止しました。'); return }
+      popStateRef.current.resetPopEdit()
+      popStateRef.current.updateCentralPop(current.id, content)
+      popStateRef.current.resetPopEdit()
+    } catch { toast.error('ポップをコピーしたデータを貼り付けてください。') }
+  }
+
   const handleGetCurrentTimestamp = useCallback(() => {
     if (!player) return
+    const popId = listView === 'pops' ? selectedPop?.id : undefined
+    if (listView === 'pops') {
+      if (popId) updateCentralPop(popId, { timestamp: Number(getCurrentTimestamp(timestampOffset)) })
+      return
+    }
     const focusedPage = document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id')
     const id = focusedPage ?? selectedLyrics?.id
     if (id) updateInlineTimestamp(getCurrentTimestamp(timestampOffset), id)
-  }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp])
+  }, [player, getCurrentTimestamp, timestampOffset, selectedLyrics, updateInlineTimestamp, updateCentralPop, listView, selectedPop])
 
   const { copyLyricsToClipboard, pasteLyricsFromClipboard } = useLyricsCopyPaste()
   const focusedPageId = () => document.activeElement?.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id
   const handleCopyLyrics = () => {
     const entry = scoreEntries.find(item => item.id === focusedPageId())
-    if (entry) void copyLyricsToClipboard(entry.lyrics)
+    if (entry) void copyLyricsToClipboard(entry.lyrics, entry.decorations, entry.decorationAligns)
   }
   const pasteTargetRef = useRef(replacePageLyrics)
   useEffect(() => { pasteTargetRef.current = replacePageLyrics }, [replacePageLyrics])
@@ -112,26 +166,10 @@ export default function LyricsTypingApp() {
     const entry = scoreEntries.find(item => item.id === selectedLyrics?.id)
     if (!entry) return
     const pastedLyrics = await pasteLyricsFromClipboard()
-    if (pastedLyrics && !pasteTargetRef.current(entry.id, pastedLyrics, entry.lyrics)) {
+    if (pastedLyrics && !pasteTargetRef.current(entry.id, pastedLyrics.lyrics, entry.lyrics, pastedLyrics.decorations, entry.decorations, pastedLyrics.decorationAligns, entry.decorationAligns)) {
       toast.info('歌詞が変更されたため、貼り付けを中止しました。')
     }
   }, [pasteLyricsFromClipboard, scoreEntries, selectedLyrics])
-
-  const handleBulkTimingAdjust = useCallback(
-    (offsetSeconds: number) => {
-      saveCurrentState()
-      const adjustedEntries = scoreEntries.map((entry) => ({
-        ...entry,
-        timestamp: Math.max(0, entry.timestamp + offsetSeconds),
-      }))
-      setScoreEntries(adjustedEntries)
-      const sign = offsetSeconds > 0 ? "+" : ""
-      toast.success(
-        `${scoreEntries.length}件のページのタイミングを${sign}${offsetSeconds.toFixed(2)}秒ずらしました`,
-      )
-    },
-    [saveCurrentState, scoreEntries, setScoreEntries],
-  )
 
   const handlePlay = useCallback(() => {
     if (scoreEntries.length === 0) {
@@ -153,20 +191,36 @@ export default function LyricsTypingApp() {
 
   const handleKeyDown = useKeyboardShortcuts({
     player,
+    popShortcuts: selectedPop ? {
+      capture: handleGetCurrentTimestamp,
+      navigate: direction => {
+        const index = centralPops.findIndex(pop => pop.id === selectedPop.id)
+        const next = centralPops[index + direction]
+        if (!next) return
+        setSelectedPopId(next.id)
+        requestAnimationFrame(() => {
+          const row = document.getElementById(`pop-row-${next.id}`)
+          row?.focus({ preventScroll: true }); row?.scrollIntoView({ block: 'nearest' })
+        })
+      },
+      copy: () => { void copyPop() }, paste: () => { void pastePop() },
+      delete: () => deletePop(selectedPop.id),
+    } : undefined,
     playSelectedPage: () => {
+      if (listView === 'pops') { if (player && selectedPop) seekToAndPlay(selectedPop.timestamp); return }
       const focused = document.activeElement
       if (!player || !(focused instanceof Element)) return
       const time = pagePlaybackTimestamp(scoreEntries, focused.closest('[data-page-id]')?.getAttribute('data-page-id') ?? selectedLyrics?.id ?? null)
       if (time !== null) seekToAndPlay(time)
     },
-    addPage: () => addEmptyScoreEntry(),
-    deleteSelectedPage: () => { if (selectedLyrics) deleteScoreEntry(selectedLyrics.id) },
+    addPage: listView === 'pages' ? () => addEmptyScoreEntry() : addPop,
+    deleteSelectedPage: listView === 'pages' ? () => { if (selectedLyrics) deleteScoreEntry(selectedLyrics.id) } : undefined,
     getCurrentTimestamp: handleGetCurrentTimestamp,
     seekBackward1Second,
     seekForward1Second,
     timestampOffset,
-    pasteLyrics: handlePasteLyrics,
-    copyLyrics: selectedLyrics ? handleCopyLyrics : undefined,
+    pasteLyrics: listView === 'pages' ? handlePasteLyrics : undefined,
+    copyLyrics: listView === 'pages' && selectedLyrics ? handleCopyLyrics : undefined,
     undoLastOperation,
     redoLastOperation,
   })
@@ -241,7 +295,9 @@ export default function LyricsTypingApp() {
       const draft = loadDraft(sessionId)
       if (draft) {
         setYoutubeUrl(draft.youtubeUrl)
+        saveCurrentState()
         setScoreEntries(draft.scoreEntries)
+        setCentralPops(draft.centralPops ?? [])
         setSongTitle(draft.songTitle)
         toast.success("下書きを復元しました")
         // DOM要素の準備を待ってからロード
@@ -252,7 +308,7 @@ export default function LyricsTypingApp() {
         }
       }
     },
-    [setYoutubeUrl, setScoreEntries, setSongTitle, loadYouTubeVideo],
+    [setYoutubeUrl, setScoreEntries, setCentralPops, saveCurrentState, setSongTitle, loadYouTubeVideo],
   )
 
   const handleCloseRestoreDialog = useCallback(() => {
@@ -265,6 +321,7 @@ export default function LyricsTypingApp() {
   useDraftAutoSave({
     youtubeUrl,
     scoreEntries,
+    centralPops,
     songTitle,
     enabled: isInitialized && !isRestoreDialogOpen,
     isComposing,
@@ -273,6 +330,9 @@ export default function LyricsTypingApp() {
   const { fileInputRef, exportScoreData, importScoreData, handleFileImport } = useFileOperations({
     scoreEntries,
     setScoreEntries,
+    centralPops,
+    setCentralPops,
+    onBeforeImport: saveCurrentState,
     duration,
     setDuration,
     songTitle,
@@ -431,11 +491,20 @@ export default function LyricsTypingApp() {
                 <HelpSection />
               </div>
 
-              <div className="min-w-0 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+              <div id="right-column" className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-8 lg:h-[calc(100vh-4rem)] lg:min-h-0">
+                <div id="pops-list-panel" aria-label="ポップ一覧" hidden={listView !== 'pops'} className="min-h-0 flex-1">
+                  <CentralPopEditor titleAction={<Button variant="ghost" size="sm" className="h-7 gap-1 px-1 text-xs font-normal" title="ページ一覧に切り替え" onClick={() => setListView('pages')} aria-label="ページ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /><span>ページ一覧</span></Button>} pops={centralPops} selectedId={selectedPopId} onSelect={setSelectedPopId}
+                    onAdd={addPop} onAdjust={adjustTimings} pageCount={scoreEntries.length} onClear={() => { clearAllCentralPops(); setSelectedPopId(null) }} onUpdate={(id, changes) => updateCentralPop(id, changes, 'edit')} onDelete={deletePop}
+                    onEditBoundary={resetPopEdit} onPlay={player ? seekToAndPlay : undefined} onCompositionChange={setIsComposing} />
+                </div>
+                <div id="pages-list-panel" aria-label="ページ一覧" hidden={listView !== 'pages'} className="min-h-0 flex-1">
                 <ScoreManagementSection
+                  titleAction={<Button variant="ghost" size="sm" className="h-7 gap-1 px-1 text-xs font-normal" title="ポップ一覧に切り替え" onClick={() => setListView('pops')} aria-label="ポップ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /><span>ポップ一覧</span></Button>}
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}
                   inlineActions={{
+                    onToggleDecoration: toggleDecoration,
+                    onDecorationAlign: updateDecorationAlign,
                     onAppendPage: appendPageFromNavigation,
                     onSelect: selectLyricsPosition,
                     onNavigate: (position, direction, unit) => adjacentLyricsPosition(scoreEntries, position, direction, unit),
@@ -458,12 +527,14 @@ export default function LyricsTypingApp() {
                   deleteScoreEntry={deleteScoreEntry}
                   clearAllScoreEntries={clearAllScoreEntries}
                   seekToAndPlay={seekToAndPlay}
-                  bulkAdjustTimings={handleBulkTimingAdjust}
+                  centralPopCount={centralPops.length}
+                  bulkAdjustTimings={adjustTimings}
                   undoLastOperation={undoLastOperation}
                   redoLastOperation={redoLastOperation}
                   canUndo={canUndo}
                   canRedo={canRedo}
                 />
+                </div>
               </div>
             </div>
 

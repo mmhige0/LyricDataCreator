@@ -1,6 +1,6 @@
 import { buildTypingMap, createTypingWord, type BuiltMapLine, type RawMapLine, type TypingWord } from 'lyrics-typing-engine'
 import type { ScoreEntry } from './types'
-import { preprocessAndConvertLyrics } from './textUtils'
+import { normalizeTypingDisplay, preprocessAndConvertLyrics, convertKatakanaToHiragana } from './textUtils'
 
 export const ensureIntroPage = (scoreEntries: ScoreEntry[]): ScoreEntry[] => {
   if (scoreEntries.length === 0) return scoreEntries
@@ -32,10 +32,8 @@ export interface PageTypingData {
  * - 行境界は全角スペースで連結し、スペースも単語境界として扱う
  * - 最終行にYouTubeの総時間をtimeとしたend行を追加する
  */
-const normalizeVuToHiragana = (line: string): string => line.replace(/ヴ/g, 'ゔ')
-
 export const normalizeTypingLine = (line: string): string =>
-  normalizeVuToHiragana(preprocessAndConvertLyrics(line))
+  convertKatakanaToHiragana(normalizeTypingDisplay(line))
 
 const buildTypingWord = (rawMapLines: RawMapLine[]): TypingWord | null => {
   const builtMapLines = applyNEndingPatch(buildTypingMap({ rawMapLines, charPoint: 0 }))
@@ -50,7 +48,7 @@ export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTy
   const rawMapLines: RawMapLine[] = []
 
   for (const entry of normalizedEntries) {
-    const processedLines = entry.lyrics.map((line) => normalizeTypingLine(line))
+    const processedLines = entry.lyrics.map((line, index) => entry.decorations?.[index] ? '' : normalizeTypingLine(line))
     const hasLyrics = processedLines.some((line) => line.length > 0)
     const word = hasLyrics ? processedLines.join('　').trim() : ''
 
@@ -60,7 +58,7 @@ export const buildPageTypingData = ({ scoreEntries, totalDuration }: BuildPageTy
       word,
     })
 
-    pageLyrics.push(processedLines)
+    pageLyrics.push(entry.lyrics.map((line, index) => entry.decorations?.[index] ? line : preprocessAndConvertLyrics(line)))
   }
 
   const lastTimestamp = normalizedEntries[normalizedEntries.length - 1]?.timestamp ?? 0
@@ -94,7 +92,7 @@ export const createTypingWordForPageLines = ({
   const entry = scoreEntries[pageIndex]
   if (!entry) return null
 
-  const processedLines = entry.lyrics.map((line) => normalizeTypingLine(line))
+  const processedLines = entry.lyrics.map((line, index) => entry.decorations?.[index] ? '' : normalizeTypingLine(line))
   const word = targetLineIndexes
     .map((lineIndex) => processedLines[lineIndex] ?? '')
     .filter((line) => line.length > 0)

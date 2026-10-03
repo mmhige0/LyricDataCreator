@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import type { ScoreEntry, LyricsArray, YouTubePlayer } from '@/lib/types'
+import type { ScoreEntry, LyricsArray, YouTubePlayer, CentralPop, TimingTarget, TextAlign } from '@/lib/types'
+import { defaultDecorationAligns } from '@/lib/decorationFormat'
+import { normalizeDecoration } from '@/lib/decorationText'
+import { POP_DEFAULTS } from '@/lib/scoreFormat'
 import { processLyricsForSave } from '@/lib/textUtils'
 import { toast } from 'sonner'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
@@ -11,6 +14,7 @@ const MAX_HISTORY = 15
 
 interface AppState {
   scoreEntries: ScoreEntry[]
+  centralPops: CentralPop[]
 }
 
 interface UseScoreManagementProps {
@@ -20,6 +24,7 @@ interface UseScoreManagementProps {
 
 export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManagementProps) => {
   const [scoreEntries, setScoreEntries] = useState<ScoreEntry[]>([])
+  const [centralPops, setCentralPops] = useState<CentralPop[]>([])
   const [timestampOffset, setTimestampOffsetState] = useState<number>(DEFAULT_TIMESTAMP_OFFSET)
   const [undoHistory, setUndoHistory] = useState<AppState[]>([])
   const [redoHistory, setRedoHistory] = useState<AppState[]>([])
@@ -27,6 +32,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   const [selectedLyricsPosition, selectLyricsPosition] = useState<LyricsPosition | null>(null)
   const selectedLyrics = selectedLyricsPosition && scoreEntries.some(entry => entry.id === selectedLyricsPosition.id) ? selectedLyricsPosition : null
   const [inlineEditing, setInlineEditing] = useState<{ id: string; line: number } | null>(null)
+  const popHistorySaved = useRef(false)
   const inlineHistorySaved = useRef(false)
   const inlineChangedLines = useRef(new Set<number>())
 
@@ -54,8 +60,11 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
   // Save current state before modification
   const saveCurrentState = () => {
+    // Any new operation ends the preceding continuous pop edit.
+    popHistorySaved.current = false
     const currentState: AppState = {
       scoreEntries: [...scoreEntries],
+      centralPops: [...centralPops],
     }
     setUndoHistory((prev) => {
       const newHistory = [currentState, ...prev]
@@ -97,7 +106,8 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
 
   const finishInlineEdit = (id: string, line: number, value: string) => {
     const entry = scoreEntries.find(item => item.id === id)
-    const normalized = processLyricsForSave([value, '', '', ''])[0]
+    const normalized = entry?.decorations?.[line] ? normalizeDecoration(value) : processLyricsForSave([value, '', '', ''])[0]
+    if (entry?.decorations?.[line] && normalized !== value) toast.info('装飾文字列の禁止文字を除き、25文字以内に整えました。')
     if (entry && entry.lyrics[line] !== normalized) checkpointInlineEdit()
     const changedLines = new Set([...inlineChangedLines.current, line])
     setScoreEntries(prev => {
@@ -111,6 +121,66 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     inlineChangedLines.current.clear()
     setInlineEditing(null)
     inlineHistorySaved.current = false
+  }
+
+  const toggleDecoration = (id: string, line: number) => {
+    const entry = scoreEntries.find(item => item.id === id)
+    if (!entry) return
+    const decorations = [...(entry.decorations ?? [false, false, false, false])] as NonNullable<ScoreEntry['decorations']>
+    decorations[line] = !decorations[line]
+    const lyrics = processLyricsForSave(entry.lyrics, decorations)
+    saveCurrentState()
+    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, decorations, lyrics } : item))
+    if (lyrics[line] !== entry.lyrics[line]) toast.info('行の種類に合わせて文字を整えました。Undoで戻せます。')
+  }
+
+  const addCentralPop = () => {
+    saveCurrentState()
+    const timestamp = currentPlayer ? captureTimestamp(currentPlayer.getCurrentTime(), timestampOffset, currentPlayer.getDuration()) : 0
+    const pop: CentralPop = { id: `pop_${crypto.randomUUID()}`, text: '', timestamp, ...POP_DEFAULTS }
+    setCentralPops(prev => [...prev, pop].sort((a, b) => a.timestamp - b.timestamp))
+    return pop.id
+  }
+
+  const updateDecorationAlign = (id: string, line: number, align: TextAlign) => {
+    const entry = scoreEntries.find(item => item.id === id)
+    if (!entry?.decorations?.[line] || !['l', 'c', 'r'].includes(align) || (entry.decorationAligns?.[line] ?? 'l') === align) return
+    const decorationAligns = [...(entry.decorationAligns ?? defaultDecorationAligns())] as NonNullable<ScoreEntry['decorationAligns']>
+    decorationAligns[line] = align
+    saveCurrentState()
+    inlineHistorySaved.current = false
+    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, decorationAligns } : item))
+  }
+
+  const updateCentralPop = (id: string, changes: Partial<Omit<CentralPop, 'id'>>, history: 'operation' | 'edit' = 'operation') => {
+    const current = centralPops.find(pop => pop.id === id)
+    if (!current || Object.entries(changes).every(([key, value]) => current[key as keyof CentralPop] === value)) return
+    // F2 and paste are independent operations; only continuous field editing is grouped.
+    if (history === 'operation' || !popHistorySaved.current) {
+      saveCurrentState()
+      popHistorySaved.current = history === 'edit'
+    }
+    setCentralPops(prev => prev.map(pop => pop.id === id ? { ...pop, ...changes } : pop).sort((a, b) => a.timestamp - b.timestamp))
+  }
+
+  const deleteCentralPop = (id: string) => {
+    saveCurrentState()
+    setCentralPops(prev => prev.filter(pop => pop.id !== id))
+  }
+
+  const clearAllCentralPops = () => {
+    if (!centralPops.length) return
+    saveCurrentState()
+    setCentralPops([])
+    popHistorySaved.current = false
+    toast.success(`${centralPops.length}件のポップを削除しました (Ctrl+Zで元に戻せます)`)
+  }
+
+  const adjustTimings = (offset: number, target: TimingTarget) => {
+    if (!Number.isFinite(offset)) return
+    saveCurrentState()
+    if (target !== 'pops') setScoreEntries(prev => prev.map(entry => ({ ...entry, timestamp: Math.max(0, entry.timestamp + offset) })))
+    if (target !== 'pages') setCentralPops(prev => prev.map(pop => ({ ...pop, timestamp: Math.max(0, pop.timestamp + offset) })))
   }
 
   const updateInlineTimestamp = (value: string, selectedId?: string) => {
@@ -133,13 +203,17 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   // Page-level actions each receive their own undo checkpoint.
-  const replacePageLyrics = (id: string, next: LyricsArray, expected?: LyricsArray) => {
+  const replacePageLyrics = (id: string, next: LyricsArray, expected?: LyricsArray, decorations?: ScoreEntry['decorations'], expectedDecorations?: ScoreEntry['decorations'], decorationAligns?: ScoreEntry['decorationAligns'], expectedDecorationAligns?: ScoreEntry['decorationAligns']) => {
     const entry = scoreEntries.find(item => item.id === id)
     if (!entry || (expected && entry.lyrics.some((line, i) => line !== expected[i]))) return false
-    const normalized = processLyricsForSave(next)
-    if (entry.lyrics.every((line, i) => line === normalized[i])) return true
+    if (decorations && [0, 1, 2, 3].some(i => !!entry.decorations?.[i] !== !!expectedDecorations?.[i])) return false
+    if (decorationAligns && [0, 1, 2, 3].some(i => (entry.decorationAligns?.[i] ?? 'l') !== (expectedDecorationAligns?.[i] ?? 'l'))) return false
+    const nextDecorations = decorations ?? entry.decorations
+    const nextAligns = decorationAligns ?? entry.decorationAligns
+    const normalized = processLyricsForSave(next, nextDecorations)
+    if (entry.lyrics.every((line, i) => line === normalized[i]) && [0, 1, 2, 3].every(i => !!entry.decorations?.[i] === !!nextDecorations?.[i] && (entry.decorationAligns?.[i] ?? 'l') === (nextAligns?.[i] ?? 'l'))) return true
     saveCurrentState()
-    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, lyrics: normalized } : item))
+    setScoreEntries(prev => prev.map(item => item.id === id ? { ...item, lyrics: normalized, decorations: nextDecorations, decorationAligns: nextAligns } : item))
     return true
   }
 
@@ -155,6 +229,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     // Save current state to redo history
     const currentState: AppState = {
       scoreEntries: [...scoreEntries],
+      centralPops: [...centralPops],
     }
     setRedoHistory((prev) => {
       const newHistory = [currentState, ...prev]
@@ -164,10 +239,12 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     // Keep the focused inline field active; the next edit starts a new history group.
     inlineChangedLines.current.clear()
     inlineHistorySaved.current = false
+    popHistorySaved.current = false
 
     // Restore previous state
     setUndoHistory(restUndo)
     setScoreEntries(previousState.scoreEntries)
+    setCentralPops(previousState.centralPops)
     toast.success('操作を元に戻しました')
   }
 
@@ -183,6 +260,7 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     // Save current state to undo history
     const currentState: AppState = {
       scoreEntries: [...scoreEntries],
+      centralPops: [...centralPops],
     }
     setUndoHistory((prev) => {
       const newHistory = [currentState, ...prev]
@@ -192,10 +270,12 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
     // Keep the focused inline field active; the next edit starts a new history group.
     inlineChangedLines.current.clear()
     inlineHistorySaved.current = false
+    popHistorySaved.current = false
 
     // Restore next state
     setRedoHistory(restRedo)
     setScoreEntries(nextState.scoreEntries)
+    setCentralPops(nextState.centralPops)
     toast.success('操作をやり直しました')
   }
 
@@ -266,6 +346,16 @@ export const useScoreManagement = ({ currentTime, currentPlayer }: UseScoreManag
   }
 
   return {
+    centralPops,
+    setCentralPops,
+    addCentralPop,
+    updateCentralPop,
+    resetPopEdit: () => { popHistorySaved.current = false },
+    deleteCentralPop,
+    clearAllCentralPops,
+    toggleDecoration,
+    updateDecorationAlign,
+    adjustTimings,
     selectedLyrics,
     selectLyricsPosition,
     inlineEditing,

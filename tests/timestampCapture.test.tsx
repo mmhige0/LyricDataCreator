@@ -6,6 +6,7 @@ import { useScoreManagement } from '../hooks/useScoreManagement'
 import { TimestampOffsetControl } from '../components/TimestampOffsetControl'
 import { captureTimestamp } from '../lib/timestampCapture'
 import type { YouTubePlayer } from '../lib/types'
+import { POP_DEFAULTS } from '../lib/scoreFormat'
 
 vi.mock('sonner', () => ({ toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() } }))
 let root: Root
@@ -65,6 +66,59 @@ it('clamps capture at zero/duration and rounds seconds', () => {
   expect(captureTimestamp(0.1, -0.15, 120)).toBe(0)
   expect(captureTimestamp(119.9, 0.5, 120)).toBe(120)
   expect(captureTimestamp(10.456, -0.15, 0)).toBe(10.31)
+})
+
+it('undoes each pop timestamp capture separately from bulk adjustment and supports redo', async () => {
+  await act(async () => root.render(<Harness />))
+  await act(async () => {
+    score.setScoreEntries([{ id: 'page', timestamp: 10, lyrics: ['', '', '', ''] }])
+    score.setCentralPops([{ id: 'pop', text: 'Hey!', timestamp: 20, ...POP_DEFAULTS }])
+  })
+  await act(async () => score.updateCentralPop('pop', { timestamp: 30 }))
+  await act(async () => score.adjustTimings(5, 'both'))
+  await act(async () => score.updateCentralPop('pop', { timestamp: 40 }))
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0].timestamp).toBe(15)
+  expect(score.centralPops[0].timestamp).toBe(35)
+  await act(async () => score.undoLastOperation())
+  expect(score.scoreEntries[0].timestamp).toBe(10)
+  expect(score.centralPops[0].timestamp).toBe(30)
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops[0].timestamp).toBe(20)
+  for (const timestamp of [30, 35, 40]) {
+    await act(async () => score.redoLastOperation())
+    expect(score.centralPops[0].timestamp).toBe(timestamp)
+  }
+  expect(score.scoreEntries[0].timestamp).toBe(15)
+})
+
+it('keeps consecutive pop timestamp captures independent and ignores unchanged values', async () => {
+  await act(async () => root.render(<Harness />))
+  await act(async () => score.setCentralPops([{ id: 'pop', text: '', timestamp: 20, ...POP_DEFAULTS }]))
+  await act(async () => score.updateCentralPop('pop', { timestamp: 30 }))
+  await act(async () => score.updateCentralPop('pop', { timestamp: 40 }))
+  await act(async () => score.updateCentralPop('pop', { timestamp: 40 }))
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops[0].timestamp).toBe(30)
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops[0].timestamp).toBe(20)
+  expect(score.canUndo).toBe(false)
+})
+
+it('groups continuous pop editing but starts a fresh group after another operation', async () => {
+  await act(async () => root.render(<Harness />))
+  await act(async () => score.setCentralPops([{ id: 'pop', text: '', timestamp: 20, ...POP_DEFAULTS }]))
+  await act(async () => score.updateCentralPop('pop', { text: 'H' }, 'edit'))
+  await act(async () => score.updateCentralPop('pop', { text: 'Hey' }, 'edit'))
+  await act(async () => score.adjustTimings(5, 'pops'))
+  await act(async () => score.updateCentralPop('pop', { text: 'Hey!' }, 'edit'))
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops[0]).toMatchObject({ text: 'Hey', timestamp: 25 })
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops[0]).toMatchObject({ text: 'Hey', timestamp: 20 })
+  await act(async () => score.undoLastOperation())
+  expect(score.centralPops[0]).toMatchObject({ text: '', timestamp: 20 })
+  expect(score.canUndo).toBe(false)
 })
 
 it('inserts plus-button pages by captured timestamp, including ties and earlier times', async () => {

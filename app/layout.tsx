@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Space_Grotesk, Inter_Tight, JetBrains_Mono } from 'next/font/google'
+import { Space_Grotesk, Inter_Tight, JetBrains_Mono, Dela_Gothic_One } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -25,6 +25,14 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 })
 
+const popPreviewFont = Dela_Gothic_One({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-pop-preview',
+  display: 'swap',
+  preload: false,
+})
+
 export const metadata: Metadata = {
   title: 'Song Typing Theater',
   description: 'YouTube video lyrics timing tool',
@@ -40,7 +48,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      <body className={`${spaceGrotesk.variable} ${interTight.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body className={`${spaceGrotesk.variable} ${interTight.variable} ${jetbrainsMono.variable} ${popPreviewFont.variable} antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

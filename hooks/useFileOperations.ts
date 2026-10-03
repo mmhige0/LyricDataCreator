@@ -1,11 +1,15 @@
 import { useRef } from 'react'
 import { toast } from 'sonner'
-import type { ScoreEntry } from '@/lib/types'
+import type { ScoreEntry, CentralPop } from '@/lib/types'
+import { createScoreTxt, parseScoreTxt } from '@/lib/scoreFormat'
 import { createLrcFromScoreEntries, parseLrcToScoreEntries } from '@/lib/lrcUtils'
 
 interface FileOperationsProps {
   scoreEntries: ScoreEntry[]
   setScoreEntries: React.Dispatch<React.SetStateAction<ScoreEntry[]>>
+  centralPops: CentralPop[]
+  setCentralPops: React.Dispatch<React.SetStateAction<CentralPop[]>>
+  onBeforeImport: () => void
   duration: number
   setDuration: React.Dispatch<React.SetStateAction<number>>
   songTitle: string
@@ -15,24 +19,15 @@ interface FileOperationsProps {
 export const useFileOperations = ({
   scoreEntries,
   setScoreEntries,
+  centralPops,
+  setCentralPops,
+  onBeforeImport,
   duration,
   setDuration,
   songTitle,
   setSongTitle
 }: FileOperationsProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const createTxtExportContent = () => {
-    let exportData = `${duration.toFixed(1)}\n`
-
-    scoreEntries.forEach((entry) => {
-      const lyricsLine = entry.lyrics.map((line) => line || "!").join("/")
-      exportData += `${lyricsLine}/${entry.timestamp.toFixed(2)}\n`
-    })
-
-    exportData += `!/!/!/!/${999.9}\n`
-    return exportData
-  }
 
   const triggerDownload = (content: string, filename: string, onComplete?: () => void) => {
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" })
@@ -53,8 +48,16 @@ export const useFileOperations = ({
   }
 
   const exportScoreData = (format: 'txt' | 'lrc' = 'txt', onComplete?: () => void) => {
-    if (scoreEntries.length === 0) {
+    if (scoreEntries.length === 0 && centralPops.length === 0) {
       toast.error("ページがありません。")
+      return
+    }
+
+    let txtContent: string
+    try {
+      txtContent = format === 'txt' ? createScoreTxt(duration, scoreEntries, centralPops) : ''
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '出力できませんでした。')
       return
     }
 
@@ -82,7 +85,6 @@ export const useFileOperations = ({
       return
     }
 
-    const txtContent = createTxtExportContent()
     const filename = trimmedTitle ? `${trimmedTitle}_${timestamp}.txt` : `譜面_${timestamp}.txt`
     triggerDownload(txtContent, filename, onComplete)
   }
@@ -134,23 +136,8 @@ export const useFileOperations = ({
       return false
     }
 
-    // 不正な文字パターンの検出
-    const suspiciousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /data:/i,
-      /<iframe/i,
-      /<object/i,
-      /<embed/i
-    ]
-
-    for (const pattern of suspiciousPatterns) {
-      if (pattern.test(content)) {
-        toast.error('不正な内容が検出されました')
-        return false
-      }
-    }
-
+    // Content is plain text, never HTML. Validate the score grammar during parsing,
+    // rather than rejecting legitimate decoration strings such as "data:".
     return true
   }
 
@@ -170,17 +157,8 @@ export const useFileOperations = ({
     const filename = file.name
     const fileExtension = filename.split('.').pop()?.toLowerCase()
 
-    // ファイル名から曲名を抽出（txtファイルの場合）
-    if (fileExtension === 'txt') {
-      const match = filename.match(/^(.+)_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.txt$/)
-      if (match) {
-        setSongTitle(match[1])
-      }
-    } else if (fileExtension === 'lrc') {
-      // LRCファイルの場合、拡張子を除いたファイル名を曲名に設定
-      const titleFromFilename = filename.replace(/\.lrc$/i, '')
-      setSongTitle(titleFromFilename)
-    }
+    const match = filename.match(/^(.+)_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.txt$/)
+    const importedTitle = fileExtension === 'lrc' ? filename.replace(/\.lrc$/i, '') : match?.[1]
 
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -201,29 +179,21 @@ export const useFileOperations = ({
             return
           }
 
-          if (scoreEntries.length > 0) {
+          if (scoreEntries.length > 0 || centralPops.length > 0) {
             const replace = confirm("既存のページを置き換えますか？")
             if (!replace) return
           }
 
+          onBeforeImport()
           setScoreEntries(newEntries)
+          setCentralPops([])
+          if (importedTitle !== undefined) setSongTitle(importedTitle)
           toast.success(`${newEntries.length}件のページをインポートしました。`)
           return
         }
 
-        // 既存のTXTファイル処理
-        const lines = content.trim().split("\n")
-
-        if (lines.length < 1) {
-          toast.error("ファイルが空です。")
-          return
-        }
-
-        const fileDuration = Number.parseFloat(lines[0])
-        if (isNaN(fileDuration)) {
-          toast.error("1行目の総時間が正しくありません。")
-          return
-        }
+        const parsed = parseScoreTxt(content)
+        const fileDuration = parsed.duration
 
         if (Math.abs(fileDuration - duration) > 0.1) {
           const proceed = confirm(
@@ -232,56 +202,18 @@ export const useFileOperations = ({
           if (!proceed) return
         }
 
-        const newEntries: ScoreEntry[] = []
-        const errors: string[] = []
-
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim()
-          if (!line) continue
-
-          const parts = line.split("/")
-          if (parts.length !== 5) {
-            errors.push(`${i + 1}行目: フォーマットが正しくありません`)
-            continue
-          }
-
-          const timestamp = Number.parseFloat(parts[4])
-          if (isNaN(timestamp)) {
-            errors.push(`${i + 1}行目: タイムスタンプが正しくありません`)
-            continue
-          }
-
-          if (timestamp === 999.9) continue
-
-          const lyrics: [string, string, string, string] = [
-            parts[0] === "!" ? "" : parts[0],
-            parts[1] === "!" ? "" : parts[1],
-            parts[2] === "!" ? "" : parts[2],
-            parts[3] === "!" ? "" : parts[3],
-          ]
-
-          newEntries.push({
-            id: `import_${i}_${Date.now()}`,
-            timestamp,
-            lyrics,
-          })
-        }
-
-        if (errors.length > 0) {
-          toast.error(`以下のエラーがありました:\n${errors.join("\n")}`)
-          return
-        }
-
-        newEntries.sort((a, b) => a.timestamp - b.timestamp)
-
-        if (scoreEntries.length > 0) {
+        if (scoreEntries.length > 0 || centralPops.length > 0) {
           const replace = confirm("既存のページを置き換えますか？")
           if (!replace) return
         }
 
-        setScoreEntries(newEntries)
+        onBeforeImport()
+        setScoreEntries(parsed.scoreEntries)
+        setCentralPops(parsed.centralPops)
         setDuration(fileDuration)
-        toast.success(`${newEntries.length}件のページをインポートしました。`)
+        if (importedTitle !== undefined) setSongTitle(importedTitle)
+        for (const warning of parsed.warnings) toast.info(warning)
+        toast.success(`${parsed.scoreEntries.length}ページ・${parsed.centralPops.length}件のポップをインポートしました。`)
       } catch (error) {
         console.error('File import error:', error)
         const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"

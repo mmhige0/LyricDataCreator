@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import type { PracticeLineSettings, ScoreEntry } from "@/lib/types"
 import { useTypingGame } from "@/hooks/useTypingGame"
 import { useYouTube } from "@/hooks/useYouTube"
+import { LyricsText } from '@/components/LyricsText'
 import { TypingDisplay } from "@/components/TypingDisplay"
 import { TypingStats } from "@/components/TypingStats"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
@@ -400,7 +401,7 @@ export function TypingGameContent({
     if (!nextEntry || !Array.isArray(nextEntry.lyrics)) return []
 
     // 空行も含めて先頭4行をそのまま使う
-    return nextEntry.lyrics.slice(0, 4)
+    return pageLyrics[nextPageIndex]?.slice(0, 4) ?? []
   })()
 
   const currentPageLines = pageLyrics[pageState.pageIndex]?.slice(0, 4) ?? ['', '', '', '']
@@ -521,7 +522,7 @@ export function TypingGameContent({
               <div className="space-y-3 p-4 control-panel mb-4">
                 {/* 1段目: 再生コントロールボタン */}
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button variant="outline" size="sm" onClick={seekToBeginning}>
                       <SkipBack className="h-4 w-4" />
                     </Button>
@@ -548,7 +549,7 @@ export function TypingGameContent({
                 </div>
 
                 {/* 2段目: 再生速度 + 音量コントロール */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">速度:</span>
@@ -680,6 +681,10 @@ export function TypingGameContent({
               <div className="mb-3">
                 <TypingDisplay
                   lines={currentPageLines}
+                  decorations={normalizedScoreEntries[pageState.pageIndex]?.decorations}
+                  overlayDecorations={normalizedScoreEntries[pageState.pageIndex + 1]?.decorations}
+                  lineAligns={normalizedScoreEntries[pageState.pageIndex]?.decorationAligns?.map((align, i) => normalizedScoreEntries[pageState.pageIndex]?.decorations?.[i] ? align : 'l')}
+                  overlayLineAligns={normalizedScoreEntries[pageState.pageIndex + 1]?.decorationAligns?.map((align, i) => normalizedScoreEntries[pageState.pageIndex + 1]?.decorations?.[i] ? align : 'l')}
                   typingWord={currentTypingWord}
                   targetLineIndexes={pageState.targetLineIndexes}
                   overlayText={showStartHint ? "Escキー/動画をクリックして開始" : undefined}
@@ -717,8 +722,8 @@ export function TypingGameContent({
               <div className="mt-2 mb-2 p-3 bg-muted/30 rounded-lg border border-border">
                 <div className="h-40 pl-4 overflow-hidden flex flex-col justify-center space-y-1 text-2xl leading-snug text-foreground/80 text-left select-none">
                   {nextPageDisplayLines.map((line, index) => (
-                    <p key={index} className="truncate">
-                      {line || '\u00A0'}
+                    <p key={index} className="truncate whitespace-pre" style={{ textAlign: normalizedScoreEntries[pageState.pageIndex + 1]?.decorations?.[index] ? ({ l: 'left', c: 'center', r: 'right' } as const)[normalizedScoreEntries[pageState.pageIndex + 1]?.decorationAligns?.[index] ?? 'l'] : 'left' }}>
+                      <LyricsText text={line || '\u00A0'} decorated={normalizedScoreEntries[pageState.pageIndex + 1]?.decorations?.[index]} />
                     </p>
                   ))}
                 </div>

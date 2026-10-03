@@ -19,16 +19,16 @@ const requestHiraganaConversion = async (lines: string[]): Promise<string[]> => 
   }
 
   if (!response.ok) {
-    const message = payload?.error ?? 'ひらがな変換に失敗しました'
+    const message = payload?.error ?? 'かな変換に失敗しました'
     throw new Error(message)
   }
 
   if (!payload?.lines || !Array.isArray(payload.lines)) {
-    throw new Error('ひらがな変換の結果が不正です')
+    throw new Error('かな変換の結果が不正です')
   }
 
   if (payload.lines.length !== lines.length) {
-    throw new Error('ひらがな変換の結果に不足があります')
+    throw new Error('かな変換の結果に不足があります')
   }
 
   return payload.lines
@@ -36,7 +36,7 @@ const requestHiraganaConversion = async (lines: string[]): Promise<string[]> => 
 
 /**
  * 漢字を含むテキストをひらがなに変換する（漢字変換のみ）
- * 注意: カタカナ変換や記号削除などの前処理は呼び出し側で行う
+ * カタカナは保持する。通常歌詞の文字整形は呼び出し側で行う
  * @param text 変換対象のテキスト（前処理済み）
  * @returns ひらがなに変換されたテキスト
  */
@@ -52,17 +52,18 @@ export const convertKanjiToHiragana = async (text: string): Promise<string> => {
  * 歌詞配列の各行を一括でひらがなに変換（前処理付き）
  */
 export const convertLyricsArrayToHiragana = async (
-  lyrics: [string, string, string, string]
+  lyrics: [string, string, string, string],
+  decorations?: boolean[],
 ): Promise<[string, string, string, string]> => {
-  const preprocessedLines = lyrics.map(line => {
-    if (line.trim() === '') return ''
+  const preprocessedLines = lyrics.map((line, index) => {
+    if (decorations?.[index]) return ''
     return preprocessAndConvertLyrics(line)
   })
 
   if (preprocessedLines.every(line => line === '' || !containsKanji(line))) {
-    return preprocessedLines as [string, string, string, string]
+    return preprocessedLines.map((line, index) => decorations?.[index] ? lyrics[index] : line) as [string, string, string, string]
   }
 
   const convertedLines = await requestHiraganaConversion(preprocessedLines)
-  return convertedLines as [string, string, string, string]
+  return convertedLines.map((line, index) => decorations?.[index] ? lyrics[index] : preprocessAndConvertLyrics(line)) as [string, string, string, string]
 }

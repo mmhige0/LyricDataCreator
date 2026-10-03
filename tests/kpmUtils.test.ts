@@ -22,3 +22,15 @@ describe('buildPageKpmMap', () => {
     expect(line.kpm.roma).toBe(testCase.expect.romaKpm)
   })
 })
+
+it('excludes decorations while preserving the next page boundary', async () => {
+  const pages = [
+    { id: 'a', timestamp: 0, lyrics: ['あ', '', '', ''] as [string, string, string, string] },
+    { id: 'b', timestamp: 10, lyrics: ['飾り', '', '', ''] as [string, string, string, string], decorations: [true, false, false, false] as [boolean, boolean, boolean, boolean] },
+    { id: 'c', timestamp: 20, lyrics: ['ア', '', '', ''] as [string, string, string, string] },
+  ]
+  const map = await buildPageKpmMap({ scoreEntries: pages, totalDuration: 30 })
+  expect(map.get('a')?.duration).toBe(10)
+  expect(map.get('b')?.totalKpm).toEqual({ roma: 0, kana: 0 })
+  expect(map.get('a')?.totalKpm).toEqual(map.get('c')?.totalKpm)
+})

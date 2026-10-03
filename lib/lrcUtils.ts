@@ -41,7 +41,7 @@ const parseLrcContent = (content: string): LrcEntry[] => {
 
       entries.push({
         timestamp,
-        lyrics: lyrics.trim()
+        lyrics
       })
     }
   }
@@ -55,7 +55,7 @@ const parseLrcContent = (content: string): LrcEntry[] => {
  */
 const convertLrcToScoreEntries = (lrcEntries: LrcEntry[]): ScoreEntry[] => {
   return lrcEntries.map((entry, index) => {
-    const parts = entry.lyrics.split('/').map(part => preprocessAndConvertLyrics(part.trim()))
+    const parts = entry.lyrics.split('/').map(part => preprocessAndConvertLyrics(part))
     const lyrics: LyricsArray = [
       parts[0] ?? '',
       parts[1] ?? '',
@@ -98,7 +98,7 @@ export const createLrcFromScoreEntries = (
 
   const sortedEntries = [...entries].sort((a, b) => a.timestamp - b.timestamp)
   sortedEntries.forEach((entry) => {
-    lines.push(`[${formatTimestampForLrc(entry.timestamp)}]${entry.lyrics.join('/')}`)
+    lines.push(`[${formatTimestampForLrc(entry.timestamp)}]${entry.lyrics.map((line, index) => entry.decorations?.[index] ? '' : line).join('/')}`)
   })
 
   return lines.join('\n')

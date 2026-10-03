@@ -1,5 +1,6 @@
 import type { LyricsArray, ScoreEntry } from './types'
 import { preprocessAndConvertLyrics } from './textUtils'
+import { normalizeDecoration } from './decorationText'
 
 export function updateLyricsLine(entries: ScoreEntry[], id: string, line: number, value: string) {
   return entries.map(entry => {
@@ -11,7 +12,8 @@ export function updateLyricsLine(entries: ScoreEntry[], id: string, line: number
 }
 
 export function finishLyricsLine(entries: ScoreEntry[], id: string, line: number, value: string) {
-  return updateLyricsLine(entries, id, line, preprocessAndConvertLyrics(value))
+  const decorated = entries.find(entry => entry.id === id)?.decorations?.[line]
+  return updateLyricsLine(entries, id, line, decorated ? normalizeDecoration(value) : preprocessAndConvertLyrics(value))
     .sort((a, b) => a.timestamp - b.timestamp)
 }
 

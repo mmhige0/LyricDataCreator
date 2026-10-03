@@ -1,6 +1,5 @@
 import { buildTypingMap, type WordChunk } from 'lyrics-typing-engine'
-import { buildPageTypingData, ensureIntroPage } from './typingEngineAdapter'
-import { preprocessAndConvertLyrics } from './textUtils'
+import { buildPageTypingData, ensureIntroPage, normalizeTypingLine } from './typingEngineAdapter'
 import type { ScoreEntry } from './types'
 
 export interface LineKpmInfo {
@@ -81,8 +80,6 @@ const countKanaKeystrokes = (kana: string): number => {
   return count
 }
 
-const isKanjiChar = (text: string): boolean => /[\u4e00-\u9faf]/.test(text)
-
 const buildFromTypingMap = (target: string) => {
   let wordChunks: WordChunk[] = []
 
@@ -129,46 +126,8 @@ const buildFromTypingMap = (target: string) => {
 const buildRomajiAndCount = async (
   line: string
 ): Promise<{ romaji: string; kana: string; charCount: { roma: number; kana: number } }> => {
-  const processed = preprocessAndConvertLyrics(line).replace(/ヴ/g, 'ゔ')
-  if (!processed) return { romaji: '', kana: '', charCount: { roma: 0, kana: 0 } }
-
-  if (!isKanjiChar(processed)) {
-    return buildFromTypingMap(processed)
-  }
-
-  let romaji = ''
-  let kana = ''
-  let charCount = { roma: 0, kana: 0 }
-  let buffer = ''
-
-  const flushBuffer = () => {
-    if (!buffer) return
-    const built = buildFromTypingMap(buffer)
-    romaji += built.romaji
-    kana += built.kana
-    charCount = {
-      roma: charCount.roma + built.charCount.roma,
-      kana: charCount.kana + built.charCount.kana,
-    }
-    buffer = ''
-  }
-
-  for (const char of processed) {
-    if (isKanjiChar(char)) {
-      flushBuffer()
-      romaji += char
-      kana += char
-      charCount = {
-        roma: charCount.roma + 2,
-        kana: charCount.kana + 1,
-      }
-      continue
-    }
-    buffer += char
-  }
-
-  flushBuffer()
-  return { romaji, kana, charCount }
+  const processed = normalizeTypingLine(line)
+  return buildFromTypingMap(processed)
 }
 
 /**
@@ -181,7 +140,7 @@ export const buildPageKpmMap = async ({ scoreEntries, totalDuration }: BuildKpmP
   if (scoreEntries.length === 0) return map
 
   const originalIds = new Set(scoreEntries.map((entry) => entry.id))
-  const normalizedEntries = ensureIntroPage(scoreEntries)
+  const normalizedEntries = ensureIntroPage(scoreEntries.map(entry => ({ ...entry, lyrics: entry.lyrics.map((line, i) => entry.decorations?.[i] ? '' : line) as ScoreEntry['lyrics'] })))
   const { builtMapLines } = buildPageTypingData({
     scoreEntries: normalizedEntries,
     totalDuration,

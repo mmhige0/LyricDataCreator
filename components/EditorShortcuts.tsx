@@ -8,18 +8,20 @@ export function EditorShortcuts() {
         {[
           { title: '動画再生', shortcuts: [
             { keys: ['Ctrl', 'Space'], description: '再生/一時停止' },
-            { keys: ['Ctrl', 'Shift', 'Space'], description: '選択・編集中のページを頭出し再生' },
+            { keys: ['Ctrl', 'Shift', 'Space'], description: '選択・編集中のページ／ポップを頭出し再生' },
             { keys: ['Ctrl', '←'], description: '1秒巻き戻し' },
             { keys: ['Ctrl', '→'], description: '1秒早送り' },
           ] },
-          { title: 'ページ操作', shortcuts: [
+          { title: '一覧操作', shortcuts: [
+            { keys: ['Delete'], description: '選択中の項目を削除' },
+            { keys: ['Ctrl', 'C'], description: '歌詞／ポップ設定をコピー' },
             { keys: ['Ctrl', '↑'], description: '最初のページの1行目へ移動' },
             { keys: ['Ctrl', '↓'], description: '最後のページの4行目へ移動' },
-            { keys: ['PageUp'], description: '前のページへ移動' },
-            { keys: ['PageDown'], description: '次のページへ移動' },
+            { keys: ['PageUp'], description: '前のページ／ポップへ移動' },
+            { keys: ['PageDown'], description: '次のページ／ポップへ移動' },
             { keys: ['F2'], description: 'タイムスタンプ入力・更新' },
-            { keys: ['Ctrl', 'Enter'], description: 'ページを追加' },
-            { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞貼り付け' },
+            { keys: ['Ctrl', 'Enter'], description: 'ページ／ポップを追加' },
+            { keys: ['Ctrl', 'Shift', 'V'], description: '歌詞／ポップ設定を貼り付け' },
             { keys: ['Ctrl', 'Z'], description: '元に戻す' },
             { keys: ['Ctrl', 'Y'], description: 'やり直す' },
           ] },

@@ -1,4 +1,5 @@
-import { memo, useState, type FC, type MouseEvent } from 'react'
+import type { TimingTarget } from '@/lib/types'
+import { memo, useState, type FC, type MouseEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,6 +14,7 @@ import { PageTimestampInput, PageLyricsActions } from '@/components/PageEditCont
 import type { ScoreEntry, YouTubePlayer, LyricsArray } from '@/lib/types'
 import type { LyricsPosition } from '@/lib/lyricsNavigation'
 import type { PageKpmInfo } from '@/lib/kpmUtils'
+import { LyricsText } from '@/components/LyricsText'
 
 interface EntryDisplayProps {
   selectedLyrics?: LyricsPosition | null
@@ -21,10 +23,11 @@ interface EntryDisplayProps {
   entry: ScoreEntry
   kpmData: PageKpmInfo | null
   showTotalKpm: boolean
+  readOnly: boolean
   kpmMode: 'roma' | 'kana'
 }
 
-const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics, showTotalKpm }) => {
+const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inlineActions, pageNumber, selectedLyrics, showTotalKpm, readOnly }) => {
   return (
     <div className="flex items-stretch gap-3">
       <div className="min-w-0 flex-1 space-y-0.5">
@@ -36,8 +39,9 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
               {inlineActions ? (
                 <InlineLyricsInput entry={entry} line={lineIndex} pageNumber={pageNumber} actions={inlineActions} selected={selectedLyrics?.id === entry.id && selectedLyrics.line === lineIndex} />
               ) : (
-                <div className={`select-text break-words ${line ? "text-foreground" : "text-muted-foreground"}`}>
-                  {line || "!"}
+                <div className={`select-text whitespace-pre-wrap break-words ${line ? "text-foreground" : "text-muted-foreground"}`}
+                  style={{ textAlign: entry.decorations?.[lineIndex] && entry.decorationAligns?.[lineIndex] === 'c' ? 'center' : entry.decorations?.[lineIndex] && entry.decorationAligns?.[lineIndex] === 'r' ? 'right' : 'left' }}>
+                  {readOnly ? <LyricsText text={line || "!"} decorated={entry.decorations?.[lineIndex]} /> : line || "!"}
                 </div>
               )}
             </div>
@@ -60,6 +64,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
+  titleAction?: ReactNode
   addEmptyScoreEntry?: () => void
   selectedLyrics?: LyricsPosition | null
   inlineActions?: InlineLyricsActions
@@ -76,7 +81,8 @@ interface ScoreManagementSectionProps {
   deleteScoreEntry: (id: string) => void
   clearAllScoreEntries: () => void
   seekToAndPlay: (time: number) => void
-  bulkAdjustTimings: (offsetSeconds: number) => void
+  centralPopCount?: number
+  bulkAdjustTimings: (offsetSeconds: number, target: TimingTarget) => void
   undoLastOperation: () => void
   redoLastOperation: () => void
   canUndo: boolean
@@ -94,6 +100,7 @@ interface ScoreManagementSectionProps {
 }
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
+  titleAction,
   addEmptyScoreEntry,
   selectedLyrics,
   inlineActions,
@@ -111,6 +118,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   clearAllScoreEntries,
   seekToAndPlay,
   bulkAdjustTimings,
+  centralPopCount = 0,
   undoLastOperation,
   redoLastOperation,
   canUndo,
@@ -122,6 +130,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
 }) => {
   const { copyLyricsToClipboard } = useLyricsCopyPaste()
   const { kpmDataMap } = useKpmCalculation(scoreEntries, duration)
+  const [timingTarget, setTimingTarget] = useState<TimingTarget>('both')
   const [adjustValue, setAdjustValue] = useState<string>('0')
   const [isLyricsFocused, setIsLyricsFocused] = useState(false)
   const [autoScroll, setAutoScroll] = useState<boolean>(readOnly ? true : false)
@@ -138,8 +147,8 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   const selectedPageNumber = selectedEntry ? scoreEntries.indexOf(selectedEntry) + 1 - pageNumberOffset : null
 
   const handleBulkTimingAdjust = () => {
-    const value = parseFloat(adjustValue)
-    if (isNaN(value)) {
+    const value = adjustValue.trim() ? Number(adjustValue) : NaN
+    if (!Number.isFinite(value)) {
       toast.error('正しい数値を入力してください。')
       return
     }
@@ -149,7 +158,8 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
       return
     }
 
-    bulkAdjustTimings(value)
+    bulkAdjustTimings(value, timingTarget)
+    toast.success('選択した対象の時刻を調整しました。')
   }
 
   return (
@@ -161,6 +171,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
               <Clock className="h-5 w-5" />
             </div>
             ページ一覧
+            {titleAction}
           </CardTitle>
           {!readOnly && (
             <div className="flex gap-2">
@@ -168,7 +179,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 <Upload className="h-4 w-4 mr-2" />
                 インポート
               </Button>
-              <Button variant="outline" size="sm" onClick={exportScoreData} disabled={scoreEntries.length === 0}>
+              <Button variant="outline" size="sm" onClick={exportScoreData} disabled={scoreEntries.length === 0 && centralPopCount === 0}>
                 <Download className="h-4 w-4 mr-2" />
                 エクスポート
               </Button>
@@ -316,11 +327,11 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                         </div>}
                       </div>
                       <div className={`${readOnly ? 'text-base' : 'col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1'} min-w-0 ${isCurrentlyPlaying ? 'font-semibold text-primary' : ''}`}>
-                        <EntryDisplay showTotalKpm={!readOnly} selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
+                        <EntryDisplay readOnly={readOnly} showTotalKpm={!readOnly} selectedLyrics={selectedLyrics} entry={entry} kpmData={kpmData} kpmMode={effectiveKpmMode} pageNumber={displayPageNumber} inlineActions={!readOnly ? inlineActions : undefined} />
                       </div>
                       {!readOnly && <div className="col-start-2 row-start-1 sm:col-start-3">
                         <PageActionsMenu pageNumber={displayPageNumber} empty={entry.lyrics.every(line => !line.trim())}
-                          onCopy={() => { void copyLyricsToClipboard(entry.lyrics) }}
+                          onCopy={() => { void copyLyricsToClipboard(entry.lyrics, entry.decorations, entry.decorationAligns) }}
                           onClear={onReplacePageLyrics ? () => onReplacePageLyrics(entry.id, ['', '', '', '']) : undefined}
                           onDelete={() => deleteScoreEntry(entry.id)} />
                       </div>}
@@ -341,7 +352,10 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
             {!readOnly && (
               <div className="mt-2 pt-2 border-t flex flex-wrap gap-2 justify-between items-center">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">全ページタイム調整</span>
+                  <span className="text-sm font-medium text-muted-foreground">時刻の一括調整</span>
+                  <select aria-label="時刻調整の対象" className="h-7 rounded border bg-background text-xs" value={timingTarget} onChange={event => setTimingTarget(event.target.value as TimingTarget)}>
+                    <option value="both">歌詞とポップ</option><option value="pages">歌詞ページのみ</option><option value="pops">ポップのみ</option>
+                  </select>
                   <Input
                     type="number"
                     step="0.01"
@@ -351,11 +365,11 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                     onChange={(e) => setAdjustValue(e.target.value)}
                     placeholder="秒"
                     className="w-20 text-xs h-7"
-                    disabled={scoreEntries.length === 0}
+                    disabled={scoreEntries.length === 0 && centralPopCount === 0}
                   />
                   <Button
                     onClick={handleBulkTimingAdjust}
-                    disabled={scoreEntries.length === 0}
+                    disabled={scoreEntries.length === 0 && centralPopCount === 0}
                     variant="outline"
                     size="sm"
                     className="px-3 text-xs h-7"
