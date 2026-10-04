@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Play } from 'lucide-react'
 import type { CentralPop } from '@/lib/types'
 import { POP_DEFAULTS } from '@/lib/scoreFormat'
@@ -10,6 +10,35 @@ export function PopPreview({ pop, number }: { pop: CentralPop; number: number })
   const text = useRef<HTMLSpanElement>(null)
   const animation = useRef<Animation | null>(null)
   const hovering = useRef(false)
+  const [verticalOffset, setVerticalOffset] = useState(0)
+  useLayoutEffect(() => {
+    const element = text.current
+    if (!element) return
+    let active = true
+    const measure = () => {
+      if (!active) return
+      const style = getComputedStyle(element)
+      const context = document.createElement('canvas').getContext('2d')
+      if (!context || !pop.text) { setVerticalOffset(0); return }
+      context.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+      const lines = pop.text.split('\n')
+      const metrics = lines.map(line => context.measureText(line || 'あ'))
+      const lineHeight = parseFloat(style.lineHeight)
+      const fontAscent = metrics[0].fontBoundingBoxAscent
+      const fontDescent = metrics[0].fontBoundingBoxDescent
+      if (!Number.isFinite(fontAscent) || !Number.isFinite(fontDescent)) return
+      const baseline = (lineHeight + fontAscent - fontDescent) / 2
+      const top = Math.min(...metrics.map((metric, index) => baseline + index * lineHeight - metric.actualBoundingBoxAscent))
+      const bottom = Math.max(...metrics.map((metric, index) => baseline + index * lineHeight + metric.actualBoundingBoxDescent))
+      setVerticalOffset((top + bottom - lines.length * lineHeight) / 2)
+    }
+    measure()
+    document.fonts?.ready.then(measure)
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    observer?.observe(element)
+    window.addEventListener('resize', measure)
+    return () => { active = false; observer?.disconnect(); window.removeEventListener('resize', measure) }
+  }, [pop.text, pop.size])
   const replay = useCallback(() => {
     if (!text.current) return
     animation.current?.cancel()
@@ -32,7 +61,9 @@ export function PopPreview({ pop, number }: { pop: CentralPop; number: number })
       opacity: POP_OPACITY,
       color: pop.color || POP_DEFAULTS.color,
       textAlign: pop.align === 'l' ? 'left' : pop.align === 'r' ? 'right' : 'center',
-      transformOrigin: 'center',
+      position: 'relative',
+      top: -verticalOffset,
+      transformOrigin: `center calc(50% + ${verticalOffset}px)`,
     }}>{pop.text}</span>
     <Play className="absolute bottom-1 right-1 h-3 w-3 text-white/60" aria-hidden="true" />
   </button>
