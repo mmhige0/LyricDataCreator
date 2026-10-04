@@ -1,7 +1,7 @@
 import type { CentralPop, LyricsArray, ScoreEntry } from './types'
 import { normalizeDecoration, validateDecoration, validateDecorationCharacters } from './decorationText'
 import { preprocessAndConvertLyrics } from './textUtils'
-import { POP_TEXT_LIMIT, validatePopText } from './popText'
+import { POP_TEXT_LIMIT, normalizePopText, validatePopCharacters, validatePopText } from './popText'
 import { formatDecorationField, parseDecorationField } from './decorationFormat'
 
 export const POP_DEFAULTS = { duration: 'm', align: 'c', size: 'm', color: '#FFFFFF' } as const
@@ -9,12 +9,13 @@ export const POP_DURATIONS = { s: 0.1, m: 0.3, l: 0.5, x: 1 } as const
 
 export const escapeScoreText = (text: string) => text.replace(/\\/g, '\\\\').replace(/\//g, '\\/')
 
-export function splitScoreFields(line: string): string[] {
+export function splitScoreFields(line: string, allowPopNewlines = false): string[] {
   const fields = ['']
   for (let i = 0; i < line.length; i++) {
     const char = line[i]
     if (char === '\\') {
       const next = line[++i]
+      if (next === 'n' && allowPopNewlines && fields.length === 1) { fields[0] += '\n'; continue }
       if (next !== '/' && next !== '\\') throw new Error('エスケープはスラッシュまたはバックスラッシュに使用してください。')
       fields[fields.length - 1] += next
     } else if (char === '/') fields.push('')
@@ -63,12 +64,15 @@ export function parseScoreTxt(content: string): { duration: number; scoreEntries
         inPops = true
         continue
       }
-      const fields = splitScoreFields(line)
+      const fields = splitScoreFields(line, inPops)
       if (inPops) {
         if (fields.length !== 2 && fields.length !== 6) throw new Error('ポップは2項目または6項目で指定してください。')
+        validatePopCharacters(fields[0])
+        const popText = normalizePopText(fields[0])
+        if (popText !== fields[0]) warnings.push(`${i + 1}行目: ポップ文字列を${POP_TEXT_LIMIT}文字以内に切り取りました。`)
         const pop: CentralPop = {
           id: `pop_${crypto.randomUUID()}`,
-          text: decoratedText(fields[0], i + 1, POP_TEXT_LIMIT, 'ポップ'),
+          text: popText,
           timestamp: parseTime(fields[1]),
           ...POP_DEFAULTS,
         }
@@ -116,7 +120,7 @@ export function createScoreTxt(duration: number, entries: ScoreEntry[], pops: Ce
   if (pops.length) lines.push('_')
   for (const pop of [...pops].sort((a, b) => a.timestamp - b.timestamp)) {
     validatePop(pop)
-    const fields = [escapeScoreText(pop.text), pop.timestamp.toFixed(2)]
+    const fields = [escapeScoreText(pop.text).replace(/\n/g, '\\n'), pop.timestamp.toFixed(2)]
     if (pop.duration !== 'm' || pop.align !== 'c' || pop.size !== 'm' || pop.color.toUpperCase() !== '#FFFFFF') {
       fields.push(pop.duration, pop.align, pop.size, pop.color.toUpperCase())
     }

@@ -13,13 +13,14 @@ const originalAnimate = HTMLElement.prototype.animate
 beforeEach(async () => {
   vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   animate.mockClear()
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null)
   HTMLElement.prototype.animate = animate as unknown as typeof originalAnimate
   host = document.createElement('div'); document.body.append(host); root = createRoot(host)
   await act(async () => root.render(<PopPreview pop={pop} number={1} />))
 })
 afterEach(async () => {
   await act(async () => root.unmount())
-  host.remove(); HTMLElement.prototype.animate = originalAnimate; vi.unstubAllGlobals()
+  host.remove(); HTMLElement.prototype.animate = originalAnimate; vi.restoreAllMocks(); vi.unstubAllGlobals()
 })
 async function pointer(type: 'pointerover' | 'pointerout', pointerType = 'mouse') {
   const event = new MouseEvent(type, { bubbles: true, relatedTarget: document.body })
