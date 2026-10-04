@@ -53,7 +53,7 @@ describe('new score format', () => {
     expect(parsed.centralPops[0].text).toHaveLength(10)
     expect(parsed.warnings).toHaveLength(2)
     expect(() => parseScoreTxt('30\n![l]😀/!/!/!/0')).toThrow(/絵文字/)
-    expect(() => createScoreTxt(30, [], [{ ...pop, text: 'A\nB' }])).toThrow(/改行/)
+    expect(() => createScoreTxt(30, [], [{ ...pop, text: 'A\nB\nC' }])).toThrow(/最大2行/)
   })
 })
 

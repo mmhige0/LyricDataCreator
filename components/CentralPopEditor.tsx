@@ -43,7 +43,7 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
       {!pops.length && <p className="text-sm text-muted-foreground">ポップはありません。</p>}
       {pops.map((pop, index) => <div key={pop.id} id={`pop-row-${pop.id}`} data-pop-id={pop.id} tabIndex={0} aria-label={`ポップ${index + 1}を選択`} data-selected={selectedId === pop.id}
         className={`space-y-1 border-l-2 px-2 py-2 outline-none focus-visible:ring-2 focus-visible:ring-ring ${selectedId === pop.id ? 'border-l-primary bg-primary/5' : 'border-l-transparent'}`}
-        onPointerDown={event => { onSelect?.(pop.id); if (!(event.target instanceof Element) || !event.target.closest('input, select, button, label')) event.currentTarget.focus() }}
+        onPointerDown={event => { onSelect?.(pop.id); if (!(event.target instanceof Element) || !event.target.closest('input, textarea, select, button, label')) event.currentTarget.focus() }}
         onFocusCapture={() => { onSelect?.(pop.id); onEditBoundary() }}
         onKeyDown={event => {
           if (event.key === 'Escape' && !event.defaultPrevented && !event.nativeEvent.isComposing && event.keyCode !== 229) {
@@ -58,14 +58,13 @@ export function CentralPopEditor({ pops, onAdd, onUpdate, onDelete, onEditBounda
             onUpdate(pop.id, { timestamp }); return true
           }} />
           <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" aria-label={`ポップ${index + 1}から再生`} title="この時刻から再生" disabled={!onPlay} onClick={() => onPlay?.(pop.timestamp)}><Play className="h-4 w-4" aria-hidden="true" /></Button>
-          <Input id={`pop-text-${pop.id}`} aria-label={`ポップ${index + 1}の文字列`} className="h-8 w-0 min-w-0 flex-1 text-sm" placeholder="Hey!" value={pop.text}
+          <textarea rows={2} id={`pop-text-${pop.id}`} aria-label={`ポップ${index + 1}の文字列`} className="h-12 w-0 min-w-0 flex-1 resize-none rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring" placeholder="Hey!" value={pop.text}
             onChange={event => onUpdate(pop.id, { text: event.target.value })}
             onCompositionStart={() => onCompositionChange(true)} onCompositionEnd={() => onCompositionChange(false)}
-            onPaste={event => { if (/[\r\n]/.test(event.clipboardData.getData('text'))) { event.preventDefault(); toast.error('ポップに改行は貼り付けできません。') } }}
             onBlur={event => {
               onCompositionChange(false)
               const text = normalizePopText(event.target.value)
-              if (text !== event.target.value) toast.info('禁止文字を除き、10文字以内に整えました。')
+              if (text !== event.target.value) toast.info('禁止文字を除き、最大2行・改行を除いて10文字以内に整えました。')
               onUpdate(pop.id, { text })
               onEditBoundary()
             }} />

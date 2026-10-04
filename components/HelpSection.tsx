@@ -96,7 +96,7 @@ export const HelpSection: React.FC = () => {
         </div>
         <div className="mb-6">
           <div className="mb-2 text-sm font-medium text-foreground">ポップ</div>
-          <p className="text-sm text-muted-foreground">ページ一覧をポップ一覧に切り替えられます。ポップはゲーム内での表示のみで、タイピング対象にはなりません。</p>
+          <p className="text-sm text-muted-foreground">ページ一覧をポップ一覧に切り替えられます。ポップはゲーム内での表示のみで、タイピング対象にはなりません。最大2行で、改行を除いて全角10文字（半角20文字）まで入力できます。</p>
         </div>
       </div>
       </div>
