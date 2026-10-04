@@ -11,7 +11,6 @@
 - `npm run lint` / `npm run type-check` — ESLint (Next config) and TypeScript strict checks (`type-check` runs `prisma generate`).
 - `npm run test` — runs lint, type-check, unit tests, then `next build` to ensure the app still builds.
 - `npm run build` — runs `prisma generate` then `next build` for Vercel deployment (no GitHub Pages basePath/assetPrefix).
-- Prefer webpack for build/test (`npm run build -- --webpack`, add `-- --webpack` to `npm run test` if needed) because Turbopack currently fails in this sandbox when compiling `app/globals.css` (it tries to spawn a process that binds to a port, which the runtime forbids).
 - `npm run preview` — build then run `next start` for a pre-deploy check.
 - Prisma config loads `.env` via `dotenv/config`; CI must provide `DATABASE_URL` explicitly (GitHub Actions does not have `.env`).
 
@@ -30,6 +29,7 @@
 - If the user's intent is ambiguous, clarify whether they want code changes before editing.
 
 ## Commit & Pull Request Guidelines
+- Name new branches using conventional prefixes such as `feat/`, `fix/`, `docs/`, or `chore/` followed by a short kebab-case description (e.g., `feat/pop-newlines`).
 - Write concise, imperative commit messages in `type: Title` format (e.g., `feat: Add timing export controls`); group related changes.
 - For PRs, include: summary of behavior change, linked issue/feature, and manual test notes.
 - For UI changes, attach screenshots or clips to the PR description or discussion so reviewers can see them. Do not commit review-only screenshots or recordings to the repository. Commit images or videos only when they are actual application assets or test fixtures needed by the project.
