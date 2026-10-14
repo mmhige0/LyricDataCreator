@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import type { ScoreEntry } from "@/lib/types"
 import { AppHeader } from "@/components/AppHeader"
+import { PORTAL_ORIGIN } from "@/lib/site"
 import { TypingGameContent } from "@/components/TypingGameContent"
 import { cn } from "@/lib/utils"
 
@@ -22,7 +23,7 @@ export function SongPlayer({ song }: SongPlayerProps) {
 
   return (
     <div className="min-h-screen page-shell">
-      <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref="/" />
+      <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref={PORTAL_ORIGIN} />
 
       <div className={cn("pb-10")}>
         <TypingGameContent

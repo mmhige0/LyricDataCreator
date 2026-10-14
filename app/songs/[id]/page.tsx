@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
 import { getSongById } from "@/lib/songQueries"
@@ -16,6 +17,15 @@ export const runtime = "nodejs"
 
 interface SongPageProps {
   params: Promise<{ id: string }>
+}
+
+export async function generateMetadata({ params }: SongPageProps): Promise<Metadata> {
+  const { id } = await params
+  return {
+    alternates: {
+      canonical: `/songs/${encodeURIComponent(id)}/`,
+    },
+  }
 }
 
 export default async function SongPage({ params }: SongPageProps) {

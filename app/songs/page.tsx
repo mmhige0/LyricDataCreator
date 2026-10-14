@@ -1,4 +1,6 @@
+import type { Metadata } from "next"
 import { AppHeader } from "@/components/AppHeader"
+import { PORTAL_ORIGIN } from "@/lib/site"
 import { getSongsPage } from "@/lib/songQueries"
 import {
   SONGS_PAGE_SIZE,
@@ -10,6 +12,12 @@ import { SongsTable } from "./SongsTable"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: "/songs/",
+  },
+}
 
 const INITIAL_SORT_KEY: SongSortKey = "id"
 const INITIAL_SORT_DIRECTION: SongSortDirection = "desc"
@@ -25,7 +33,7 @@ export default async function SongsPage() {
 
   return (
     <div className="min-h-screen page-shell">
-      <AppHeader title="Song Typing Theater" titleHref="/" />
+      <AppHeader title="Song Typing Theater" titleHref={PORTAL_ORIGIN} />
       <div className="max-w-[1400px] mx-auto px-4 lg:px-8 py-8 space-y-6">
         <SongsTable
           initialData={{
