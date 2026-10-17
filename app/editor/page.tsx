@@ -19,6 +19,7 @@ import { popContent, serializePopClipboard, parsePopClipboard } from "@/lib/popC
 import { HelpSection } from "@/components/HelpSection"
 import { DraftRestoreDialog } from "@/components/DraftRestoreDialog"
 import { AppHeader } from "@/components/AppHeader"
+import { PORTAL_ORIGIN } from "@/lib/site"
 import { TypingGameContent } from "@/components/TypingGameContent"
 import { cn } from "@/lib/utils"
 import { createNewSessionId, getOrCreateSessionId } from "@/lib/sessionStorage"
@@ -389,7 +390,7 @@ export default function LyricsTypingApp() {
 
       <AppHeader
         title="Song Typing Theater"
-        titleHref="/"
+        titleHref={PORTAL_ORIGIN}
         songTitle={songTitle || undefined}
         actions={
           <div

@@ -3,6 +3,8 @@ import { Space_Grotesk, Inter_Tight, JetBrains_Mono, Dela_Gothic_One } from 'nex
 import './globals.css'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
+import { DomainMoveBanner } from '@/components/DomainMoveBanner'
+import { SITE_ORIGIN } from '@/lib/site'
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -34,6 +36,7 @@ const popPreviewFont = Dela_Gothic_One({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_ORIGIN),
   title: 'Song Typing Theater',
   description: 'YouTube video lyrics timing tool',
   icons: {
@@ -54,6 +57,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
+          <DomainMoveBanner />
           {children}
           <Toaster
             richColors

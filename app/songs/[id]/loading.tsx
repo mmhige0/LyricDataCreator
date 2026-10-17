@@ -1,9 +1,10 @@
 import { AppHeader } from "@/components/AppHeader"
+import { PORTAL_ORIGIN } from "@/lib/site"
 
 export default function SongLoading() {
   return (
     <div className="min-h-screen page-shell">
-      <AppHeader title="Song Typing Theater" titleHref="/" />
+      <AppHeader title="Song Typing Theater" titleHref={PORTAL_ORIGIN} />
       <div className="flex items-center justify-center px-4 py-12">
         <div className="flex flex-col items-center gap-3">
           <div className="h-2 w-24 animate-pulse rounded-full bg-muted-foreground/30" />

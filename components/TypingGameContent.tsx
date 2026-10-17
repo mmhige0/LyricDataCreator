@@ -9,6 +9,7 @@ import { TypingDisplay } from "@/components/TypingDisplay"
 import { TypingStats } from "@/components/TypingStats"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
 import { AppHeader } from "@/components/AppHeader"
+import { PORTAL_ORIGIN } from "@/lib/site"
 import { Button } from "@/components/ui/button"
 import { buildPageTypingData, ensureIntroPage } from '@/lib/typingEngineAdapter'
 import {
@@ -468,7 +469,7 @@ export function TypingGameContent({
           title="Song Typing Theater"
           subtitle="プレイ"
           songTitle={songTitle}
-          titleHref="/"
+          titleHref={PORTAL_ORIGIN}
           actions={
             <div className="flex items-center gap-2">
               <Button
