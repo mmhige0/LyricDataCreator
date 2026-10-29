@@ -188,6 +188,51 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(await db.song.findUniqueOrThrow({ where: { id: original.id } })).toMatchObject({ title: input.title, gameSongId: '001' })
     expect(await db.chartSubmission.count()).toBe(0)
   })
+  it('allows multiple proposals for the same public song and serializes duplicate approvals', async () => {
+    const song = await db.song.create({ data: { title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', gameSongId: '001' } })
+    await create(request(input))
+    await create(request({ ...input, id: other, title: '別の修正案' }))
+    await db.chartSubmission.updateMany({ data: { publishedSongId: song.id, gameSongId: '001' } })
+    expect((await db.song.findUniqueOrThrow({ where: { id: song.id }, include: { submissions: true } })).submissions).toHaveLength(2)
+    const originalFetch = globalThis.fetch
+    let entered!: () => void
+    let release!: () => void
+    const started = new Promise<void>(resolve => { entered = resolve })
+    const blocked = new Promise<void>(resolve => { release = resolve })
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const response = await originalFetch(url, init)
+      if (!String(url).includes('siteverify')) { entered(); await blocked }
+      return response
+    }))
+    const first = approve()
+    await started
+    const duplicate = approve()
+    try {
+      await new Promise(resolve => setTimeout(resolve, 20))
+      expect(rankingCalls).toBe(1)
+    } finally { release() }
+    const responses = await Promise.all([first, duplicate])
+    vi.stubGlobal('fetch', originalFetch)
+    expect(responses.map(row => row.status).sort()).toEqual([200, 404])
+    expect(rankingCalls).toBe(1)
+    expect(await db.chartSubmission.count()).toBe(1)
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(200)
+    expect((await db.song.findUniqueOrThrow({ where: { id: song.id } })).title).toBe('別の修正案')
+    expect((await approve()).status).toBe(404)
+    expect(rankingCalls).toBe(2)
+  })
+  it('blocks another proposal while a failed approval for the same song needs retry', async () => {
+    const song = await db.song.create({ data: { title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', gameSongId: '001' } })
+    await create(request(input)); await create(request({ ...input, id: other }))
+    await db.chartSubmission.updateMany({ data: { publishedSongId: song.id, gameSongId: '001' } })
+    rankingFails = true
+    expect((await approve()).status).toBe(502)
+    rankingFails = false
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(409)
+    expect(rankingCalls).toBe(1)
+    expect((await approve()).status).toBe(200)
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(200)
+  })
   it('requires administrator authorization before reading the body', async () => {
     expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }), context())).status).toBe(401)
     expect(rankingCalls).toBe(0)

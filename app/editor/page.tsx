@@ -448,7 +448,7 @@ export default function LyricsTypingApp() {
       />
 
       <main className="max-w-[1600px] mx-auto p-4 lg:p-8">
-        {activeView === "play" ? (
+        {activeView === "play" && (
           <div id="play-panel" role="tabpanel" aria-labelledby="play-tab">
             <TypingGameContent
               onClose={handleBackToEditor}
@@ -459,8 +459,8 @@ export default function LyricsTypingApp() {
               totalDuration={duration}
             />
           </div>
-        ) : (
-          <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab">
+        )}
+          <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab" hidden={activeView !== "editor"}>
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.25fr)] gap-6 lg:items-start">
               <div className="space-y-6" id="left-column">
                 <YouTubeVideoSection
@@ -553,7 +553,6 @@ export default function LyricsTypingApp() {
 
 
           </div>
-        )}
       </main>
 
       <DraftRestoreDialog

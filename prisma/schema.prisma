@@ -23,7 +23,7 @@ model Song {
   gameSongId   String?  @unique
   creatorName  String?
   scoreTxt     String?
-  submission   ChartSubmission?
+  submissions  ChartSubmission[]
 
   @@index([title])
   @@index([artist])
@@ -43,12 +43,14 @@ model ChartSubmission {
   txtContent      String
   status          String   @default("pending")
   revision        Int      @default(1)
-  gameSongId      String?  @unique
-  publishedSongId Int?     @unique
+  gameSongId      String?
+  publishedSongId Int?
   publishedSong   Song?    @relation(fields: [publishedSongId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  @@index([gameSongId])
+  @@index([publishedSongId])
   @@index([status, updatedAt])
   @@map("chart_submission")
 }

@@ -13,6 +13,13 @@ export async function lockSubmission(tx: Prisma.TransactionClient, id: string) {
   // Parameterized SQL; hash collisions only serialize unrelated operations.
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`submission:${id}`}))`
 }
+// Always acquire the song lock before a submission lock in approval transactions.
+export async function lockApprovalSong(tx: Prisma.TransactionClient, gameSongId: string) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`approval-song:${gameSongId}`}))`
+}
+export async function lockApprovalTarget(tx: Prisma.TransactionClient, songId: number) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`approval-target:${songId}`}))`
+}
 function limit(name: string, fallback: number) {
   const value = Number(process.env[name] ?? fallback)
   if (!Number.isSafeInteger(value) || value < 1) throw new SubmissionError(503, '投稿制限の設定が不正です。')
