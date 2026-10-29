@@ -4,7 +4,7 @@ import { hashToken, secureEqual } from './http'
 import { SubmissionError } from './validation'
 
 export function owned(row: ChartSubmission | null, token: string): ChartSubmission {
-  if (!row || !secureEqual(row.editTokenHash, hashToken(token))) throw new SubmissionError(404, '投稿が見つからないか、編集用キーが違います。')
+  if (!row || !secureEqual(row.editTokenHash, hashToken(token))) throw new SubmissionError(404, '投稿が見つからないか、編集用キーが違います。承認済みの申請は削除され、編集URLは使えません。')
   return row
 }
 export function privateSubmission({ editTokenHash: _secret, ...row }: ChartSubmission) { return row }

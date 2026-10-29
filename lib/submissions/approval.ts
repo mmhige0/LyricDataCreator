@@ -3,7 +3,7 @@ import { parseLevelValue } from '@/lib/levels'
 import { parseScoreTxt } from '@/lib/scoreFormat'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 import { GAME_SONG_ID, SubmissionError } from './validation'
-import { lockSubmission, privateSubmission } from './service'
+import { lockSubmission } from './service'
 
 export async function approveSubmission(id: string, expected: number, gameSongId: string) {
   if (!GAME_SONG_ID.test(gameSongId)) throw new SubmissionError(400, '曲番号は000以外の3〜8桁の数字にしてください。')
@@ -16,17 +16,11 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     if (!current) throw new SubmissionError(404, '投稿が見つかりません。')
     if (current.revision !== expected) throw new SubmissionError(409, '申請が更新されました。内容を確認し直してください。')
     if (current.gameSongId && current.gameSongId !== gameSongId) throw new SubmissionError(409, '登録済み・承認処理中の曲番号は変更できません。')
-    if (current.status === 'approved') return current
     if (!['pending', 'publishing'].includes(current.status)) throw new SubmissionError(409, '承認待ちの申請ではありません。')
     const other = await tx.chartSubmission.findUnique({ where: { gameSongId } })
     if (other && other.id !== id) throw new SubmissionError(409, 'この曲番号は別の申請で使用されています。')
     return tx.chartSubmission.update({ where: { id }, data: { status: 'publishing', gameSongId } })
   })
-  if (row.status === 'approved') {
-    if (row.publishedSongId) revalidateSongCache(row.publishedSongId)
-    revalidateSongsCache()
-    return privateSubmission(row)
-  }
   let response: Response
   try {
     response = await fetch(`https://ranking.kayomodoki.com/api/v1/admin/songs/${gameSongId}`, {
@@ -48,8 +42,8 @@ export async function approveSubmission(id: string, expected: number, gameSongId
   const parsed = parseScoreTxt(row.txtContent)
   const saved = await prisma.$transaction(async tx => {
     await lockSubmission(tx, id)
-    const current = await tx.chartSubmission.findUniqueOrThrow({ where: { id } })
-    if (current.status === 'approved') return current
+    const current = await tx.chartSubmission.findUnique({ where: { id } })
+    if (!current) throw new SubmissionError(404, '申請は承認済み、または削除されています。')
     if (current.status !== 'publishing' || current.revision !== expected) throw new SubmissionError(409, '承認状態が変わりました。')
     const data = {
       title: row.title, artist: row.artist, level: row.level, levelValue: parseLevelValue(row.level),
@@ -59,9 +53,11 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     const song = current.publishedSongId
       ? await tx.song.update({ where: { id: current.publishedSongId }, data })
       : await tx.song.create({ data })
-    return tx.chartSubmission.update({ where: { id }, data: { publishedSongId: song.id, status: 'approved' } })
+    // Publication and cleanup commit together; failures leave the reserved submission retryable.
+    await tx.chartSubmission.delete({ where: { id } })
+    return { status: 'approved', publishedSongId: song.id, gameSongId }
   })
   revalidateSongsCache()
   if (saved.publishedSongId) revalidateSongCache(saved.publishedSongId)
-  return privateSubmission(saved)
+  return saved
 }

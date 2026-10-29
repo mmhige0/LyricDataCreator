@@ -79,7 +79,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
   const canSubmit = Boolean(token) && !busy && status !== 'publishing' && !needsLoad
   return <section className="rounded-xl border bg-card text-card-foreground shadow-sm p-5 space-y-4" aria-labelledby="submission-heading">
     <h2 id="submission-heading" className="text-lg font-semibold">譜面の投稿・管理</h2>
-    <p className="text-sm text-muted-foreground">ログイン不要。制作者名は自己申告です。承認後に公開し、修正版も再承認します。</p>
+    <p className="text-sm text-muted-foreground">ログイン不要。制作者名は自己申告です。承認後に公開し、申請は削除します。編集URLは承認前のみ使えます。公開後の修正は管理者へご相談ください。</p>
     <Link href="/submissions" className="underline">自分の投稿一覧</Link>
     {credentials && <div className="space-y-2">
       <p>{statusLabel[status] ?? '投稿内容を読み込んでください。'}</p>

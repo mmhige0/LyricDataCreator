@@ -40,7 +40,7 @@ export default function AdminSubmissionsPage() {
     const result = await submissionFetch(`/api/admin/submissions/${selected.id}`, key, {
       method: 'POST', body: JSON.stringify({ action, revision: selected.revision, gameSongId }),
     })
-    setSelected(result); await list(); setMessage(action === 'approve' ? '承認・ランキング登録が完了しました。ゲームへの公開は別途行ってください。' : '却下しました。')
+    setSelected(action === 'approve' ? null : result); await list(); setMessage(action === 'approve' ? '承認・ランキング登録が完了しました。ゲームへの公開は別途行ってください。' : '却下しました。')
   }
   const download = () => {
     if (!selected) return
@@ -76,7 +76,7 @@ export default function AdminSubmissionsPage() {
         {preview && parsed && <TypingGameContent onClose={() => setPreview(false)} showHeader={false} scoreEntries={parsed.scoreEntries} songTitle={selected.title} youtubeUrl={selected.youtubeUrl} totalDuration={parsed.duration} />}
         <details><summary>申請された譜面の全文</summary><pre className="overflow-auto max-h-96 whitespace-pre-wrap text-sm">{selected.txtContent}</pre></details>
         <label className="block">ゲームの曲番号<Input value={gameSongId} maxLength={8} inputMode="numeric" disabled={Boolean(selected.gameSongId)} onChange={event => setGameSongId(event.target.value)} /></label>
-        <p className="text-sm">承認するとランキングへ登録し、LDCの公開版を切り替えます。公開済み曲の修正でも既存の成績は残ります。</p>
+        <p className="text-sm">承認するとランキングへ登録し、LDCの公開版を切り替えます。公開済み曲の修正でも既存の成績は残ります。承認後は申請を削除し、編集URLは無効になります。</p>
         <div className="flex flex-wrap gap-3">
           <Button disabled={busy || !gameSongId || !['pending', 'publishing'].includes(selected.status)} onClick={() => void run(() => decide('approve'))}>第{selected.revision}版を承認する</Button>
           <Button variant="outline" disabled={busy || selected.status !== 'pending'} onClick={() => void run(() => decide('reject'))}>却下する</Button>

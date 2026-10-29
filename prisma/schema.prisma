@@ -31,7 +31,7 @@ model Song {
   @@map("song")
 }
 
-// Public Song contains only the last approved version. This row holds the working version.
+// Public Song contains the approved version. Submissions are deleted atomically on publication.
 model ChartSubmission {
   id              String   @id @db.Uuid
   editTokenHash   String
