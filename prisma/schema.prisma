@@ -20,9 +20,44 @@ model Song {
   scoreEntries String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  gameSongId   String?  @unique
+  creatorName  String?
+  scoreTxt     String?
+  submission   ChartSubmission?
 
   @@index([title])
   @@index([artist])
   @@index([levelValue])
   @@map("song")
+}
+
+// Public Song contains only the last approved version. This row holds the working version.
+model ChartSubmission {
+  id              String   @id @db.Uuid
+  editTokenHash   String
+  creatorName     String
+  title           String
+  artist          String?
+  level           String?
+  youtubeUrl      String
+  txtContent      String
+  status          String   @default("pending")
+  revision        Int      @default(1)
+  gameSongId      String?  @unique
+  publishedSongId Int?     @unique
+  publishedSong   Song?    @relation(fields: [publishedSongId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status, updatedAt])
+  @@map("chart_submission")
+}
+
+model SubmissionQuota {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("submission_quota")
 }

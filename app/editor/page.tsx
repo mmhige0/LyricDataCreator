@@ -11,6 +11,7 @@ import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
+import { SubmissionPanel } from '@/components/SubmissionPanel'
 import { CentralPopEditor } from '@/components/CentralPopEditor'
 import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
@@ -236,9 +237,11 @@ export default function LyricsTypingApp() {
   useEffect(() => {
     cleanupExpiredDrafts()
 
-    getOrCreateSessionId()
+    const openingSubmission = new URLSearchParams(location.search).has('submission')
+    if (openingSubmission) createNewSessionId()
+    else getOrCreateSessionId()
 
-    const draftList = getDraftList()
+    const draftList = openingSubmission ? [] : getDraftList()
     if (draftList.length > 0) {
       const sortedDrafts = [...draftList].sort((a, b) => b.lastModified - a.lastModified)
       setDrafts(sortedDrafts)
@@ -488,6 +491,15 @@ export default function LyricsTypingApp() {
                 />
 
                 <TimestampOffsetControl value={timestampOffset} onChange={setTimestampOffset} />
+                <SubmissionPanel title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
+                  onLoad={data => {
+                    saveCurrentState()
+                    setSongTitle(data.title); setYoutubeUrl(data.youtubeUrl); setDuration(data.duration)
+                    setScoreEntries(data.scoreEntries); setCentralPops(data.centralPops)
+                    hasRestoredDraftRef.current = true
+                    setIsRestoreDialogOpen(false)
+                    loadYouTubeVideo(data.youtubeUrl)
+                  }} />
                 <EditorShortcuts />
                 <HelpSection />
               </div>
