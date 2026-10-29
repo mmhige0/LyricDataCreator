@@ -33,10 +33,10 @@ CREATE TABLE "submission_quota" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "chart_submission_gameSongId_key" ON "chart_submission"("gameSongId");
+CREATE INDEX "chart_submission_gameSongId_idx" ON "chart_submission"("gameSongId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "chart_submission_publishedSongId_key" ON "chart_submission"("publishedSongId");
+CREATE INDEX "chart_submission_publishedSongId_idx" ON "chart_submission"("publishedSongId");
 
 -- CreateIndex
 CREATE INDEX "chart_submission_status_updatedAt_idx" ON "chart_submission"("status", "updatedAt");
