@@ -12,7 +12,7 @@ export async function GET(request: Request) {
 
   const search = searchParams.get("search")?.trim() ?? ""
   const pageRaw = Number.parseInt(searchParams.get("page") ?? "1", 10)
-  const sortKeyParam = (searchParams.get("sortKey") as SongSortKey | null) ?? "id"
+  const sortKeyParam = (searchParams.get("sortKey") as SongSortKey | null) ?? "gameSongId"
   const sortDirectionParam = (searchParams.get("sortDir") as SongSortDirection | null) ?? "desc"
   const pageSizeRaw = Number.parseInt(searchParams.get("limit") ?? `${SONGS_PAGE_SIZE}`, 10)
   const levelMinRaw = Number.parseInt(searchParams.get("levelMin") ?? "", 10)
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
   const page = Number.isNaN(pageRaw) || pageRaw < 1 ? 1 : pageRaw
   const pageSize = clampPageSize(pageSizeRaw)
-  const sortKey: SongSortKey = isSupportedSortKey(sortKeyParam) ? sortKeyParam : "id"
+  const sortKey: SongSortKey = isSupportedSortKey(sortKeyParam) ? sortKeyParam : "gameSongId"
   const sortDirection: SongSortDirection = sortDirectionParam === "desc" ? "desc" : "asc"
   const levelMin = Number.isNaN(levelMinRaw) ? null : levelMinRaw
   const levelMax = Number.isNaN(levelMaxRaw) ? null : levelMaxRaw

@@ -12,6 +12,7 @@ import {
   normalizeDisplayLevelRange,
   parseLevelValue,
 } from "@/lib/levels"
+import { compareSongNumbers } from "@/lib/songNumbers"
 import { extractVideoId } from "@/lib/youtubeUtils"
 import {
   SONGS_PAGE_SIZE,
@@ -52,7 +53,7 @@ const buildSongsKey = (params: SongsKey[1]): SongsKey => [
 
 const RANDOM_SONG_COUNT = 10
 const SORT_OPTIONS: Array<{ key: SongSortKey; label: string }> = [
-  { key: "id", label: "No." },
+  { key: "gameSongId", label: "No." },
   { key: "title", label: "曲名" },
   { key: "artist", label: "アーティスト" },
   { key: "level", label: "Lv." },
@@ -93,7 +94,7 @@ const fetchSongs = async ([, params]: SongsKey): Promise<SongsResponse> => {
 
 export function SongsTable({
   initialData,
-  initialSortKey = "id",
+  initialSortKey = "gameSongId",
   initialSortDirection = "desc",
 }: SongsTableProps) {
   const router = useRouter()
@@ -213,8 +214,8 @@ export function SongsTable({
     (list: SongsResponse["data"], key: SongSortKey, direction: SongSortDirection) => {
       const multiplier = direction === "asc" ? 1 : -1
       return [...list].sort((a, b) => {
-        if (key === "id") {
-          return (a.id - b.id) * multiplier
+        if (key === "gameSongId" || key === "id") {
+          return compareSongNumbers(a.gameSongId, b.gameSongId, direction)
         }
         if (key === "level") {
           const levelValueA = parseLevelValue(a.level)
@@ -262,7 +263,7 @@ export function SongsTable({
       return
     }
     setSortKey(key)
-    const nextDirection = key === "id" ? "desc" : "asc"
+    const nextDirection = (key === "gameSongId" || key === "id") ? "desc" : "asc"
     setSortDirection(nextDirection)
     if (randomSongs) {
       setRandomSorted(true)
@@ -580,7 +581,7 @@ export function SongsTable({
                 </div>
                 <div className="relative flex min-w-0 flex-1 flex-col justify-center space-y-3 p-5">
                   <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    No.{song.id}
+                    No.{song.gameSongId ?? "—"}
                   </div>
                   <div className="min-w-0 text-lg font-semibold text-foreground truncate">
                     {song.title}

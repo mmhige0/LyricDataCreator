@@ -2,6 +2,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PrismaClient } from '@prisma/client'
 
+vi.mock('next/cache', () => ({ unstable_cache: (fn: () => unknown) => fn, revalidateTag: vi.fn() }))
 vi.mock('@/lib/songQueries', () => ({ revalidateSongCache: vi.fn(), revalidateSongsCache: vi.fn() }))
 const database = process.env.SUBMISSION_TEST_DATABASE_URL
 let db: PrismaClient
@@ -232,6 +233,25 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(rankingCalls).toBe(1)
     expect((await approve()).status).toBe(200)
     expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(200)
+  })
+  it('lists public song numbers in numeric order across pages and searches the displayed numbers', async () => {
+    const { getSongsPage, getRandomSongs } = await vi.importActual<typeof import('@/lib/songQueries')>('@/lib/songQueries')
+    for (const gameSongId of ['1000', '099', '010', '001', '100', '0001']) {
+      await db.song.create({ data: { title: `曲${gameSongId}`, artist: 'カタカナ', level: '5+', levelValue: 15, youtubeUrl: input.youtubeUrl, scoreEntries: '[]', gameSongId } })
+    }
+    const options = { search: '', sortKey: 'gameSongId' as const, sortDirection: 'asc' as const, pageSize: 2 }
+    const pages = await Promise.all([1, 2, 3].map(page => getSongsPage({ ...options, page })))
+    expect(pages.flatMap(page => page.data.map(song => song.gameSongId))).toEqual(['0001', '001', '010', '099', '100', '1000'])
+    expect(pages.map(page => page.hasNext)).toEqual([true, true, false])
+    const descending = await getSongsPage({ ...options, page: 1, pageSize: 10, sortDirection: 'desc' })
+    expect(descending.data.map(song => song.gameSongId)).toEqual(['1000', '100', '099', '010', '001', '0001'])
+    const searched = await getSongsPage({ ...options, page: 1, search: '1000' })
+    expect(searched.data.map(song => song.gameSongId)).toEqual(['1000'])
+    const random = await getRandomSongs({ search: '1000' })
+    expect(random.data.map(song => song.gameSongId)).toEqual(['1000'])
+    expect((await getSongsPage({ ...options, page: 1, search: 'かたかな' })).data).toHaveLength(2)
+    expect((await getSongsPage({ ...options, page: 1, search: "'; DROP TABLE song; --" })).data).toEqual([])
+    expect(await db.song.count()).toBe(6)
   })
   it('requires administrator authorization before reading the body', async () => {
     expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }), context())).status).toBe(401)

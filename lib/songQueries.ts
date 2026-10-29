@@ -9,6 +9,7 @@ import {
   type SongSortDirection,
   type SongSortKey,
   type SongsResponse,
+  type SongSummary,
 } from "@/types/songs"
 
 export const SONGS_TAG = "songs"
@@ -64,7 +65,7 @@ const buildListKey = (params: {
   levelMin?: number | null
   levelMax?: number | null
 }) => [
-  "song-list",
+  "song-list-game-number-v2",
   `q:${params.search || "all"}`,
   `sort:${params.sortKey}:${params.sortDirection}`,
   `page:${params.page}`,
@@ -84,27 +85,32 @@ const buildSearchFilter = (search: string) => {
         { title: { contains: variant, mode: "insensitive" as const } },
         { artist: { contains: variant, mode: "insensitive" as const } },
       ]),
-      ...(searchId !== null ? [{ id: searchId }] : []),
+      ...(searchId !== null ? [{ gameSongId: { contains: search } }] : []),
     ],
   } satisfies Prisma.SongWhereInput
 }
 
-const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) =>
-  sortKey === "level"
-    ? [
-        {
-          levelValue: {
-            sort: sortDirection,
-            nulls: (sortDirection === "asc" ? "last" : "first") as Prisma.NullsOrder,
-          },
-        },
-        { id: sortDirection },
-      ]
-    : [
-        {
-          [sortKey]: sortDirection === "desc" ? "desc" : "asc",
-        } satisfies Prisma.SongOrderByWithRelationInput,
-      ]
+const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) => {
+  const direction = sortDirection === 'desc' ? Prisma.sql`DESC` : Prisma.sql`ASC`
+  const numberOrder = Prisma.sql`"gameSongId"::bigint ${direction} NULLS LAST, "gameSongId" COLLATE "C" ${direction}, "id" ${direction}`
+  // Keep the historical `id` sort parameter as an alias for public song number.
+  if (sortKey === 'gameSongId' || sortKey === 'id') return numberOrder
+  if (sortKey === 'level') return Prisma.sql`"levelValue" ${direction} ${sortDirection === 'asc' ? Prisma.sql`NULLS LAST` : Prisma.sql`NULLS FIRST`}, ${numberOrder}`
+  const column = sortKey === 'artist' ? Prisma.sql`"artist"` : Prisma.sql`"title"`
+  return Prisma.sql`${column} ${direction}, ${numberOrder}`
+}
+
+const buildWhereSql = (search: string, levelRange: ReturnType<typeof displayRangeToValueRange>) => {
+  const conditions: Prisma.Sql[] = []
+  const searchClauses = buildSearchVariants(search).map(variant => {
+    const pattern = `%${variant}%`
+    return Prisma.sql`("title" ILIKE ${pattern} OR "artist" ILIKE ${pattern})`
+  })
+  if (parseSearchId(search) !== null) searchClauses.push(Prisma.sql`"gameSongId" LIKE ${`%${search}%`}`)
+  if (searchClauses.length) conditions.push(Prisma.sql`(${Prisma.join(searchClauses, ' OR ')})`)
+  if (levelRange) conditions.push(Prisma.sql`"levelValue" BETWEEN ${levelRange.minValue} AND ${levelRange.maxValue}`)
+  return conditions.length ? Prisma.sql`WHERE ${Prisma.join(conditions, ' AND ')}` : Prisma.empty
+}
 
 const clampPageSize = (pageSize: number) => Math.min(Math.max(pageSize, 1), SONGS_PAGE_SIZE_MAX)
 
@@ -172,17 +178,7 @@ export const getSongsPage = async ({
   }
 
   const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
-  const where = {
-    ...(buildSearchFilter(normalizedSearch) ?? {}),
-    ...(levelValueRange
-      ? {
-          levelValue: {
-            gte: levelValueRange.minValue,
-            lte: levelValueRange.maxValue,
-          },
-        }
-      : {}),
-  }
+  const whereSql = buildWhereSql(normalizedSearch, levelValueRange)
   const orderBy = buildSort(sortKey, sortDirection)
 
   const listKey = buildListKey({
@@ -195,23 +191,18 @@ export const getSongsPage = async ({
     levelMax: normalizedLevelRange?.max,
   })
 
-  let data: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+  let data: SongSummary[]
   try {
     data = await unstable_cache(
       async () =>
-        prisma.song.findMany({
-          select: {
-            id: true,
-            title: true,
-            artist: true,
-            youtubeUrl: true,
-            level: true,
-          },
-          where,
-          orderBy,
-          skip: (safePage - 1) * normalizedPageSize,
-          take: normalizedPageSize + 1,
-        }),
+        prisma.$queryRaw<SongSummary[]>(Prisma.sql`
+          SELECT "id", "gameSongId", "title", "artist", "youtubeUrl", "level"
+          FROM "song"
+          ${whereSql}
+          ORDER BY ${orderBy}
+          OFFSET ${(safePage - 1) * normalizedPageSize}
+          LIMIT ${normalizedPageSize + 1}
+        `),
       listKey,
       {
         tags: [SONGS_TAG],
@@ -245,7 +236,6 @@ export const getRandomSongs = async ({
   const levelValueRange = displayRangeToValueRange(normalizedLevelRange?.min, normalizedLevelRange?.max)
   const normalizedLimit = clampPageSize(limit || RANDOM_SONG_COUNT)
   const searchVariants = buildSearchVariants(normalizedSearch)
-  const searchId = parseSearchId(normalizedSearch)
 
   if (!isDatabaseConfigured) {
     return createEmptySongsResponse(normalizedLimit)
@@ -263,39 +253,14 @@ export const getRandomSongs = async ({
       : {}),
   }
 
-  const whereSqlParts: Prisma.Sql[] = []
-  const searchSqlParts: Prisma.Sql[] = []
-  if (searchVariants.length > 0) {
-    const likeClauses = searchVariants.map((variant) => {
-      const pattern = `%${variant}%`
-      return Prisma.sql`("title" ILIKE ${pattern} OR "artist" ILIKE ${pattern})`
-    })
-    if (likeClauses.length > 0) {
-      searchSqlParts.push(Prisma.sql`(${Prisma.join(likeClauses, " OR ")})`)
-    }
-  }
-  if (searchId !== null) {
-    searchSqlParts.push(Prisma.sql`"id" = ${searchId}`)
-  }
-  if (searchSqlParts.length > 0) {
-    whereSqlParts.push(Prisma.sql`(${Prisma.join(searchSqlParts, " OR ")})`)
-  }
-  if (levelValueRange) {
-    whereSqlParts.push(
-      Prisma.sql`"levelValue" BETWEEN ${levelValueRange.minValue} AND ${levelValueRange.maxValue}`
-    )
-  }
-  const whereSql =
-    whereSqlParts.length > 0
-      ? Prisma.sql`WHERE TRUE AND ${Prisma.join(whereSqlParts, " AND ")}`
-      : Prisma.empty
+  const whereSql = buildWhereSql(normalizedSearch, levelValueRange)
 
-  let data: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+  let data: SongSummary[]
   try {
     data = await prisma.$queryRaw<
-      Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+      SongSummary[]
     >(Prisma.sql`
-      SELECT "id", "title", "artist", "youtubeUrl", "level"
+      SELECT "id", "gameSongId", "title", "artist", "youtubeUrl", "level"
       FROM "song"
       ${whereSql}
       ORDER BY random()
@@ -314,11 +279,12 @@ export const getRandomSongs = async ({
       searchVariants,
       levelValueRange,
     })
-    let candidates: Array<{ id: number; title: string; artist: string | null; youtubeUrl: string; level: string | null }>
+    let candidates: SongSummary[]
     try {
       candidates = await prisma.song.findMany({
         select: {
           id: true,
+          gameSongId: true,
           title: true,
           artist: true,
           youtubeUrl: true,
