@@ -11,7 +11,6 @@ datasource db {
 }
 
 model Song {
-  id           Int      @id @default(autoincrement())
   title        String
   artist       String?
   youtubeUrl   String
@@ -20,10 +19,9 @@ model Song {
   scoreEntries String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  gameSongId   String?  @unique
+  gameSongId   String   @id
   creatorName  String?
   scoreTxt     String?
-  submissions  ChartSubmission[]
 
   @@index([title])
   @@index([artist])
@@ -44,13 +42,10 @@ model ChartSubmission {
   status          String   @default("pending")
   revision        Int      @default(1)
   gameSongId      String?
-  publishedSongId Int?
-  publishedSong   Song?    @relation(fields: [publishedSongId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([gameSongId])
-  @@index([publishedSongId])
   @@index([status, updatedAt])
   @@map("chart_submission")
 }

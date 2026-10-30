@@ -1,7 +1,15 @@
--- AlterTable
-ALTER TABLE "song" ADD COLUMN     "creatorName" TEXT,
-ADD COLUMN     "gameSongId" TEXT,
-ADD COLUMN     "scoreTxt" TEXT;
+BEGIN;
+
+-- Existing rows must have their verified game numbers populated before deployment.
+-- Never derive a game number from the old auto-increment ID.
+ALTER TABLE "song" ADD COLUMN IF NOT EXISTS "gameSongId" TEXT;
+ALTER TABLE "song" ALTER COLUMN "gameSongId" SET NOT NULL;
+ALTER TABLE "song" ADD CONSTRAINT "song_gameSongId_check"
+  CHECK ("gameSongId" ~ '^[0-9]{3,8}$' AND "gameSongId" <> '000');
+ALTER TABLE "song" DROP CONSTRAINT "song_pkey";
+ALTER TABLE "song" ADD CONSTRAINT "song_pkey" PRIMARY KEY ("gameSongId");
+ALTER TABLE "song" DROP COLUMN "id";
+ALTER TABLE "song" ADD COLUMN "creatorName" TEXT, ADD COLUMN "scoreTxt" TEXT;
 
 -- CreateTable
 CREATE TABLE "chart_submission" (
@@ -16,7 +24,6 @@ CREATE TABLE "chart_submission" (
     "status" TEXT NOT NULL DEFAULT 'pending',
     "revision" INTEGER NOT NULL DEFAULT 1,
     "gameSongId" TEXT,
-    "publishedSongId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -36,20 +43,13 @@ CREATE TABLE "submission_quota" (
 CREATE INDEX "chart_submission_gameSongId_idx" ON "chart_submission"("gameSongId");
 
 -- CreateIndex
-CREATE INDEX "chart_submission_publishedSongId_idx" ON "chart_submission"("publishedSongId");
-
--- CreateIndex
 CREATE INDEX "chart_submission_status_updatedAt_idx" ON "chart_submission"("status", "updatedAt");
 
 -- CreateIndex
 CREATE INDEX "submission_quota_expiresAt_idx" ON "submission_quota"("expiresAt");
 
--- CreateIndex
-CREATE UNIQUE INDEX "song_gameSongId_key" ON "song"("gameSongId");
-
--- AddForeignKey
-ALTER TABLE "chart_submission" ADD CONSTRAINT "chart_submission_publishedSongId_fkey" FOREIGN KEY ("publishedSongId") REFERENCES "song"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
 ALTER TABLE "chart_submission" ADD CONSTRAINT "chart_submission_status_check"
   CHECK ("status" IN ('pending', 'publishing', 'approved', 'rejected'));
 ALTER TABLE "chart_submission" ADD CONSTRAINT "chart_submission_revision_check" CHECK ("revision" > 0);
+
+COMMIT;

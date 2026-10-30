@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
 import { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db"
+import { GAME_SONG_ID } from "@/lib/submissions/validation"
 import { parseLevelValue } from "@/lib/levels"
-import { getSongsPage, isSupportedSortKey, revalidateSongsCache } from "@/lib/songQueries"
+import { getSongsPage, isSupportedSortKey, revalidateSongCache, revalidateSongsCache } from "@/lib/songQueries"
 import { SONGS_PAGE_SIZE, SONGS_PAGE_SIZE_MAX, type SongSortDirection, type SongSortKey } from "@/types/songs"
 
 const clampPageSize = (pageSize: number) => Math.min(Math.max(pageSize, 1), SONGS_PAGE_SIZE_MAX)
@@ -39,13 +40,13 @@ export async function GET(request: Request) {
 }
 
 type SongLevelUpdate = {
-  id: number
+  gameSongId: string
   level: string
   levelValue: number
 }
 
 type UpdateResult = {
-  id: number
+  gameSongId: string
   title: string
   artist: string | null
   youtubeUrl: string
@@ -53,7 +54,7 @@ type UpdateResult = {
 }
 
 type UpdateError = {
-  id: number
+  gameSongId: string
   error: string
 }
 
@@ -98,42 +99,42 @@ export async function PATCH(request: Request) {
     if (typeof item !== "object" || item === null) {
       continue
     }
-    const { id, level } = item as { id?: unknown; level?: unknown }
+    const { gameSongId, level } = item as { gameSongId?: unknown; level?: unknown }
 
-    if (typeof id !== "number" || !Number.isInteger(id)) {
-      validationErrors.push({ id: id as number, error: "Invalid id" })
+    if (typeof gameSongId !== "string" || !GAME_SONG_ID.test(gameSongId)) {
+      validationErrors.push({ gameSongId: String(gameSongId ?? ""), error: "Invalid gameSongId" })
       continue
     }
 
     if (typeof level !== "string") {
-      validationErrors.push({ id, error: "level must be a string" })
+      validationErrors.push({ gameSongId, error: "level must be a string" })
       continue
     }
 
     const levelValue = parseLevelValue(level)
     if (levelValue === null) {
-      validationErrors.push({ id, error: "Invalid level format" })
+      validationErrors.push({ gameSongId, error: "Invalid level format" })
       continue
     }
 
-    updates.push({ id, level, levelValue })
+    updates.push({ gameSongId, level, levelValue })
   }
 
   if (updates.length === 0) {
     return NextResponse.json({ updated: [], errors: validationErrors })
   }
 
-  const ids = updates.map((u) => u.id)
+  const ids = updates.map((u) => u.gameSongId)
   const existingSongs = await prisma.song.findMany({
-    where: { id: { in: ids } },
-    select: { id: true },
+    where: { gameSongId: { in: ids } },
+    select: { gameSongId: true },
   })
-  const existingIds = new Set(existingSongs.map((s) => s.id))
+  const existingIds = new Set(existingSongs.map((s) => s.gameSongId))
 
-  const validUpdates = updates.filter((u) => existingIds.has(u.id))
+  const validUpdates = updates.filter((u) => existingIds.has(u.gameSongId))
   const notFoundErrors: UpdateError[] = updates
-    .filter((u) => !existingIds.has(u.id))
-    .map((u) => ({ id: u.id, error: "Song not found" }))
+    .filter((u) => !existingIds.has(u.gameSongId))
+    .map((u) => ({ gameSongId: u.gameSongId, error: "Song not found" }))
 
   const errors: UpdateError[] = [...validationErrors, ...notFoundErrors]
 
@@ -142,20 +143,21 @@ export async function PATCH(request: Request) {
   }
 
   // Build bulk UPDATE query with CASE expressions using parameterized queries
-  const levelCases = validUpdates.map((u) => Prisma.sql`WHEN ${u.id} THEN ${u.level}`)
-  const levelValueCases = validUpdates.map((u) => Prisma.sql`WHEN ${u.id} THEN ${u.levelValue}`)
-  const idList = validUpdates.map((u) => u.id)
+  const levelCases = validUpdates.map((u) => Prisma.sql`WHEN ${u.gameSongId} THEN ${u.level}`)
+  const levelValueCases = validUpdates.map((u) => Prisma.sql`WHEN ${u.gameSongId} THEN ${u.levelValue}`)
+  const idList = validUpdates.map((u) => u.gameSongId)
 
   const updated = await prisma.$queryRaw<UpdateResult[]>`
     UPDATE "song"
     SET
-      "level" = CASE "id" ${Prisma.join(levelCases, " ")} END,
-      "levelValue" = (CASE "id" ${Prisma.join(levelValueCases, " ")} END)::smallint
-    WHERE "id" IN (${Prisma.join(idList)})
-    RETURNING "id", "title", "artist", "youtubeUrl", "level"
+      "level" = CASE "gameSongId" ${Prisma.join(levelCases, " ")} END,
+      "levelValue" = (CASE "gameSongId" ${Prisma.join(levelValueCases, " ")} END)::smallint
+    WHERE "gameSongId" IN (${Prisma.join(idList)})
+    RETURNING "gameSongId", "title", "artist", "youtubeUrl", "level"
   `
 
   revalidateSongsCache()
+  for (const song of updated) revalidateSongCache(song.gameSongId)
 
   return NextResponse.json({ updated, errors })
 }

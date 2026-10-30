@@ -402,8 +402,8 @@ export function SongsTable({
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
-  const handleRowNavigate = useCallback((id: number) => {
-    router.push(`/songs/${id}`)
+  const handleRowNavigate = useCallback((gameSongId: string) => {
+    router.push(`/songs/${gameSongId}`)
   }, [router])
 
   useEffect(() => {
@@ -558,9 +558,9 @@ export function SongsTable({
           const thumbnailUrl = getYouTubeThumbnailUrl(song.youtubeUrl)
           return (
             <button
-              key={song.id}
+              key={song.gameSongId}
               type="button"
-              onClick={() => handleRowNavigate(song.id)}
+              onClick={() => handleRowNavigate(song.gameSongId)}
               className="group text-left"
             >
               <div className="flex overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
@@ -581,7 +581,7 @@ export function SongsTable({
                 </div>
                 <div className="relative flex min-w-0 flex-1 flex-col justify-center space-y-3 p-5">
                   <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    No.{song.gameSongId ?? "—"}
+                    No.{song.gameSongId}
                   </div>
                   <div className="min-w-0 text-lg font-semibold text-foreground truncate">
                     {song.title}

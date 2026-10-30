@@ -68,7 +68,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   it('stores an anonymous pending submission, literal symbols and only the token hash; retry does not duplicate', async () => {
     expect((await create(request(input))).status).toBe(201)
     const row = await db.chartSubmission.findUniqueOrThrow({ where: { id } })
-    expect(row).toMatchObject({ title: input.title, artist: input.artist, status: 'pending', revision: 1, publishedSongId: null })
+    expect(row).toMatchObject({ title: input.title, artist: input.artist, status: 'pending', revision: 1 })
     expect(row.editTokenHash).not.toBe(token)
     expect(await db.song.count()).toBe(0)
     expect((await create(request(input))).status).toBe(201)
@@ -101,7 +101,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const publicSong = await db.song.findFirstOrThrow()
     expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: input.level, youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
     expect(JSON.parse(publicSong.scoreEntries).length).toBeGreaterThan(0)
-    expect(await response.json()).toEqual({ status: 'approved', publishedSongId: publicSong.id, gameSongId: '001' })
+    expect(await response.json()).toEqual({ status: 'approved', gameSongId: '001' })
     expect(await db.chartSubmission.count()).toBe(0)
     expect((await get(request(undefined, token, 'GET'), context())).status).toBe(404)
     expect((await update(request({ ...input, title: '修正版', revision: 1 }, token, 'PUT'), context())).status).toBe(404)
@@ -126,9 +126,9 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(rankingCalls).toBe(2)
   })
   it('rejects a linked revision without changing its public song, and allows resubmission', async () => {
-    const original = await db.song.create({ data: { title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
     await create(request(input))
-    await db.chartSubmission.update({ where: { id }, data: { publishedSongId: original.id, gameSongId: '001' } })
+    await db.chartSubmission.update({ where: { id }, data: { gameSongId: '001' } })
     expect((await decide(request({ action: 'reject', revision: 1 }, admin), context())).status).toBe(200)
     expect((await db.song.findFirstOrThrow()).title).toBe('公開中')
     expect((await update(request({ ...input, revision: 1, title: '再修正版' }, token, 'PUT'), context())).status).toBe(200)
@@ -139,10 +139,16 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   })
   it('recovers when ranking succeeds but the local public-song write fails', async () => {
     await create(request(input))
-    const collision = await db.song.create({ data: { title: '架空の競合曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', gameSongId: '001' } })
-    expect((await approve()).status).toBe(500)
-    expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).status).toBe('publishing')
-    await db.song.delete({ where: { id: collision.id } })
+    await db.$executeRawUnsafe(`CREATE FUNCTION fail_song_write() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'simulated song failure'; END $$`)
+    await db.$executeRawUnsafe(`CREATE TRIGGER fail_song_write BEFORE INSERT ON song FOR EACH ROW EXECUTE FUNCTION fail_song_write()`)
+    try {
+      expect((await approve()).status).toBe(500)
+      expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).status).toBe('publishing')
+      expect(await db.song.count()).toBe(0)
+    } finally {
+      await db.$executeRawUnsafe('DROP TRIGGER fail_song_write ON song')
+      await db.$executeRawUnsafe('DROP FUNCTION fail_song_write()')
+    }
     expect((await approve()).status).toBe(200)
     expect(await db.song.count()).toBe(1)
     expect(await db.chartSubmission.count()).toBe(0)
@@ -179,22 +185,22 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(await db.chartSubmission.count()).toBe(1)
     expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1, 1])
   })
-  it('updates an imported public song after an administrator explicitly links the pending submission', async () => {
-    const original = await db.song.create({ data: { title: '架空の既存曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
+  it('updates an imported public song by its game number without an internal ID link', async () => {
+    await db.song.create({ data: { gameSongId: '001', title: '架空の既存曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
     await create(request(input))
-    await db.chartSubmission.update({ where: { id }, data: { publishedSongId: original.id, gameSongId: '001' } })
-    expect((await db.song.findUniqueOrThrow({ where: { id: original.id } })).title).toBe('架空の既存曲')
+    await db.chartSubmission.update({ where: { id }, data: { gameSongId: '001' } })
+    expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).title).toBe('架空の既存曲')
     expect((await approve()).status).toBe(200)
     expect(await db.song.count()).toBe(1)
-    expect(await db.song.findUniqueOrThrow({ where: { id: original.id } })).toMatchObject({ title: input.title, gameSongId: '001' })
+    expect(await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).toMatchObject({ title: input.title, gameSongId: '001' })
     expect(await db.chartSubmission.count()).toBe(0)
   })
   it('allows multiple proposals for the same public song and serializes duplicate approvals', async () => {
-    const song = await db.song.create({ data: { title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', gameSongId: '001' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
     await create(request(input))
     await create(request({ ...input, id: other, title: '別の修正案' }))
-    await db.chartSubmission.updateMany({ data: { publishedSongId: song.id, gameSongId: '001' } })
-    expect((await db.song.findUniqueOrThrow({ where: { id: song.id }, include: { submissions: true } })).submissions).toHaveLength(2)
+    await db.chartSubmission.updateMany({ data: { gameSongId: '001' } })
+    expect(await db.chartSubmission.count({ where: { gameSongId: '001' } })).toBe(2)
     const originalFetch = globalThis.fetch
     let entered!: () => void
     let release!: () => void
@@ -218,14 +224,14 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(rankingCalls).toBe(1)
     expect(await db.chartSubmission.count()).toBe(1)
     expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(200)
-    expect((await db.song.findUniqueOrThrow({ where: { id: song.id } })).title).toBe('別の修正案')
+    expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).title).toBe('別の修正案')
     expect((await approve()).status).toBe(404)
     expect(rankingCalls).toBe(2)
   })
   it('blocks another proposal while a failed approval for the same song needs retry', async () => {
-    const song = await db.song.create({ data: { title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', gameSongId: '001' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
     await create(request(input)); await create(request({ ...input, id: other }))
-    await db.chartSubmission.updateMany({ data: { publishedSongId: song.id, gameSongId: '001' } })
+    await db.chartSubmission.updateMany({ data: { gameSongId: '001' } })
     rankingFails = true
     expect((await approve()).status).toBe(502)
     rankingFails = false
@@ -252,6 +258,31 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await getSongsPage({ ...options, page: 1, search: 'かたかな' })).data).toHaveLength(2)
     expect((await getSongsPage({ ...options, page: 1, search: "'; DROP TABLE song; --" })).data).toEqual([])
     expect(await db.song.count()).toBe(6)
+  })
+  it('imports, updates levels and reads practice songs using exact game-number strings', async () => {
+    vi.stubEnv('IMPORT_SECRET', 'test-import-key')
+    const { POST: importSongs } = await import('@/app/api/import-songs/route')
+    const { PATCH: updateLevels } = await import('@/app/api/songs/route')
+    const { getSongByGameSongId } = await vi.importActual<typeof import('@/lib/songQueries')>('@/lib/songQueries')
+    const adminRequest = (body: unknown, method = 'POST') => new Request('https://example.test/api/import-songs', {
+      method, headers: { 'x-import-secret': 'test-import-key', 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    })
+    const songs = ['001', '0001'].map(gameSongId => ({ ...input, gameSongId, title: '同名の別曲' }))
+    const imported = await importSongs(adminRequest({ songs }))
+    expect((await imported.json()).results.map((song: { gameSongId: string }) => song.gameSongId)).toEqual(['001', '0001'])
+    expect(await db.song.count()).toBe(2)
+    expect((await getSongByGameSongId('001'))?.gameSongId).toBe('001')
+    expect(await getSongByGameSongId('1')).toBeNull()
+    await importSongs(adminRequest({ songs: [{ ...songs[0], title: '更新された曲' }] }))
+    expect((await getSongByGameSongId('001'))?.title).toBe('更新された曲')
+    expect((await getSongByGameSongId('0001'))?.title).toBe('同名の別曲')
+    const levelResponse = await updateLevels(adminRequest({ songs: [{ gameSongId: '001', level: '7+' }, { id: 1, level: '9' }] }, 'PATCH'))
+    const result = await levelResponse.json()
+    expect(result.updated).toHaveLength(1)
+    expect(result.updated[0]).toMatchObject({ gameSongId: '001', level: '7+' })
+    expect(result.errors).toHaveLength(1)
+    expect((await getSongByGameSongId('0001'))?.level).toBe(input.level)
+    expect((await getSongByGameSongId('001'))).not.toHaveProperty('id')
   })
   it('requires administrator authorization before reading the body', async () => {
     expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }), context())).status).toBe(401)

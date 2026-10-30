@@ -3,7 +3,7 @@ import { parseLevelValue } from '@/lib/levels'
 import { parseScoreTxt } from '@/lib/scoreFormat'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 import { GAME_SONG_ID, SubmissionError } from './validation'
-import { lockApprovalSong, lockApprovalTarget, lockSubmission } from './service'
+import { lockApprovalSong, lockSubmission } from './service'
 
 export async function approveSubmission(id: string, expected: number, gameSongId: string) {
   if (!GAME_SONG_ID.test(gameSongId)) throw new SubmissionError(400, '曲番号は000以外の3〜8桁の数字にしてください。')
@@ -18,16 +18,11 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     if (current.revision !== expected) throw new SubmissionError(409, '申請が更新されました。内容を確認し直してください。')
     if (current.gameSongId && current.gameSongId !== gameSongId) throw new SubmissionError(409, '登録済み・承認処理中の曲番号は変更できません。')
     if (!['pending', 'publishing'].includes(current.status)) throw new SubmissionError(409, '承認待ちの申請ではありません。')
-    if (current.publishedSongId) await lockApprovalTarget(tx, current.publishedSongId)
     const other = await tx.chartSubmission.findFirst({ where: {
       status: 'publishing', id: { not: id },
-      OR: [{ gameSongId }, ...(current.publishedSongId ? [{ publishedSongId: current.publishedSongId }] : [])],
+      gameSongId,
     } })
     if (other) throw new SubmissionError(409, 'この曲の別の申請が承認処理中です。先にその処理を完了してください。')
-    if (current.publishedSongId) {
-      const target = await tx.song.findUniqueOrThrow({ where: { id: current.publishedSongId } })
-      if (target.gameSongId && target.gameSongId !== gameSongId) throw new SubmissionError(409, '修正対象の曲番号と一致しません。')
-    }
     return tx.chartSubmission.update({ where: { id }, data: { status: 'publishing', gameSongId } })
   }, { maxWait: 20000, timeout: 20000 })
   // Keep cross-instance DB locks across the external write and local publication.
@@ -38,11 +33,6 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     const row = await tx.chartSubmission.findUnique({ where: { id } })
     if (!row) throw new SubmissionError(404, '申請は承認済み、または削除されています。')
     if (row.status !== 'publishing' || row.revision !== expected || row.gameSongId !== gameSongId) throw new SubmissionError(409, '承認状態が変わりました。')
-    if (row.publishedSongId) {
-      await lockApprovalTarget(tx, row.publishedSongId)
-      const target = await tx.song.findUniqueOrThrow({ where: { id: row.publishedSongId } })
-      if (target.gameSongId && target.gameSongId !== gameSongId) throw new SubmissionError(409, '修正対象の曲番号と一致しません。')
-    }
     let response: Response
     try {
       response = await fetch(`https://ranking.kayomodoki.com/api/v1/admin/songs/${gameSongId}`, {
@@ -67,14 +57,12 @@ export async function approveSubmission(id: string, expected: number, gameSongId
       youtubeUrl: row.youtubeUrl, creatorName: row.creatorName, gameSongId,
       scoreEntries: JSON.stringify(parsed.scoreEntries), scoreTxt: row.txtContent,
     }
-    const song = row.publishedSongId
-      ? await tx.song.update({ where: { id: row.publishedSongId }, data })
-      : await tx.song.create({ data })
+    await tx.song.upsert({ where: { gameSongId }, create: data, update: data })
     // Publication and cleanup commit together; failures leave the reserved submission retryable.
     await tx.chartSubmission.delete({ where: { id } })
-    return { status: 'approved', publishedSongId: song.id, gameSongId }
+    return { status: 'approved', gameSongId }
   }, { maxWait: 20000, timeout: 20000 })
   revalidateSongsCache()
-  if (saved.publishedSongId) revalidateSongCache(saved.publishedSongId)
+  revalidateSongCache(gameSongId)
   return saved
 }

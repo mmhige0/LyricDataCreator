@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 
 interface SongPlayerProps {
   song: {
-    id: number
+    gameSongId: string
     title: string
     artist: string | null
     youtubeUrl: string

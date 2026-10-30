@@ -13,7 +13,7 @@ import {
 } from "@/types/songs"
 
 export const SONGS_TAG = "songs"
-const SONG_DETAIL_TAG_PREFIX = "song-detail"
+const SONG_DETAIL_TAG_PREFIX = "song-detail-game-number"
 const RANDOM_SONG_COUNT = 10
 
 type SongsQuery = {
@@ -65,7 +65,7 @@ const buildListKey = (params: {
   levelMin?: number | null
   levelMax?: number | null
 }) => [
-  "song-list-game-number-v2",
+  "song-list-game-key-v3",
   `q:${params.search || "all"}`,
   `sort:${params.sortKey}:${params.sortDirection}`,
   `page:${params.page}`,
@@ -92,7 +92,7 @@ const buildSearchFilter = (search: string) => {
 
 const buildSort = (sortKey: SongSortKey, sortDirection: SongSortDirection) => {
   const direction = sortDirection === 'desc' ? Prisma.sql`DESC` : Prisma.sql`ASC`
-  const numberOrder = Prisma.sql`"gameSongId"::bigint ${direction} NULLS LAST, "gameSongId" COLLATE "C" ${direction}, "id" ${direction}`
+  const numberOrder = Prisma.sql`"gameSongId"::bigint ${direction} NULLS LAST, "gameSongId" COLLATE "C" ${direction}`
   // Keep the historical `id` sort parameter as an alias for public song number.
   if (sortKey === 'gameSongId' || sortKey === 'id') return numberOrder
   if (sortKey === 'level') return Prisma.sql`"levelValue" ${direction} ${sortDirection === 'asc' ? Prisma.sql`NULLS LAST` : Prisma.sql`NULLS FIRST`}, ${numberOrder}`
@@ -136,18 +136,18 @@ const logDatabaseConnectionFallback = (operation: string, error: unknown) => {
   })
 }
 
-const buildSongDetailKey = (id: number) => [SONG_DETAIL_TAG_PREFIX, `id:${id}`]
-const buildSongDetailTag = (id: number) => `${SONG_DETAIL_TAG_PREFIX}:${id}`
+const buildSongDetailKey = (gameSongId: string) => [SONG_DETAIL_TAG_PREFIX, gameSongId]
+const buildSongDetailTag = (gameSongId: string) => `${SONG_DETAIL_TAG_PREFIX}:${gameSongId}`
 
-export const getSongById = async (id: number) => {
+export const getSongByGameSongId = async (gameSongId: string) => {
   if (!isDatabaseConfigured) return null
 
   try {
     return await unstable_cache(
-      async () => prisma.song.findUnique({ where: { id } }),
-      buildSongDetailKey(id),
+      async () => prisma.song.findUnique({ where: { gameSongId } }),
+      buildSongDetailKey(gameSongId),
       {
-        tags: [buildSongDetailTag(id)],
+        tags: [buildSongDetailTag(gameSongId)],
         revalidate: false,
       }
     )()
@@ -196,7 +196,7 @@ export const getSongsPage = async ({
     data = await unstable_cache(
       async () =>
         prisma.$queryRaw<SongSummary[]>(Prisma.sql`
-          SELECT "id", "gameSongId", "title", "artist", "youtubeUrl", "level"
+          SELECT "gameSongId", "title", "artist", "youtubeUrl", "level"
           FROM "song"
           ${whereSql}
           ORDER BY ${orderBy}
@@ -260,7 +260,7 @@ export const getRandomSongs = async ({
     data = await prisma.$queryRaw<
       SongSummary[]
     >(Prisma.sql`
-      SELECT "id", "gameSongId", "title", "artist", "youtubeUrl", "level"
+      SELECT "gameSongId", "title", "artist", "youtubeUrl", "level"
       FROM "song"
       ${whereSql}
       ORDER BY random()
@@ -283,7 +283,6 @@ export const getRandomSongs = async ({
     try {
       candidates = await prisma.song.findMany({
         select: {
-          id: true,
           gameSongId: true,
           title: true,
           artist: true,
@@ -319,6 +318,6 @@ export const revalidateSongsCache = () => {
   revalidateTag(SONGS_TAG, 'max')
 }
 
-export const revalidateSongCache = (id: number) => {
-  revalidateTag(buildSongDetailTag(id), 'max')
+export const revalidateSongCache = (gameSongId: string) => {
+  revalidateTag(buildSongDetailTag(gameSongId), 'max')
 }

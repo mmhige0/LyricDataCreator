@@ -1,6 +1,5 @@
 export type SongSummary = {
-  id: number
-  gameSongId: string | null
+  gameSongId: string
   title: string
   artist: string | null
   youtubeUrl: string
