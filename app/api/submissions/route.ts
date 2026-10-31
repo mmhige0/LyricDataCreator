@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db'
 import { checkId, clientIp, editToken, endpoint, hashToken, json, readJson, requirePosting } from '@/lib/submissions/http'
-import { object, parseSubmission, SubmissionError } from '@/lib/submissions/validation'
+import { GAME_SONG_ID, object, parseSubmission, SubmissionError } from '@/lib/submissions/validation'
 import { consumeQuota, lockSubmission, owned, privateSubmission } from '@/lib/submissions/service'
 import { verifyTurnstile } from '@/lib/submissions/turnstile'
 
@@ -13,6 +13,10 @@ export async function POST(request: Request) {
     const id = String(body.id ?? '')
     checkId(id)
     const input = parseSubmission(body)
+    const gameSongId = body.gameSongId ?? null
+    if (gameSongId !== null && (typeof gameSongId !== 'string' || !GAME_SONG_ID.test(gameSongId))) {
+      throw new SubmissionError(400, '曲番号が不正です。')
+    }
     const ip = clientIp(request)
     await verifyTurnstile(body.turnstileToken, ip)
     const row = await prisma.$transaction(async tx => {
@@ -21,13 +25,16 @@ export async function POST(request: Request) {
       // A lost success response can be retried without a duplicate submission or quota charge.
       if (existing) {
         const current = owned(existing, token)
-        if (!Object.entries(input).every(([key, value]) => current[key as keyof typeof input] === value)) {
+        if (current.gameSongId !== gameSongId || !Object.entries(input).every(([key, value]) => current[key as keyof typeof input] === value)) {
           throw new SubmissionError(409, '投稿は保存済みです。投稿内容を読み込んでから変更してください。')
         }
         return current
       }
+      if (gameSongId !== null && !await tx.song.findUnique({ where: { gameSongId } })) {
+        throw new SubmissionError(404, '修正対象の公開曲が見つかりません。')
+      }
       await consumeQuota(tx, ip, true)
-      return tx.chartSubmission.create({ data: { id, editTokenHash: hashToken(token), ...input } })
+      return tx.chartSubmission.create({ data: { id, editTokenHash: hashToken(token), gameSongId, ...input } })
     })
     return json(privateSubmission(row), 201)
   })

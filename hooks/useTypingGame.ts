@@ -205,7 +205,7 @@ export const useTypingGame = ({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (gameStatus !== 'playing') return
+      if (gameStatus !== 'playing' || document.querySelector('dialog[open]')) return
 
       const target = event.target as HTMLElement | null
       const tagName = target?.tagName?.toLowerCase()

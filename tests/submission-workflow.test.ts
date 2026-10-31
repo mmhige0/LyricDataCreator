@@ -76,6 +76,17 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1, 1])
     expect(rankingCalls).toBe(0)
   })
+  it('retains the exact published song number for revision proposals and rejects missing targets', async () => {
+    expect((await create(request({ ...input, gameSongId: '001' }))).status).toBe(404)
+    expect((await create(request({ ...input, gameSongId: 1 }))).status).toBe(400)
+    await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', scoreTxt: input.txtContent } })
+    expect((await create(request({ ...input, gameSongId: '001' }))).status).toBe(201)
+    expect((await create(request({ ...input, gameSongId: '001' }))).status).toBe(201)
+    expect((await create(request({ ...input, gameSongId: '0001' }))).status).toBe(409)
+    expect((await update(request({ ...input, revision: 1, gameSongId: '0001' }, token, 'PUT'), context())).status).toBe(200)
+    expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).gameSongId).toBe('001')
+    expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).title).toBe('公開曲')
+  })
   it('rejects access and updates using somebody else’s key', async () => {
     await create(request(input))
     expect((await get(request(undefined, 'x'.repeat(43), 'GET'), context())).status).toBe(404)

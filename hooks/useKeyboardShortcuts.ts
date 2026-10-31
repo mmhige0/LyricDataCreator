@@ -44,7 +44,7 @@ export const useKeyboardShortcuts = ({
   const addPageRef = useRef(addPage)
   useLayoutEffect(() => { addPageRef.current = addPage }, [addPage])
   return (event: KeyboardEvent) => {
-    if (event.defaultPrevented) return
+    if (event.defaultPrevented || document.querySelector('dialog[open]')) return
     const inPopEditor = document.activeElement?.closest('[data-pop-editor]')
     if (inPopEditor && !popShortcuts && (event.key === 'Delete'
       || (event.ctrlKey && ['c', 'v'].includes(event.key.toLowerCase())))) return
@@ -203,6 +203,7 @@ export function registerEditorKeyboardShortcuts(handler: (event: KeyboardEvent) 
   // Some IMEs deliver text input separately from the canceled keydown.
   // Limit protection to the same field and this physical shortcut gesture.
   const capturePlayback = (event: KeyboardEvent) => {
+    if (document.querySelector('dialog[open]')) { clearPending(); return }
     if (isAddPageShortcut(event)) {
       clearPending()
       handler(event)

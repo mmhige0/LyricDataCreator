@@ -237,7 +237,7 @@ export default function LyricsTypingApp() {
   useEffect(() => {
     cleanupExpiredDrafts()
 
-    const openingSubmission = new URLSearchParams(location.search).has('submission')
+    const openingSubmission = ['submission', 'song'].some(key => new URLSearchParams(location.search).has(key))
     if (openingSubmission) createNewSessionId()
     else getOrCreateSessionId()
 
@@ -396,6 +396,16 @@ export default function LyricsTypingApp() {
         titleHref={PORTAL_ORIGIN}
         songTitle={songTitle || undefined}
         actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <SubmissionPanel title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
+              onLoad={data => {
+                saveCurrentState()
+                setSongTitle(data.title); setYoutubeUrl(data.youtubeUrl); setDuration(data.duration)
+                setScoreEntries(data.scoreEntries); setCentralPops(data.centralPops)
+                hasRestoredDraftRef.current = true
+                setIsRestoreDialogOpen(false)
+                loadYouTubeVideo(data.youtubeUrl)
+              }} />
           <div
             className="inline-flex items-center gap-1 rounded-full bg-muted p-1 text-sm shadow-inner"
             role="tablist"
@@ -444,6 +454,7 @@ export default function LyricsTypingApp() {
               プレイ
             </Button>
           </div>
+          </div>
         }
       />
 
@@ -491,15 +502,6 @@ export default function LyricsTypingApp() {
                 />
 
                 <TimestampOffsetControl value={timestampOffset} onChange={setTimestampOffset} />
-                <SubmissionPanel title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
-                  onLoad={data => {
-                    saveCurrentState()
-                    setSongTitle(data.title); setYoutubeUrl(data.youtubeUrl); setDuration(data.duration)
-                    setScoreEntries(data.scoreEntries); setCentralPops(data.centralPops)
-                    hasRestoredDraftRef.current = true
-                    setIsRestoreDialogOpen(false)
-                    loadYouTubeVideo(data.youtubeUrl)
-                  }} />
                 <EditorShortcuts />
                 <HelpSection />
               </div>
