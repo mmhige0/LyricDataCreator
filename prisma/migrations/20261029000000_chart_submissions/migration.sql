@@ -21,6 +21,7 @@ CREATE TABLE "chart_submission" (
     "level" TEXT,
     "youtubeUrl" TEXT NOT NULL,
     "txtContent" TEXT NOT NULL,
+    "notes" TEXT NOT NULL DEFAULT '',
     "status" TEXT NOT NULL DEFAULT 'pending',
     "revision" INTEGER NOT NULL DEFAULT 1,
     "gameSongId" TEXT,

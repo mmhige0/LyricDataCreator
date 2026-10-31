@@ -39,6 +39,7 @@ model ChartSubmission {
   level           String?
   youtubeUrl      String
   txtContent      String
+  notes           String   @default("")
   status          String   @default("pending")
   revision        Int      @default(1)
   gameSongId      String?

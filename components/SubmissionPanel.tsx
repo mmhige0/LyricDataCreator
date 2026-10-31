@@ -28,6 +28,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
   const [creatorName, setCreatorName] = useState('')
   const [submittedTitle, setSubmittedTitle] = useState<string | null>(null)
   const [artist, setArtist] = useState('')
+  const [notes, setNotes] = useState('')
   const [level, setLevel] = useState('')
   const [version, setVersion] = useState<number | null>(null)
   const [status, setStatus] = useState('')
@@ -64,7 +65,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
         : await submissionFetch(`/api/songs/${encodeURIComponent(sourceSong!)}/edit`, '')
       const parsed = parseScoreTxt(row.txtContent)
       onLoad({ title: row.title, youtubeUrl: row.youtubeUrl, ...parsed })
-      setSubmittedTitle(row.title); setCreatorName(row.creatorName); setArtist(row.artist ?? ''); setLevel(row.level ?? '')
+      setSubmittedTitle(row.title); setCreatorName(row.creatorName); setArtist(row.artist ?? ''); setLevel(row.level ?? ''); setNotes(row.notes ?? '')
       setSubmittedYoutubeUrl(row.youtubeUrl); setGameSongId(row.gameSongId ?? null)
       setVersion(row.revision ?? null); setStatus(row.status ?? ''); setNeedsLoad(false)
       setMessage(''); setReloadOffered(false); setOpen(false)
@@ -84,7 +85,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
       setCredentials(key)
       const row = await submissionFetch(`/api/submissions${version === null ? '' : `/${key.id}`}`, key.token, {
         method: version === null ? 'POST' : 'PUT',
-        body: JSON.stringify({ id: key.id, revision: version, title: name, creatorName, artist, level, youtubeUrl: submittedYoutubeUrl ?? youtubeUrl, gameSongId, txtContent, turnstileToken: token }),
+        body: JSON.stringify({ id: key.id, revision: version, title: name, creatorName, artist, level, notes, youtubeUrl: submittedYoutubeUrl ?? youtubeUrl, gameSongId, txtContent, turnstileToken: token }),
       })
       setVersion(row.revision); setStatus(row.status); setNeedsLoad(false)
       history.replaceState(null, '', `/editor?submission=${key.id}`)
@@ -118,11 +119,16 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
           {gameSongId && <p className="rounded-md bg-muted p-3 text-sm">修正対象：曲番 {gameSongId}</p>}
           {status && <p className="text-sm">{statusLabel[status]}</p>}
           <fieldset disabled={busy || status === 'publishing'} className="space-y-4">
-            <label className="block text-sm">曲名（必須）<Input required maxLength={200} value={submittedTitle ?? title} onChange={event => setSubmittedTitle(event.target.value)} /></label>
-            <label className="block text-sm">アーティスト<Input maxLength={200} value={artist} onChange={event => setArtist(event.target.value)} /></label>
-            <label className="block text-sm">難易度<Input maxLength={4} placeholder="5+ / - / ?（空欄可）" value={level} onChange={event => setLevel(event.target.value)} /></label>
-            <label className="block text-sm">YouTube URL（必須）<Input required type="url" maxLength={500} value={submittedYoutubeUrl ?? youtubeUrl} onChange={event => setSubmittedYoutubeUrl(event.target.value)} /></label>
-            <label className="block text-sm">制作者名（必須・自己申告）<Input required maxLength={40} value={creatorName} onChange={event => setCreatorName(event.target.value)} /></label>
+            <label className="block text-sm">曲名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={200} value={submittedTitle ?? title} onChange={event => setSubmittedTitle(event.target.value)} /></label>
+            <label className="block text-sm">アーティスト <span className="ml-1 text-xs text-muted-foreground">任意</span><Input maxLength={200} value={artist} onChange={event => setArtist(event.target.value)} /></label>
+            <label className="block text-sm">YouTube URL <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required type="url" maxLength={500} value={submittedYoutubeUrl ?? youtubeUrl} onChange={event => setSubmittedYoutubeUrl(event.target.value)} /></label>
+            <label className="block text-sm">制作者名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={40} value={creatorName} onChange={event => setCreatorName(event.target.value)} /></label>
+            <label className="block text-sm">補足情報 <span className="ml-1 text-xs text-muted-foreground">任意</span>
+              <textarea maxLength={2000} rows={4} value={notes} onChange={event => setNotes(event.target.value)}
+                placeholder="修正した箇所や、確認してほしいことなど"
+                className="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" />
+            </label>
+            <p className="text-xs text-muted-foreground">補足情報は承認者だけが確認します。公開されません。</p>
           </fieldset>
           {open && status !== 'publishing' && <SubmissionTurnstile key={challenge} onToken={setToken} />}
           <div className="flex justify-end gap-2">

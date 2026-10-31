@@ -94,6 +94,12 @@ it('loads a public song with its exact number and opens submission only when req
     expect(fetch.mock.calls[0][0]).toBe('/api/songs/001/edit')
     expect(host.querySelector('dialog')?.open).toBe(false)
     await click('変更を申請する')
+    expect([...host.querySelectorAll('label')].some(row => row.textContent?.startsWith('難易度'))).toBe(false)
+    const notes = host.querySelector('textarea')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(notes, '2ページ目を修正\nタイミング確認をお願いします')
+      notes.dispatchEvent(new Event('input', { bubbles: true }))
+    })
     expect(host.querySelector('dialog')?.textContent).toContain('修正対象：曲番 001')
     const creator = [...host.querySelectorAll('label')].find(row => row.textContent?.startsWith('制作者名'))!.querySelector('input')!
     expect(creator.value).toBe('')
@@ -102,7 +108,7 @@ it('loads a public song with its exact number and opens submission only when req
       creator.dispatchEvent(new Event('input', { bubbles: true }))
     })
     await act(async () => host.querySelector('dialog form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
-    expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toMatchObject({ gameSongId: '001', title: '公開曲', artist: 'Artist', creatorName: '修正者' })
+    expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toMatchObject({ gameSongId: '001', title: '公開曲', artist: 'Artist', creatorName: '修正者', notes: '2ページ目を修正\nタイミング確認をお願いします', level: '5+' })
     expect(host.querySelector('dialog')?.textContent).toContain('編集用リンクをコピー')
   } finally { await act(async () => root.unmount()); host.remove() }
 })

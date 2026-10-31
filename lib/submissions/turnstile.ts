@@ -15,5 +15,9 @@ export async function verifyTurnstile(token: unknown, ip: string) {
     if (!response.ok) throw new Error('Unavailable')
     result = await response.json()
   } catch { throw new SubmissionError(503, 'Bot確認に接続できません。再試行してください。') }
-  if (result.success !== true || result.hostname !== hostname || result.action !== 'chart-submit') throw new SubmissionError(400, 'Bot確認が無効です。再度確認してください。')
+  // Official dummy tokens do not carry a real widget's hostname/action.
+  // Keep the exception limited to development and the exact official success pair.
+  const localTest = process.env.NODE_ENV === 'development'
+    && secret === '1x0000000000000000000000000000000AA' && token === 'XXXX.DUMMY.TOKEN.XXXX'
+  if (result.success !== true || (!localTest && (result.hostname !== hostname || result.action !== 'chart-submit'))) throw new SubmissionError(400, 'Bot確認が無効です。再度確認してください。')
 }

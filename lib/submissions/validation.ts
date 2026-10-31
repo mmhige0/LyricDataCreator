@@ -15,10 +15,10 @@ export function object(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-function text(value: unknown, max: number, required = true): string {
+function text(value: unknown, max: number, required = true, multiline = false): string {
   if (typeof value !== 'string') throw new SubmissionError(400, '文字列を入力してください。')
   const result = value.trim()
-  if ((required && !result) || [...result].length > max || /[\u0000-\u001f\u007f-\u009f\uD800-\uDFFF]/u.test(result)) {
+  if ((required && !result) || [...result].length > max || (multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\uD800-\uDFFF]/u : /[\u0000-\u001f\u007f-\u009f\uD800-\uDFFF]/u).test(result)) {
     throw new SubmissionError(400, `項目の長さ・文字が不正です（最大${max}文字）。`)
   }
   return result
@@ -46,6 +46,7 @@ export function parseSubmission(value: unknown) {
   const artist = text(input.artist ?? '', 200, false) || null
   const level = text(input.level ?? '', 4, false) || null
   if (level && !/^(?:[1-9][0-9]?[+-]?|[-?])$/.test(level)) throw new SubmissionError(400, '難易度が不正です。')
+  const notes = text(input.notes ?? '', 2000, false, true)
   const youtubeUrl = canonicalYouTubeUrl(input.youtubeUrl)
   if (typeof input.txtContent !== 'string' || new TextEncoder().encode(input.txtContent).length > MAX_TXT_BYTES) {
     throw new SubmissionError(413, '譜面は128KiB以内にしてください。')
@@ -61,7 +62,7 @@ export function parseSubmission(value: unknown) {
   if ([...parsed.scoreEntries, ...parsed.centralPops].some(row => row.timestamp > parsed.duration)) {
     throw new SubmissionError(400, '総時間を超える表示時刻があります。')
   }
-  return { creatorName, title, artist, level, youtubeUrl, txtContent: input.txtContent }
+  return { creatorName, title, artist, level, youtubeUrl, txtContent: input.txtContent, notes }
 }
 
 export function revision(value: unknown): number {

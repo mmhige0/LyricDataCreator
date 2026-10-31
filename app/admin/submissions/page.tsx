@@ -10,7 +10,7 @@ import { statusLabel, submissionFetch } from '@/lib/submissions/client'
 import { PORTAL_ORIGIN } from '@/lib/site'
 
 type Summary = { id: string; title: string; creatorName: string; status: string; revision: number }
-type Submission = Summary & { artist: string | null; level: string | null; youtubeUrl: string; txtContent: string; gameSongId: string | null }
+type Submission = Summary & { artist: string | null; level: string | null; youtubeUrl: string; txtContent: string; notes: string; gameSongId: string | null }
 
 export default function AdminSubmissionsPage() {
   const [key, setKey] = useState('')
@@ -69,6 +69,10 @@ export default function AdminSubmissionsPage() {
         <p>制作者：{selected.creatorName} ／ アーティスト：{selected.artist || '未指定'} ／ 難易度：{selected.level || '未指定'}</p>
         <p>{statusLabel[selected.status]}</p>
         <p>{selected.youtubeUrl}</p>
+        <div className="space-y-1 rounded-md bg-muted p-3">
+          <h3 className="text-sm font-medium">補足情報</h3>
+          <p className="whitespace-pre-wrap break-words text-sm">{selected.notes || '補足情報はありません。'}</p>
+        </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={download}>TXTをダウンロード</Button>
           <Button variant="outline" onClick={() => setPreview(!preview)}>プレビュー{preview ? 'を閉じる' : 'を開く'}</Button>

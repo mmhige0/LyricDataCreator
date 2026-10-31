@@ -14,7 +14,7 @@ const id = 'a1b7a034-5a5b-413b-b8b7-56d9d881c911'
 const other = 'a1b7a034-5a5b-413b-b8b7-56d9d881c912'
 const token = 'a'.repeat(43)
 const admin = 'b'.repeat(43)
-const input = { id, creatorName: '架空の作者', title: "架空の曲名 '; DROP TABLE song; --", artist: '<script>alert(1)</script>', level: '5+', youtubeUrl: 'https://youtu.be/abcdefghijk', txtContent: '10\nあ/い/う/え/1\n!/!/!/!/999.9\n', turnstileToken: 'valid' }
+const input = { id, creatorName: '架空の作者', title: "架空の曲名 '; DROP TABLE song; --", artist: '<script>alert(1)</script>', level: '5+', youtubeUrl: 'https://youtu.be/abcdefghijk', txtContent: '10\nあ/い/う/え/1\n!/!/!/!/999.9\n', turnstileToken: 'valid', notes: '修正箇所\n2ページ目を調整' }
 const request = (body?: unknown, secret = token, method = 'POST') => new Request('https://example.test/api/submissions/', {
   method, headers: { Authorization: `Bearer ${secret}`, 'Content-Type': 'application/json' },
   ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
@@ -68,7 +68,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   it('stores an anonymous pending submission, literal symbols and only the token hash; retry does not duplicate', async () => {
     expect((await create(request(input))).status).toBe(201)
     const row = await db.chartSubmission.findUniqueOrThrow({ where: { id } })
-    expect(row).toMatchObject({ title: input.title, artist: input.artist, status: 'pending', revision: 1 })
+    expect(row).toMatchObject({ title: input.title, artist: input.artist, status: 'pending', revision: 1, notes: input.notes })
     expect(row.editTokenHash).not.toBe(token)
     expect(await db.song.count()).toBe(0)
     expect((await create(request(input))).status).toBe(201)
@@ -97,10 +97,11 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   })
   it('allows pending changes but rejects stale edit/approval versions', async () => {
     await create(request(input))
-    const changed = { ...input, title: '架空の修正', revision: 1 }
+    const changed = { ...input, title: '架空の修正', revision: 1, notes: '変更後のメモ\n2行目' }
     expect((await update(request(changed, token, 'PUT'), context())).status).toBe(200)
     expect((await update(request(changed, token, 'PUT'), context())).status).toBe(200)
     expect((await update(request({ ...input, revision: 1 }, token, 'PUT'), context())).status).toBe(409)
+    expect(await (await get(request(undefined, token, 'GET'), context())).json()).toMatchObject({ notes: changed.notes })
     expect((await approve(1)).status).toBe(409)
     expect(rankingCalls).toBe(0)
     expect((await approve(2)).status).toBe(200)

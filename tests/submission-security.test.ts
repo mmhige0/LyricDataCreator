@@ -54,3 +54,25 @@ describe('anonymous submission boundary', () => {
     await expect(verifyTurnstile('token', '192.0.2.1')).resolves.toBeUndefined()
   })
 })
+
+it('accepts bounded multiline notes while rejecting control characters', () => {
+  expect(parseSubmission({ ...input, notes: ' 修正箇所\n2ページ目を調整\t確認お願いします ' }).notes).toBe('修正箇所\n2ページ目を調整\t確認お願いします')
+  expect(parseSubmission(input).notes).toBe('')
+  expect(() => parseSubmission({ ...input, notes: 'a'.repeat(2001) })).toThrow()
+  expect(() => parseSubmission({ ...input, notes: 'a\u0000b' })).toThrow()
+})
+
+it('only accepts official dummy verification metadata in development', async () => {
+  vi.stubEnv('TURNSTILE_SECRET_KEY', '1x0000000000000000000000000000000AA')
+  vi.stubEnv('TURNSTILE_HOSTNAME', 'localhost')
+  vi.stubEnv('NODE_ENV', 'development')
+  const reply = (success: boolean) => vi.stubGlobal('fetch', vi.fn(async () => Response.json({ success, hostname: 'localhost', action: 'test' })))
+  reply(true)
+  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX', '127.0.0.1')).resolves.toBeUndefined()
+  await expect(verifyTurnstile('other-token', '127.0.0.1')).rejects.toMatchObject({ status: 400 })
+  reply(false)
+  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX', '127.0.0.1')).rejects.toMatchObject({ status: 400 })
+  reply(true)
+  vi.stubEnv('NODE_ENV', 'production')
+  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX', '127.0.0.1')).rejects.toMatchObject({ status: 400 })
+})
