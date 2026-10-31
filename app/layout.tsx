@@ -3,7 +3,6 @@ import { Space_Grotesk, Inter_Tight, JetBrains_Mono, Dela_Gothic_One } from 'nex
 import './globals.css'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/theme-provider'
-import { DomainMoveBanner } from '@/components/DomainMoveBanner'
 import { SITE_ORIGIN } from '@/lib/site'
 
 const spaceGrotesk = Space_Grotesk({
@@ -57,7 +56,6 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
         >
-          <DomainMoveBanner />
           {children}
           <Toaster
             richColors

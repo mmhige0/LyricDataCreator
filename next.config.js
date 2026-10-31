@@ -4,6 +4,12 @@ const nextConfig = {
   async redirects() {
     return [
       {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'lyric-data-creator\\.vercel\\.app' }],
+        destination: 'https://ldc.kayomodoki.com/:path*',
+        permanent: true,
+      },
+      {
         source: '/',
         destination: '/editor/',
         permanent: false,
