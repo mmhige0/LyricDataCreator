@@ -33,13 +33,15 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     const row = await tx.chartSubmission.findUnique({ where: { id } })
     if (!row) throw new SubmissionError(404, '申請は承認済み、または削除されています。')
     if (row.status !== 'publishing' || row.revision !== expected || row.gameSongId !== gameSongId) throw new SubmissionError(409, '承認状態が変わりました。')
+    const currentSong = await tx.song.findUnique({ where: { gameSongId } })
+    const level = currentSong?.level ?? null
     let response: Response
     try {
       response = await fetch(`https://ranking.kayomodoki.com/api/v1/admin/songs/${gameSongId}`, {
         method: 'PUT',
         redirect: 'error',
         headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: row.title, artist: row.artist, level: row.level }),
+        body: JSON.stringify({ title: row.title, artist: row.artist, level }),
         signal: AbortSignal.timeout(10000),
         cache: 'no-store',
       })
@@ -50,12 +52,12 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     let confirmation
     try { confirmation = await response.json() }
     catch { throw new SubmissionError(502, 'ランキングの応答を確認できません。同じ版・曲番号で再試行してください。') }
-    if (confirmation.song?.gameSongId !== gameSongId || confirmation.song?.title !== row.title || confirmation.song?.artist !== row.artist || confirmation.song?.level !== row.level) throw new SubmissionError(502, 'ランキングの登録内容を確認できません。')
+    if (confirmation.song?.gameSongId !== gameSongId || confirmation.song?.title !== row.title || confirmation.song?.artist !== row.artist || confirmation.song?.level !== level) throw new SubmissionError(502, 'ランキングの登録内容を確認できません。')
     const parsed = parseScoreTxt(row.txtContent)
     const data = {
-      title: row.title, artist: row.artist, level: row.level, levelValue: parseLevelValue(row.level),
+      title: row.title, artist: row.artist, level, levelValue: parseLevelValue(level),
       youtubeUrl: row.youtubeUrl, creatorName: row.creatorName, gameSongId,
-      scoreEntries: JSON.stringify(parsed.scoreEntries), scoreTxt: row.txtContent,
+      scoreEntries: JSON.stringify(parsed.scoreEntries), scoreTxt: row.txtContent, notes: row.notes,
     }
     await tx.song.upsert({ where: { gameSongId }, create: data, update: data })
     // Publication and cleanup commit together; failures leave the reserved submission retryable.

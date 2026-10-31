@@ -80,7 +80,7 @@ it('loads a public song with its exact number and opens submission only when req
   history.replaceState(null, '', '/editor?song=001')
   const fetch = vi.fn(async (_url: string, init?: RequestInit) => Response.json(init?.method === 'POST'
     ? { revision: 1, status: 'pending' }
-    : { gameSongId: '001', title: '公開曲', creatorName: '', artist: 'Artist', level: '5+', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', txtContent: '10\nあ/い/う/え/1\n!/!/!/!/999.9\n' }))
+    : { gameSongId: '001', title: '公開曲', creatorName: '', artist: 'Artist', notes: '公開された補足情報', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', txtContent: '10\nあ/い/う/え/1\n!/!/!/!/999.9\n' }))
   vi.stubGlobal('fetch', fetch)
   const host = document.createElement('div'); document.body.append(host)
   const root = createRoot(host)
@@ -96,6 +96,7 @@ it('loads a public song with its exact number and opens submission only when req
     await click('変更を申請する')
     expect([...host.querySelectorAll('label')].some(row => row.textContent?.startsWith('難易度'))).toBe(false)
     const notes = host.querySelector('textarea')!
+    expect(notes.value).toBe('公開された補足情報')
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(notes, '2ページ目を修正\nタイミング確認をお願いします')
       notes.dispatchEvent(new Event('input', { bubbles: true }))
@@ -108,7 +109,8 @@ it('loads a public song with its exact number and opens submission only when req
       creator.dispatchEvent(new Event('input', { bubbles: true }))
     })
     await act(async () => host.querySelector('dialog form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
-    expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toMatchObject({ gameSongId: '001', title: '公開曲', artist: 'Artist', creatorName: '修正者', notes: '2ページ目を修正\nタイミング確認をお願いします', level: '5+' })
+    expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).toMatchObject({ gameSongId: '001', title: '公開曲', artist: 'Artist', creatorName: '修正者', notes: '2ページ目を修正\nタイミング確認をお願いします' })
+    expect(JSON.parse(String(fetch.mock.calls[1][1]?.body))).not.toHaveProperty('level')
     expect(host.querySelector('dialog')?.textContent).toContain('編集用リンクをコピー')
   } finally { await act(async () => root.unmount()); host.remove() }
 })

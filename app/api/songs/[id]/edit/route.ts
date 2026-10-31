@@ -14,7 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const entries = parseScoreEntries(song.scoreEntries)
     // Legacy imports may only have parsed pages; preserve them until TXT is reimported.
     const txtContent = song.scoreTxt ?? createScoreTxt(Math.max(0, ...entries.map(row => row.timestamp)) + 5, entries, [])
-    return json({ gameSongId: id, title: song.title, artist: song.artist, level: song.level,
+    return json({ gameSongId: id, title: song.title, artist: song.artist, notes: song.notes,
       youtubeUrl: song.youtubeUrl, creatorName: '', txtContent })
   })
 }

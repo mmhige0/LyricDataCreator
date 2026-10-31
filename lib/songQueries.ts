@@ -13,7 +13,7 @@ import {
 } from "@/types/songs"
 
 export const SONGS_TAG = "songs"
-const SONG_DETAIL_TAG_PREFIX = "song-detail-game-number"
+const SONG_DETAIL_TAG_PREFIX = "song-detail-game-number-notes"
 const RANDOM_SONG_COUNT = 10
 
 type SongsQuery = {

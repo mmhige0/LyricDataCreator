@@ -10,7 +10,7 @@ import { statusLabel, submissionFetch } from '@/lib/submissions/client'
 import { PORTAL_ORIGIN } from '@/lib/site'
 
 type Summary = { id: string; title: string; creatorName: string; status: string; revision: number }
-type Submission = Summary & { artist: string | null; level: string | null; youtubeUrl: string; txtContent: string; notes: string; gameSongId: string | null }
+type Submission = Summary & { artist: string | null; youtubeUrl: string; txtContent: string; notes: string; gameSongId: string | null }
 
 export default function AdminSubmissionsPage() {
   const [key, setKey] = useState('')
@@ -42,6 +42,11 @@ export default function AdminSubmissionsPage() {
     })
     setSelected(action === 'approve' ? null : result); await list(); setMessage(action === 'approve' ? '承認・ランキング登録が完了しました。ゲームへの公開は別途行ってください。' : '却下しました。')
   }
+  const resend = async () => {
+    if (!selected) return
+    const result = await submissionFetch(`/api/admin/submissions/${selected.id}`, key, { method: 'POST', body: JSON.stringify({ action: 'notify', revision: selected.revision }) })
+    setMessage(result.discordNotification === 'sent' ? 'Discordへ送信しました。' : result.discordNotification === 'skipped' ? 'DiscordのWebhookが未設定です。' : 'Discordへ送信できませんでした。設定を確認して再試行してください。')
+  }
   const download = () => {
     if (!selected) return
     const url = URL.createObjectURL(new Blob([selected.txtContent], { type: 'text/plain;charset=utf-8' }))
@@ -54,7 +59,7 @@ export default function AdminSubmissionsPage() {
     <AppHeader title="Song Typing Theater" titleHref={PORTAL_ORIGIN} />
     <main className="max-w-5xl mx-auto p-6 space-y-6 [overflow-wrap:anywhere]">
       <h1 className="text-2xl font-semibold">譜面の承認</h1>
-      <form className="rounded-xl border bg-card text-card-foreground shadow-sm p-5 space-y-3" onSubmit={event => { event.preventDefault(); void run(() => list()) }}>
+      <form className="rounded-xl border bg-card text-card-foreground shadow-sm p-5 space-y-3" onSubmit={event => { event.preventDefault(); void run(async () => { await list(); const id = new URLSearchParams(location.search).get('submission'); if (id) await open(id) }) }}>
         <label className="block">管理用キー<Input type="password" autoComplete="off" value={key} onChange={event => { setKey(event.target.value); setRows([]); setSelected(null) }} /></label>
         <p className="text-sm">キーはこの画面を閉じると消えます。</p>
         <Button disabled={busy || !key}>申請一覧を読み込む</Button>
@@ -66,7 +71,7 @@ export default function AdminSubmissionsPage() {
       {nextCursor && <Button disabled={busy} onClick={() => void run(() => list(nextCursor))}>次の20件</Button>}
       {selected && <section className="rounded-xl border bg-card text-card-foreground shadow-sm p-5 space-y-4">
         <h2 className="text-xl">{selected.title}（第{selected.revision}版）</h2>
-        <p>制作者：{selected.creatorName} ／ アーティスト：{selected.artist || '未指定'} ／ 難易度：{selected.level || '未指定'}</p>
+        <p>制作者：{selected.creatorName} ／ アーティスト：{selected.artist || '未指定'}</p>
         <p>{statusLabel[selected.status]}</p>
         <p>{selected.youtubeUrl}</p>
         <div className="space-y-1 rounded-md bg-muted p-3">
@@ -74,6 +79,7 @@ export default function AdminSubmissionsPage() {
           <p className="whitespace-pre-wrap break-words text-sm">{selected.notes || '補足情報はありません。'}</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          <Button variant="outline" disabled={busy} onClick={() => void run(resend)}>Discordへ再送</Button>
           <Button variant="outline" onClick={download}>TXTをダウンロード</Button>
           <Button variant="outline" onClick={() => setPreview(!preview)}>プレビュー{preview ? 'を閉じる' : 'を開く'}</Button>
         </div>

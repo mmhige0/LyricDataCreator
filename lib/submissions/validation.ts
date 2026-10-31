@@ -44,8 +44,6 @@ export function parseSubmission(value: unknown) {
   const creatorName = text(input.creatorName, 40)
   const title = text(input.title, 200)
   const artist = text(input.artist ?? '', 200, false) || null
-  const level = text(input.level ?? '', 4, false) || null
-  if (level && !/^(?:[1-9][0-9]?[+-]?|[-?])$/.test(level)) throw new SubmissionError(400, '難易度が不正です。')
   const notes = text(input.notes ?? '', 2000, false, true)
   const youtubeUrl = canonicalYouTubeUrl(input.youtubeUrl)
   if (typeof input.txtContent !== 'string' || new TextEncoder().encode(input.txtContent).length > MAX_TXT_BYTES) {
@@ -62,7 +60,7 @@ export function parseSubmission(value: unknown) {
   if ([...parsed.scoreEntries, ...parsed.centralPops].some(row => row.timestamp > parsed.duration)) {
     throw new SubmissionError(400, '総時間を超える表示時刻があります。')
   }
-  return { creatorName, title, artist, level, youtubeUrl, txtContent: input.txtContent, notes }
+  return { creatorName, title, artist, youtubeUrl, txtContent: input.txtContent, notes }
 }
 
 export function revision(value: unknown): number {

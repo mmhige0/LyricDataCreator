@@ -9,7 +9,7 @@ ALTER TABLE "song" ADD CONSTRAINT "song_gameSongId_check"
 ALTER TABLE "song" DROP CONSTRAINT "song_pkey";
 ALTER TABLE "song" ADD CONSTRAINT "song_pkey" PRIMARY KEY ("gameSongId");
 ALTER TABLE "song" DROP COLUMN "id";
-ALTER TABLE "song" ADD COLUMN "creatorName" TEXT, ADD COLUMN "scoreTxt" TEXT;
+ALTER TABLE "song" ADD COLUMN "creatorName" TEXT, ADD COLUMN "scoreTxt" TEXT, ADD COLUMN "notes" TEXT NOT NULL DEFAULT '';
 
 -- CreateTable
 CREATE TABLE "chart_submission" (
@@ -18,7 +18,6 @@ CREATE TABLE "chart_submission" (
     "creatorName" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "artist" TEXT,
-    "level" TEXT,
     "youtubeUrl" TEXT NOT NULL,
     "txtContent" TEXT NOT NULL,
     "notes" TEXT NOT NULL DEFAULT '',

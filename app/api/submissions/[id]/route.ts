@@ -1,3 +1,4 @@
+import { notifySubmission } from '@/lib/submissions/discord'
 import { prisma } from '@/lib/db'
 import { checkId, clientIp, editToken, endpoint, json, readJson, requirePosting } from '@/lib/submissions/http'
 import { object, parseSubmission, revision, SubmissionError } from '@/lib/submissions/validation'
@@ -25,16 +26,18 @@ export async function PUT(request: Request, context: Context) {
     const expected = revision(body.revision)
     const ip = clientIp(request)
     await verifyTurnstile(body.turnstileToken, ip)
-    const row = await prisma.$transaction(async tx => {
+    const { row, changed } = await prisma.$transaction(async tx => {
       await lockSubmission(tx, id)
       const current = owned(await tx.chartSubmission.findUnique({ where: { id } }), token)
       if (current.status === 'publishing') throw new SubmissionError(409, '承認処理中のため変更できません。')
       // Idempotent retry after a lost update response.
-      if (current.revision === expected + 1 && current.status === 'pending' && Object.entries(input).every(([key, value]) => current[key as keyof typeof input] === value)) return current
+      if (current.revision === expected + 1 && current.status === 'pending' && Object.entries(input).every(([key, value]) => current[key as keyof typeof input] === value)) return { row: current, changed: false }
       if (current.revision !== expected) throw new SubmissionError(409, '別の画面で変更されています。読み込み直してください。')
       await consumeQuota(tx, ip, false)
-      return tx.chartSubmission.update({ where: { id }, data: { ...input, status: 'pending', revision: { increment: 1 } } })
+      const row = await tx.chartSubmission.update({ where: { id }, data: { ...input, status: 'pending', revision: { increment: 1 } } })
+      return { row, changed: true }
     })
-    return json(privateSubmission(row))
+    const discordNotification = changed ? await notifySubmission(row, 'updated') : 'unchanged'
+    return json({ ...privateSubmission(row), discordNotification })
   })
 }

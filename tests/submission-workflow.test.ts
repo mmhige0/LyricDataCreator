@@ -23,6 +23,8 @@ const context = (value = id) => ({ params: Promise.resolve({ id: value }) })
 const approve = (revision = 1, gameSongId = '001') => decide(request({ action: 'approve', revision, gameSongId }, admin), context())
 let rankingFails = false
 let rankingCalls = 0
+let discordCalls = 0
+let discordFails = false
 
 describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   beforeAll(async () => {
@@ -42,11 +44,17 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     decide = (await import('@/app/api/admin/submissions/[id]/route')).POST
   })
   beforeEach(async () => {
-    rankingFails = false; rankingCalls = 0
+    rankingFails = false; rankingCalls = 0; discordCalls = 0; discordFails = false
+    vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', '')
     vi.stubEnv('SUBMISSION_DAILY_LIMIT', '50'); vi.stubEnv('SUBMISSION_IP_DAILY_LIMIT', '5'); vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '2000')
     await db.chartSubmission.deleteMany(); await db.submissionQuota.deleteMany(); await db.song.deleteMany()
     vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
       if (String(url).includes('siteverify')) return Response.json({ success: true, hostname: 'example.test', action: 'chart-submit' })
+      if (String(url).startsWith('https://discord.com/')) {
+        discordCalls++
+        expect(await db.chartSubmission.count()).toBe(1)
+        return discordFails ? new Response('', { status: 500 }) : Response.json({ id: '123456789' })
+      }
       expect(String(url)).toContain('/api/v1/admin/songs/')
       expect(init?.redirect).toBe('error')
       const headers = new Headers(init?.headers)
@@ -87,6 +95,28 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).gameSongId).toBe('001')
     expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).title).toBe('公開曲')
   })
+  it('notifies Discord once per saved revision, survives failure, and lets an admin resend', async () => {
+    vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', 'https://discord.com/api/webhooks/123/test-token')
+    discordFails = true
+    const created = await create(request(input))
+    expect(created.status).toBe(201)
+    expect(await created.json()).toMatchObject({ discordNotification: 'failed' })
+    expect(await db.chartSubmission.count()).toBe(1)
+    expect(discordCalls).toBe(1)
+    await create(request(input))
+    expect(discordCalls).toBe(1)
+    discordFails = false
+    const retry = await decide(request({ action: 'notify', revision: 1 }, admin), context())
+    expect(await retry.json()).toEqual({ discordNotification: 'sent' })
+    expect(discordCalls).toBe(2)
+    const changed = { ...input, revision: 1, notes: '更新したメモ' }
+    expect(await (await update(request(changed, token, 'PUT'), context())).json()).toMatchObject({ discordNotification: 'sent' })
+    expect(discordCalls).toBe(3)
+    await update(request(changed, token, 'PUT'), context())
+    expect(discordCalls).toBe(3)
+    expect((await decide(request({ action: 'notify', revision: 1 }, admin), context())).status).toBe(409)
+    expect((await decide(request({ action: 'notify', revision: 2 }, token), context())).status).toBe(401)
+  })
   it('rejects access and updates using somebody else’s key', async () => {
     await create(request(input))
     expect((await get(request(undefined, 'x'.repeat(43), 'GET'), context())).status).toBe(404)
@@ -111,7 +141,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const response = await approve()
     expect(response.status).toBe(200)
     const publicSong = await db.song.findFirstOrThrow()
-    expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: input.level, youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
+    expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: null, notes: input.notes, youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
     expect(JSON.parse(publicSong.scoreEntries).length).toBeGreaterThan(0)
     expect(await response.json()).toEqual({ status: 'approved', gameSongId: '001' })
     expect(await db.chartSubmission.count()).toBe(0)
@@ -138,7 +168,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(rankingCalls).toBe(2)
   })
   it('rejects a linked revision without changing its public song, and allows resubmission', async () => {
-    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開中', level: '7+', levelValue: 22, youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
     await create(request(input))
     await db.chartSubmission.update({ where: { id }, data: { gameSongId: '001' } })
     expect((await decide(request({ action: 'reject', revision: 1 }, admin), context())).status).toBe(200)
@@ -146,7 +176,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await update(request({ ...input, revision: 1, title: '再修正版' }, token, 'PUT'), context())).status).toBe(200)
     expect((await db.song.findFirstOrThrow()).title).toBe('公開中')
     expect((await approve(2)).status).toBe(200)
-    expect((await db.song.findFirstOrThrow()).title).toBe('再修正版')
+    expect(await db.song.findFirstOrThrow()).toMatchObject({ title: '再修正版', level: '7+', levelValue: 22, notes: input.notes })
     expect(await db.chartSubmission.count()).toBe(0)
   })
   it('recovers when ranking succeeds but the local public-song write fails', async () => {

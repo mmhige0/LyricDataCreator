@@ -1,3 +1,4 @@
+import { notifySubmission } from '@/lib/submissions/discord'
 import { prisma } from '@/lib/db'
 import { approveSubmission } from '@/lib/submissions/approval'
 import { checkId, endpoint, json, readJson, requireAdmin } from '@/lib/submissions/http'
@@ -23,6 +24,11 @@ export async function POST(request: Request, context: Context) {
     checkId(id)
     const body = object(await readJson(request))
     const expected = revision(body.revision)
+    if (body.action === 'notify') {
+      const row = await prisma.chartSubmission.findUnique({ where: { id } })
+      if (!row || row.revision !== expected) throw new SubmissionError(409, '申請が更新されました。内容を確認し直してください。')
+      return json({ discordNotification: await notifySubmission(row, 'resend') })
+    }
     if (body.action === 'approve') return json(await approveSubmission(id, expected, String(body.gameSongId ?? '')))
     if (body.action !== 'reject') throw new SubmissionError(400, '操作が不正です。')
     const row = await prisma.$transaction(async tx => {

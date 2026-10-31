@@ -22,6 +22,7 @@ model Song {
   gameSongId   String   @id
   creatorName  String?
   scoreTxt     String?
+  notes        String   @default("")
 
   @@index([title])
   @@index([artist])
@@ -36,7 +37,6 @@ model ChartSubmission {
   creatorName     String
   title           String
   artist          String?
-  level           String?
   youtubeUrl      String
   txtContent      String
   notes           String   @default("")

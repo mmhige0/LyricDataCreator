@@ -29,7 +29,6 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
   const [submittedTitle, setSubmittedTitle] = useState<string | null>(null)
   const [artist, setArtist] = useState('')
   const [notes, setNotes] = useState('')
-  const [level, setLevel] = useState('')
   const [version, setVersion] = useState<number | null>(null)
   const [status, setStatus] = useState('')
   const [needsLoad, setNeedsLoad] = useState(false)
@@ -65,7 +64,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
         : await submissionFetch(`/api/songs/${encodeURIComponent(sourceSong!)}/edit`, '')
       const parsed = parseScoreTxt(row.txtContent)
       onLoad({ title: row.title, youtubeUrl: row.youtubeUrl, ...parsed })
-      setSubmittedTitle(row.title); setCreatorName(row.creatorName); setArtist(row.artist ?? ''); setLevel(row.level ?? ''); setNotes(row.notes ?? '')
+      setSubmittedTitle(row.title); setCreatorName(row.creatorName); setArtist(row.artist ?? ''); setNotes(row.notes ?? '')
       setSubmittedYoutubeUrl(row.youtubeUrl); setGameSongId(row.gameSongId ?? null)
       setVersion(row.revision ?? null); setStatus(row.status ?? ''); setNeedsLoad(false)
       setMessage(''); setReloadOffered(false); setOpen(false)
@@ -85,12 +84,14 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
       setCredentials(key)
       const row = await submissionFetch(`/api/submissions${version === null ? '' : `/${key.id}`}`, key.token, {
         method: version === null ? 'POST' : 'PUT',
-        body: JSON.stringify({ id: key.id, revision: version, title: name, creatorName, artist, level, notes, youtubeUrl: submittedYoutubeUrl ?? youtubeUrl, gameSongId, txtContent, turnstileToken: token }),
+        body: JSON.stringify({ id: key.id, revision: version, title: name, creatorName, artist, notes, youtubeUrl: submittedYoutubeUrl ?? youtubeUrl, gameSongId, txtContent, turnstileToken: token }),
       })
       setVersion(row.revision); setStatus(row.status); setNeedsLoad(false)
       history.replaceState(null, '', `/editor?submission=${key.id}`)
       setSuccess(true)
-      setMessage('申請を受け付けました。承認後に公開されます。')
+      setMessage(row.discordNotification === 'failed'
+        ? '申請を受け付けました。Discordへの通知は失敗しましたが、申請は保存されています。'
+        : '申請を受け付けました。承認後に公開されます。')
     } catch (error) {
       const message = error instanceof Error ? error.message : '投稿に失敗しました。'
       setMessage(message); setReloadOffered(/読み込/.test(message))
@@ -128,7 +129,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
                 placeholder="修正した箇所や、確認してほしいことなど"
                 className="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" />
             </label>
-            <p className="text-xs text-muted-foreground">補足情報は承認者だけが確認します。公開されません。</p>
+            <p className="text-xs text-muted-foreground">補足情報は譜面と一緒に公開されます。</p>
           </fieldset>
           {open && status !== 'publishing' && <SubmissionTurnstile key={challenge} onToken={setToken} />}
           <div className="flex justify-end gap-2">

@@ -53,6 +53,7 @@ export default async function SongPage({ params }: SongPageProps) {
         youtubeUrl: song.youtubeUrl,
         level: song.level,
         scoreEntries,
+        notes: song.notes,
       }}
     />
   )

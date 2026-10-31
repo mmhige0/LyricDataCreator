@@ -41,6 +41,10 @@ describe.skipIf(!database)('game song primary key migration', () => {
         expect(rows).toEqual([{ gameSongId: '001', title: '保存する譜面', scoreEntries: '[]' }])
         const columns = await db.$queryRaw<Array<{ column_name: string }>>`SELECT column_name FROM information_schema.columns WHERE table_schema = ${schema} AND table_name = 'song'`
         expect(columns.map(row => row.column_name)).not.toContain('id')
+        expect(columns.map(row => row.column_name)).toContain('notes')
+        expect(columns.map(row => row.column_name)).toContain('level')
+        const submissionColumns = await db.$queryRaw<Array<{ column_name: string }>>`SELECT column_name FROM information_schema.columns WHERE table_schema = ${schema} AND table_name = 'chart_submission'`
+        expect(submissionColumns.map(row => row.column_name)).not.toContain('level')
         await expect(inSchema(tx => tx.$executeRawUnsafe(`INSERT INTO song (title, "youtubeUrl", "scoreEntries", "updatedAt", "gameSongId") VALUES ('重複', 'url', '[]', NOW(), '001')`))).rejects.toThrow()
       } else {
         await expect(migration).rejects.toThrow()
