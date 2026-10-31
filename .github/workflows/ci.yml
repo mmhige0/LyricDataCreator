@@ -12,6 +12,19 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: ldc_test
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -33,8 +46,15 @@ jobs:
         env:
           DATABASE_URL: "postgresql://user:pass@localhost:5432/db?schema=public"
 
-      - name: Run unit tests
+      - name: Apply test database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: "postgresql://postgres:test-password@localhost:5432/ldc_test"
+
+      - name: Run unit and submission integration tests
         run: npm run unit
+        env:
+          SUBMISSION_TEST_DATABASE_URL: "postgresql://postgres:test-password@localhost:5432/ldc_test"
 
       - name: Build test
         run: npm run build

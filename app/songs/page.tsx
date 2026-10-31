@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   },
 }
 
-const INITIAL_SORT_KEY: SongSortKey = "id"
+const INITIAL_SORT_KEY: SongSortKey = "gameSongId"
 const INITIAL_SORT_DIRECTION: SongSortDirection = "desc"
 
 export default async function SongsPage() {

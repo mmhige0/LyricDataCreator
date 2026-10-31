@@ -11,7 +11,6 @@ datasource db {
 }
 
 model Song {
-  id           Int      @id @default(autoincrement())
   title        String
   artist       String?
   youtubeUrl   String
@@ -20,9 +19,43 @@ model Song {
   scoreEntries String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  gameSongId   String   @id
+  creatorName  String?
+  scoreTxt     String?
+  notes        String   @default("")
 
   @@index([title])
   @@index([artist])
   @@index([levelValue])
   @@map("song")
+}
+
+// Public Song contains the approved version. Submissions are deleted atomically on publication.
+model ChartSubmission {
+  id              String   @id @db.Uuid
+  editTokenHash   String
+  creatorName     String
+  title           String
+  artist          String?
+  youtubeUrl      String
+  txtContent      String
+  notes           String   @default("")
+  status          String   @default("pending")
+  revision        Int      @default(1)
+  gameSongId      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([gameSongId])
+  @@index([status, updatedAt])
+  @@map("chart_submission")
+}
+
+model SubmissionQuota {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("submission_quota")
 }

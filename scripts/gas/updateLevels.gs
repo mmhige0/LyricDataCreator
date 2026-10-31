@@ -9,7 +9,7 @@
 const LEVELS_ENDPOINT = '/api/songs'
 
 const LEVELS_COLUMN_MAP = {
-  '曲番': 'id',
+  '曲番': 'gameSongId',
   '曲名': 'title',
   '難易度': 'level',
 }
@@ -49,7 +49,7 @@ function updateAllLevels(spreadsheetId, sheetName) {
     return
   }
 
-  const entriesWithIdAndLevel = sheetInfo.entries.filter(entry => entry.meta.id && entry.meta.level)
+  const entriesWithIdAndLevel = sheetInfo.entries.filter(entry => entry.meta.gameSongId && entry.meta.level)
 
   // 無効なレベルフォーマットの件数をログ出力
   const invalidCount = entriesWithIdAndLevel.filter(entry => !isValidLevelFormat(entry.meta.level)).length
@@ -60,11 +60,11 @@ function updateAllLevels(spreadsheetId, sheetName) {
   const songsToUpdate = entriesWithIdAndLevel
     .filter(entry => isValidLevelFormat(entry.meta.level))
     .map(entry => ({
-      id: Number(entry.meta.id),
+      gameSongId: entry.meta.gameSongId,
       level: entry.meta.level.trim(),
       rowIndex: entry.rowIndex,
     }))
-    .filter(item => Number.isInteger(item.id))
+    .filter(item => /^(?!000$)[0-9]{3,8}$/.test(item.gameSongId))
 
   if (!songsToUpdate.length) {
     Logger.log('難易度更新: 更新対象の曲がありません')
@@ -81,7 +81,7 @@ function updateAllLevels(spreadsheetId, sheetName) {
   chunks.forEach((chunk, idx) => {
     Logger.log('送信開始 (%s/%s) %s件', idx + 1, chunks.length, chunk.length)
     const payload = {
-      songs: chunk.map(item => ({ id: item.id, level: item.level })),
+      songs: chunk.map(item => ({ gameSongId: item.gameSongId, level: item.level })),
     }
     const result = updateLevelsBatch(endpoint, payload, importSecret)
 
@@ -89,11 +89,11 @@ function updateAllLevels(spreadsheetId, sheetName) {
     const errors = result.errors || []
 
     updated.forEach(item => {
-      Logger.log('更新成功: ID=%s / %s / level=%s', item.id, item.title, item.level)
+      Logger.log('更新成功: ID=%s / %s / level=%s', item.gameSongId, item.title, item.level)
     })
 
     errors.forEach(item => {
-      Logger.log('エラー: ID=%s / %s', item.id, item.error)
+      Logger.log('エラー: ID=%s / %s', item.gameSongId, item.error)
     })
 
     totalUpdated += updated.length
@@ -115,7 +115,7 @@ function loadLevelsSheetData(spreadsheetId, sheetName) {
     return { entries: [], sheet: null }
   }
 
-  const [headers, ...rows] = sheet.getDataRange().getValues()
+  const [headers, ...rows] = sheet.getDataRange().getDisplayValues()
   const colMap = headers.map(h => LEVELS_COLUMN_MAP[String(h).trim()] || '')
 
   const entries = rows
@@ -131,7 +131,7 @@ function parseLevelsRow(row, colMap, rowIndex) {
     if (key) meta[key] = String(row[idx] || '').trim()
   })
 
-  if (!meta.id) return null
+  if (!meta.gameSongId) return null
 
   return {
     meta,

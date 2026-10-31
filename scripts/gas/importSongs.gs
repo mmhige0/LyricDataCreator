@@ -147,6 +147,7 @@ function buildSongResult(fileMap, entry, lastScanAt) {
     reason: null,
     song: {
       fileName,
+      gameSongId: meta.file.replace(/\.txt$/i, ''),
       title: meta.title,
       youtubeUrl: meta.youtube,
       artist: meta.artist || undefined,
@@ -167,7 +168,7 @@ function loadImportSheetData(spreadsheetId, sheetName) {
     return { entries: [], sheet: null }
   }
 
-  const [headers, ...rows] = sheet.getDataRange().getValues()
+  const [headers, ...rows] = sheet.getDataRange().getDisplayValues()
   const colMap = headers.map(h => IMPORT_COLUMN_MAP[String(h).trim()] || '')
 
   const entries = rows

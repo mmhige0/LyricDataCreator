@@ -11,6 +11,7 @@ import { useFileOperations } from "@/hooks/useFileOperations"
 import { useLyricsCopyPaste } from "@/hooks/useLyricsCopyPaste"
 import { useDraftAutoSave } from "@/hooks/useDraftAutoSave"
 import { YouTubeVideoSection } from "@/components/YouTubeVideoSection"
+import { SubmissionPanel } from '@/components/SubmissionPanel'
 import { CentralPopEditor } from '@/components/CentralPopEditor'
 import { TimestampOffsetControl } from "@/components/TimestampOffsetControl"
 import { ScoreManagementSection } from "@/components/ScoreManagementSection"
@@ -236,9 +237,11 @@ export default function LyricsTypingApp() {
   useEffect(() => {
     cleanupExpiredDrafts()
 
-    getOrCreateSessionId()
+    const openingSubmission = ['submission', 'song'].some(key => new URLSearchParams(location.search).has(key))
+    if (openingSubmission) createNewSessionId()
+    else getOrCreateSessionId()
 
-    const draftList = getDraftList()
+    const draftList = openingSubmission ? [] : getDraftList()
     if (draftList.length > 0) {
       const sortedDrafts = [...draftList].sort((a, b) => b.lastModified - a.lastModified)
       setDrafts(sortedDrafts)
@@ -393,6 +396,16 @@ export default function LyricsTypingApp() {
         titleHref={PORTAL_ORIGIN}
         songTitle={songTitle || undefined}
         actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <SubmissionPanel title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
+              onLoad={data => {
+                saveCurrentState()
+                setSongTitle(data.title); setYoutubeUrl(data.youtubeUrl); setDuration(data.duration)
+                setScoreEntries(data.scoreEntries); setCentralPops(data.centralPops)
+                hasRestoredDraftRef.current = true
+                setIsRestoreDialogOpen(false)
+                loadYouTubeVideo(data.youtubeUrl)
+              }} />
           <div
             className="inline-flex items-center gap-1 rounded-full bg-muted p-1 text-sm shadow-inner"
             role="tablist"
@@ -441,11 +454,12 @@ export default function LyricsTypingApp() {
               プレイ
             </Button>
           </div>
+          </div>
         }
       />
 
       <main className="max-w-[1600px] mx-auto p-4 lg:p-8">
-        {activeView === "play" ? (
+        {activeView === "play" && (
           <div id="play-panel" role="tabpanel" aria-labelledby="play-tab">
             <TypingGameContent
               onClose={handleBackToEditor}
@@ -456,8 +470,8 @@ export default function LyricsTypingApp() {
               totalDuration={duration}
             />
           </div>
-        ) : (
-          <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab">
+        )}
+          <div id="editor-panel" role="tabpanel" aria-labelledby="editor-tab" hidden={activeView !== "editor"}>
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.25fr)] gap-6 lg:items-start">
               <div className="space-y-6" id="left-column">
                 <YouTubeVideoSection
@@ -541,7 +555,6 @@ export default function LyricsTypingApp() {
 
 
           </div>
-        )}
       </main>
 
       <DraftRestoreDialog

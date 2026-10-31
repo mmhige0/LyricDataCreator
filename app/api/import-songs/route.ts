@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { GAME_SONG_ID } from "@/lib/submissions/validation"
 import { parseLevelValue } from '@/lib/levels'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 
 type ImportSongInput = {
+  gameSongId: string
   title: string
   youtubeUrl: string
   artist?: string
@@ -65,11 +67,16 @@ export async function POST(request: Request) {
   const results: Array<Record<string, unknown>> = []
   try {
     if (body.truncate) {
-      await prisma.$executeRawUnsafe('TRUNCATE TABLE "song" RESTART IDENTITY CASCADE;')
+      await prisma.$executeRawUnsafe('TRUNCATE TABLE "song";')
       results.push({ status: 'truncated' })
     }
 
     for (const song of songs) {
+      const gameSongId = song.gameSongId
+      if (typeof gameSongId !== "string" || !GAME_SONG_ID.test(gameSongId)) {
+        results.push({ status: "error", message: "gameSongId must be a 3–8 digit string other than 000" })
+        continue
+      }
       const title = song.title?.trim()
       const youtubeUrl = song.youtubeUrl?.trim()
       if (!title || !youtubeUrl) {
@@ -90,29 +97,31 @@ export async function POST(request: Request) {
       }
 
       const levelValue = parseLevelValue(song.level)
-      const existing = await prisma.song.findFirst({ where: { title } })
+      const existing = await prisma.song.findUnique({ where: { gameSongId } })
 
       if (existing && body.noUpdate) {
-        results.push({ title, status: 'skipped', id: existing.id })
+        results.push({ title, status: 'skipped', gameSongId: existing.gameSongId })
         continue
       }
 
       const data = {
+        gameSongId,
         title,
         artist: song.artist ?? null,
         youtubeUrl,
         level: song.level ?? null,
         levelValue,
         scoreEntries: JSON.stringify(scoreEntries),
+        scoreTxt: song.txtContent,
       }
 
       const saved = existing
-        ? await prisma.song.update({ where: { id: existing.id }, data })
+        ? await prisma.song.update({ where: { gameSongId }, data })
         : await prisma.song.create({ data })
 
       // 個別ページのキャッシュを即時無効化
-      revalidateSongCache(saved.id)
-      results.push({ title, status: existing ? 'updated' : 'created', id: saved.id })
+      revalidateSongCache(saved.gameSongId)
+      results.push({ title, status: existing ? 'updated' : 'created', gameSongId: saved.gameSongId })
     }
 
     // 一覧と件数キャッシュをまとめて無効化
