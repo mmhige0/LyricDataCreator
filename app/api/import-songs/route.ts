@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { parseScoreTxt } from '@/lib/scoreFormat'
 import { GAME_SONG_ID } from "@/lib/submissions/validation"
 import { parseLevelValue } from '@/lib/levels'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
@@ -14,30 +15,6 @@ type ImportSongInput = {
 }
 
 const IMPORT_SECRET_HEADER = 'x-import-secret'
-
-const parseCsvTimestampLine = (line: string, index: number) => {
-  const parts = line.split('/')
-  if (parts.length !== 5) throw new Error(`${index + 1}行目: フォーマットが正しくありません`)
-  const ts = Number.parseFloat(parts[4])
-  if (Number.isNaN(ts)) throw new Error(`${index + 1}行目: タイムスタンプが正しくありません`)
-  if (ts === 999.9) return null
-  const lyrics = parts.slice(0, 4).map((p) => (p === '!' ? '' : p))
-  return { id: `api_${index}_${Date.now()}`, timestamp: ts, lyrics }
-}
-
-const parseTxtToScoreEntries = (content: string) => {
-  const lines = content.trim().split(/\r?\n/)
-  if (lines.length < 2) throw new Error('行数が不足しています')
-  const entries = []
-  for (let i = 1; i < lines.length; i += 1) {
-    const line = lines[i].trim()
-    if (!line) continue
-    const parsed = parseCsvTimestampLine(line, i)
-    if (!parsed) continue
-    entries.push(parsed)
-  }
-  return entries.sort((a, b) => a.timestamp - b.timestamp)
-}
 
 const unauthorized = (message: string) => NextResponse.json({ error: message }, { status: 401 })
 
@@ -86,7 +63,7 @@ export async function POST(request: Request) {
 
       let scoreEntries
       try {
-        scoreEntries = parseTxtToScoreEntries(song.txtContent ?? '')
+        scoreEntries = parseScoreTxt(song.txtContent ?? '').scoreEntries
       } catch (error) {
         results.push({ title, status: 'error', message: error instanceof Error ? error.message : 'parse error' })
         continue
@@ -111,7 +88,6 @@ export async function POST(request: Request) {
         youtubeUrl,
         level: song.level ?? null,
         levelValue,
-        scoreEntries: JSON.stringify(scoreEntries),
         scoreTxt: song.txtContent,
       }
 

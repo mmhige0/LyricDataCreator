@@ -90,7 +90,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   it('retains the exact published song number for revision proposals and rejects missing targets', async () => {
     expect((await create(request({ ...input, gameSongId: '001' }))).status).toBe(404)
     expect((await create(request({ ...input, gameSongId: 1 }))).status).toBe(400)
-    await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', scoreTxt: input.txtContent } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent } })
     expect((await create(request({ ...input, gameSongId: '001' }))).status).toBe(201)
     expect((await create(request({ ...input, gameSongId: '001' }))).status).toBe(201)
     expect((await create(request({ ...input, gameSongId: '0001' }))).status).toBe(409)
@@ -152,7 +152,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const { GET: list } = await import('@/app/api/admin/submissions/route')
     const listed = await list(new Request('https://example.test/api/admin/submissions?status=rejected', { headers: { Authorization: `Bearer ${admin}` } }))
     expect((await listed.json()).submissions[0]).toMatchObject({ id, status: 'rejected' })
-    await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', level: '5+' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent, level: '5+' } })
     const published = await list(new Request('https://example.test/api/admin/submissions?view=published', { headers: { Authorization: `Bearer ${admin}` } }))
     expect((await published.json()).songs[0]).toMatchObject({ gameSongId: '001', title: '公開曲', level: '5+' })
     expect((await db.submissionQuota.findMany()).every(row => row.key.startsWith('day:'))).toBe(true)
@@ -200,7 +200,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(response.status).toBe(200)
     const publicSong = await db.song.findFirstOrThrow()
     expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: null, notes: input.notes, youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
-    expect(JSON.parse(publicSong.scoreEntries).length).toBeGreaterThan(0)
+    expect(publicSong).not.toHaveProperty('scoreEntries')
     expect(await response.json()).toEqual({ status: 'approved', gameSongId: '001' })
     expect(await db.chartSubmission.count()).toBe(0)
     expect((await get(request(undefined, token, 'GET'), context())).status).toBe(404)
@@ -226,7 +226,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(rankingCalls).toBe(2)
   })
   it('rejects a linked revision without changing its public song, and allows resubmission', async () => {
-    await db.song.create({ data: { gameSongId: '001', title: '公開中', level: '7+', levelValue: 22, youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開中', level: '7+', levelValue: 22, youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent } })
     await create(request({ ...input, gameSongId: '001' }))
     expect((await decide(request({ action: 'reject', revision: 1 }, admin), context())).status).toBe(200)
     expect((await db.song.findFirstOrThrow()).title).toBe('公開中')
@@ -285,7 +285,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1])
   })
   it('updates an imported public song by its game number without an internal ID link', async () => {
-    await db.song.create({ data: { gameSongId: '001', title: '架空の既存曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
+    await db.song.create({ data: { gameSongId: '001', title: '架空の既存曲', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent } })
     await create(request(input))
     await db.chartSubmission.update({ where: { id }, data: { gameSongId: '001' } })
     expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).title).toBe('架空の既存曲')
@@ -295,7 +295,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(await db.chartSubmission.count()).toBe(0)
   })
   it('allows multiple proposals for the same public song and serializes duplicate approvals', async () => {
-    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent } })
     await create(request(input))
     await create(request({ ...input, id: other, title: '別の修正案' }))
     await db.chartSubmission.updateMany({ data: { gameSongId: '001' } })
@@ -328,7 +328,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(rankingCalls).toBe(2)
   })
   it('blocks another proposal while a failed approval for the same song needs retry', async () => {
-    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
+    await db.song.create({ data: { gameSongId: '001', title: '公開中', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent } })
     await create(request(input)); await create(request({ ...input, id: other }))
     await db.chartSubmission.updateMany({ data: { gameSongId: '001' } })
     rankingFails = true
@@ -342,7 +342,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   it('lists public song numbers in numeric order across pages and searches the displayed numbers', async () => {
     const { getSongsPage, getRandomSongs } = await vi.importActual<typeof import('@/lib/songQueries')>('@/lib/songQueries')
     for (const gameSongId of ['1000', '099', '010', '001', '100', '0001']) {
-      await db.song.create({ data: { title: `曲${gameSongId}`, artist: 'カタカナ', level: '5+', levelValue: 15, youtubeUrl: input.youtubeUrl, scoreEntries: '[]', gameSongId } })
+      await db.song.create({ data: { title: `曲${gameSongId}`, artist: 'カタカナ', level: '5+', levelValue: 15, youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent, gameSongId } })
     }
     const options = { search: '', sortKey: 'gameSongId' as const, sortDirection: 'asc' as const, pageSize: 2 }
     const pages = await Promise.all([1, 2, 3].map(page => getSongsPage({ ...options, page })))
@@ -366,7 +366,8 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const adminRequest = (body: unknown, method = 'POST') => new Request('https://example.test/api/import-songs', {
       method, headers: { 'x-import-secret': 'test-import-key', 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     })
-    const songs = ['001', '0001'].map(gameSongId => ({ ...input, gameSongId, title: '同名の別曲' }))
+    const fullTxt = '30\n![c]装飾\\/文字/い/う/え/1\n!/!/!/!/999.9\n_\n共有ポップ/2\n'
+    const songs = ['001', '0001'].map((gameSongId, i) => ({ ...input, gameSongId, title: '同名の別曲', txtContent: i === 1 ? fullTxt : input.txtContent }))
     const imported = await importSongs(adminRequest({ songs }))
     expect((await imported.json()).results.map((song: { gameSongId: string }) => song.gameSongId)).toEqual(['001', '0001'])
     expect(await db.song.count()).toBe(2)
@@ -375,6 +376,12 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     await importSongs(adminRequest({ songs: [{ ...songs[0], title: '更新された曲' }] }))
     expect((await getSongByGameSongId('001'))?.title).toBe('更新された曲')
     expect((await getSongByGameSongId('0001'))?.title).toBe('同名の別曲')
+    const saved = await getSongByGameSongId('0001')
+    expect(saved?.scoreTxt).toBe(fullTxt)
+    expect(saved).not.toHaveProperty('scoreEntries')
+    const parsed = (await import('@/lib/scoreFormat')).parseScoreTxt(saved!.scoreTxt)
+    expect(parsed).toMatchObject({ duration: 30, centralPops: [expect.objectContaining({ text: '共有ポップ' })] })
+    expect(parsed.scoreEntries[0].lyrics[0]).toBe('装飾/文字')
     const levelResponse = await updateLevels(adminRequest({ songs: [{ gameSongId: '001', level: '7+' }, { id: 1, level: '9' }] }, 'PATCH'))
     const result = await levelResponse.json()
     expect(result.updated).toHaveLength(1)

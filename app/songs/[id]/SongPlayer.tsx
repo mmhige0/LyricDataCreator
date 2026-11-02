@@ -16,6 +16,7 @@ interface SongPlayerProps {
     artist: string | null
     youtubeUrl: string
     level: string | null
+    duration: number
     scoreEntries: ScoreEntry[]
     notes: string
   }
@@ -39,6 +40,7 @@ export function SongPlayer({ song }: SongPlayerProps) {
           onClose={() => router.push("/songs")}
           showHeader={false}
           scoreEntries={song.scoreEntries}
+          totalDuration={song.duration}
           songTitle={song.title}
           youtubeUrl={song.youtubeUrl}
         />

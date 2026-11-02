@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/db'
 import { parseLevelValue } from '@/lib/levels'
-import { parseScoreTxt } from '@/lib/scoreFormat'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 import { GAME_SONG_ID, SubmissionError } from './validation'
 import { lockApprovalSong, lockSubmission } from './service'
@@ -55,11 +54,10 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     try { confirmation = await response.json() }
     catch { throw new SubmissionError(502, 'ランキングの応答を確認できません。同じ内容で再試行してください。') }
     if (confirmation.song?.gameSongId !== gameSongId || confirmation.song?.title !== title || confirmation.song?.artist !== artist || confirmation.song?.level !== level) throw new SubmissionError(502, 'ランキングの登録内容を確認できません。')
-    const parsed = parseScoreTxt(row.txtContent)
     const data = {
       title, artist, level, levelValue: parseLevelValue(level),
       youtubeUrl: row.youtubeUrl, creatorName: row.creatorName, gameSongId,
-      scoreEntries: JSON.stringify(parsed.scoreEntries), scoreTxt: row.txtContent, notes: row.notes,
+      scoreTxt: row.txtContent, notes: row.notes,
     }
     await tx.song.upsert({ where: { gameSongId }, create: data, update: data })
     await tx.chartSubmission.delete({ where: { id } })

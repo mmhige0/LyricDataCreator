@@ -16,12 +16,11 @@ model Song {
   youtubeUrl   String
   level        String?
   levelValue   Int?     @db.SmallInt
-  scoreEntries String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   gameSongId   String   @id
   creatorName  String?
-  scoreTxt     String?
+  scoreTxt     String
   notes        String   @default("")
 
   @@index([title])

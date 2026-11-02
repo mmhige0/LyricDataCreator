@@ -3,7 +3,7 @@ import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
 import { getSongByGameSongId } from "@/lib/songQueries"
 import { GAME_SONG_ID } from "@/lib/submissions/validation"
-import { parseScoreEntries } from "@/lib/scoreSerialization"
+import { parseScoreTxt } from "@/lib/scoreFormat"
 
 const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPlayer), {
   loading: () => (
@@ -42,7 +42,7 @@ export default async function SongPage({ params }: SongPageProps) {
     notFound()
   }
 
-  const scoreEntries = parseScoreEntries(song.scoreEntries)
+  const { scoreEntries, duration } = parseScoreTxt(song.scoreTxt)
 
   return (
     <SongPlayer
@@ -53,6 +53,7 @@ export default async function SongPage({ params }: SongPageProps) {
         youtubeUrl: song.youtubeUrl,
         level: song.level,
         scoreEntries,
+        duration,
         notes: song.notes,
       }}
     />
