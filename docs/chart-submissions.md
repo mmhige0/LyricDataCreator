@@ -12,11 +12,11 @@
 
 ## 管理者の操作
 
-`/admin/submissions/`でLDC専用の管理用キーを入力し、申請一覧から内容を開く。補足情報・TXTの全文・ダウンロード・プレイプレビューで確認し、ゲームの曲番号を指定して承認する。プレビューは既存のプレイ機能と同じく歌詞ページを確認するもので、ポップ演出はTXTまたはゲーム側で確認する。却下しても公開済み版は残る。管理用キーは画面のメモリだけに保持する。
+`/admin/submissions/`でLDC専用の管理用キーを入力し、初期表示の承認待ち一覧から内容を開く。補足情報・TXTの全文・ダウンロード・プレイプレビューで確認し、ゲームの曲番号を指定して承認する。プレビューは既存のプレイ機能と同じく歌詞ページを確認するもので、ポップ演出はTXTまたはゲーム側で確認する。却下しても公開済み版は残る。管理用キーは画面のメモリだけに保持する。
 
 承認によってゲームへの組み込みや公開まで自動化するものではない。承認・ランキング登録の成功を確認してからゲームへ公開する。
 
-申請と公開済みを切り替え、曲番号・曲名・アーティスト・難易度・制作者・状態を表で確認する。検索、状態絞り込み、ページ送りに対応する。申請の「確認・編集」で登録情報を変更・保存できる。保存はランキングへ送信せず、申請の版番号を更新して同時編集を検出する。投稿者が再申請すると管理者の登録下書きは解除し、新しい内容を確認し直す。公開済みの「修正する」はエディターで新しい修正申請を作る操作。
+申請と公開済みを切り替え、曲番号・曲名・アーティスト・難易度・制作者・状態を表で確認する。検索、状態絞り込み、ページ送りに対応する。申請の「確認・編集」で曲名・アーティスト・難易度・曲番号を同じ画面から編集する。入力順は自由で、曲番号が未定でも「変更を保存」でDBの申請の各列に保存できる。投稿者の元入力は別途保持しない。保存はランキングへ送信せず、申請の版番号を更新して同時編集を検出する。投稿者にも変更後の曲情報が表示され、再申請時は曲名・アーティストなどを更新できる。管理者の曲番号・難易度は維持する。「ランキングに登録」で変更の保存と登録をまとめて行える。却下済みも状態フィルターで確認し、「承認待ちに戻す」で再開できる。却下・復帰も版番号を更新する。公開済みの「修正する」はエディターで新しい修正申請を作る操作。
 
 曲番号入力後に既存の公開API `GET /api/v1/songs/{gameSongId}/rankings?players=1&limit=1` を照会する。プレイ実績がなくても曲情報を取得でき、404だけを未登録と扱う。照会失敗時は承認できない。既存曲の情報を取り込むボタンと更新確認を表示する。承認直前にも照会するが、ランキング側キャッシュや別システムからの同時登録に対する原子的な番号予約ではない。
 
@@ -24,7 +24,7 @@
 
 - ランキングへの仮登録は行わない。未承認の譜面はLDCだけに保存する。
 - 曲番号・曲名・アーティスト・難易度の正式情報はランキングDB、譜面TXT・YouTube URL・制作者名はLDCが管理する。
-- 初回承認で版・曲番号・曲名・アーティスト・難易度を固定し`publishing`にする。ランキングの既存の曲登録APIで登録が成功したら、同じトランザクションでLDCの公開Songを保存し、申請を削除する。承認済み申請や編集キーのハッシュはDBへ残さない。
+- 初回登録で申請の各列に版・曲番号・曲名・アーティスト・難易度を保存して固定し`publishing`にする。ランキングの既存の曲登録APIで登録が成功したら、同じトランザクションでLDCの公開Songを保存し、申請を削除する。承認済み申請や編集キーのハッシュはDBへ残さない。
 - 承認は曲番号・申請ごとのDBロックを取り、ランキングAPIの呼び出しから公開保存・申請削除まで保持する。同じ申請の並行承認による重複送信を防ぐ。同じ曲の別申請が`publishing`の間は、その申請の再試行を先に完了し、別申請の承認を409で止める。
 - 通信失敗・結果不明の場合は`publishing`を維持し、その間の編集・却下を禁止する。管理者が同じ版・登録情報で承認を再試行する。ランキング成功後にLDCが失敗しても、再試行で公開処理を完了できる。
 - 新規・修正とも既存の`PUT /api/v1/admin/songs/{gameSongId}`を使う。投稿ID・版番号はLDC内だけで管理し、ランキングへ送信・保存しない。ランキング側のコード・DB変更は不要。
@@ -87,14 +87,14 @@ LDCとランキングのDBをまたぐ1つのトランザクションはない�
    - `TURNSTILE_HOSTNAME`：`ldc.kayomodoki.com`（スキーム・パスなし）
    - `SUBMISSION_ADMIN_KEY`：LDC管理者専用の32文字以上のランダムな秘密情報
    - `RANKING_ADMIN_API_KEY`：ランキング側の管理用キー。公開変数へ入れない
-4. 最後に`SUBMISSIONS_ENABLED=true`を設定して再デプロイする。未設定時は投稿不可。受付停止時は`false`に戻す。承認・閲覧は受付停止中も利用できる。
+4. DBと必要な環境変数を設定して再デプロイする。投稿受付の有効化スイッチは不要。Turnstile未設定・検証失敗時は投稿を受け付けない。
 5. 架空の譜面で投稿・修正・却下・承認・ランキング登録を確認する。公開済み版が承認前に変わらないこと、再試行で重複しないことを確認する。
 
 管理画面なしでも、同じAPIをHTTPクライアントから利用可能。管理者認証は`Authorization: Bearer <SUBMISSION_ADMIN_KEY>`。
 - `GET /api/admin/submissions/`：申請の表（20件、`page`・`q`・`status`でページ・検索・状態を指定）。`view=published`で公開曲の表
 - `GET /api/admin/ranking-song/?gameSongId=001`：ランキングとLDCの既存曲を照会
 - `GET /api/admin/submissions/{id}/`：申請の全文・版番号
-- `POST /api/admin/submissions/{id}/`：`{"action":"save","revision":1,"registration":{"gameSongId":"001","title":"曲名","artist":null,"level":"5+"}}`で登録情報を保存。`action=approve`で承認、既存曲を更新する場合は`allowOverwrite:true`も指定。却下は`{"action":"reject","revision":1}`
+- `POST /api/admin/submissions/{id}/`：`{"action":"save","revision":1,"registration":{"gameSongId":"001","title":"曲名","artist":null,"level":"5+"}}`で申請の各列を直接更新。保存時の曲番号は空欄可。`action=approve`で入力内容の保存とランキング登録、既存曲を更新する場合は`allowOverwrite:true`も指定。却下は`{"action":"reject","revision":1}`、復帰は`{"action":"restore","revision":2}`
 
 管理キー・編集URL・投稿全文をアクセスログやエラー調査ログへ保存しない。
 
@@ -112,7 +112,7 @@ LDCとランキングのDBをまたぐ1つのトランザクションはない�
 
 ### 投稿UI
 
-「投稿する」は譜面のインポート・エクスポートと同じ操作列に表示する。必須・任意は括弧を付けず小さなラベルで表示する。難易度の入力欄は設けない。申請の `level` 列は持たず、管理者の登録情報を `registrationData` JSONに保存する。難易度は管理画面で設定する。公開Songの `level`・`levelValue` は一覧・検索用に維持する。補足情報は任意の2000文字以内の複数行入力で、承認後は公開Songにも保存し、練習画面の「補足情報」から閲覧できる。修正時にも引き継ぐ。ランキング・譜面TXTには含めない。曲情報はモーダルで入力し、曲名とYouTube URLはエディターから補完する。閉じる・プレイへの切替で未送信の情報は消えない。同一ページ内での保持であり、再読み込みをまたぐ入力保存ではない。
+「投稿する」は譜面のインポート・エクスポートと同じ操作列に表示する。必須・任意は括弧を付けず小さなラベルで表示する。難易度の入力欄は設けない。曲名・アーティスト・曲番号は申請の既存列を直接更新し、難易度は申請の `level` 列に保存する。登録情報のJSON列は設けない。難易度は管理画面で設定する。公開Songの `level`・`levelValue` は一覧・検索用に維持する。補足情報は任意の2000文字以内の複数行入力で、承認後は公開Songにも保存し、練習画面の「補足情報」から閲覧できる。修正時にも引き継ぐ。ランキング・譜面TXTには含めない。曲情報はモーダルで入力し、曲名とYouTube URLはエディターから補完する。閉じる・プレイへの切替で未送信の情報は消えない。同一ページ内での保持であり、再読み込みをまたぐ入力保存ではない。
 申請後は編集用リンクをコピーできる。内部の版番号は表示しない。編集用リンクを開いた初回のみ「編集を始める」で申請を読み込み、その後は再読み込みせず確認・再申請する。
 公開曲の練習画面の「編集する」から修正案を作成できる。曲番号は自動で引き継ぎ、管理者が承認時に確認する。元の制作者名を修正投稿者として自動入力しない。TXT未保存の旧曲は解析済みページから復元するため、ポップ情報の完全な復元には元TXTの再取り込みが必要。
 
@@ -126,24 +126,40 @@ npx prisma migrate deploy
 npx prisma generate
 ```
 
-旧版の同名マイグレーションを適用済みの開発用DBには、`migrate deploy`を再実行しても補足情報・登録情報の追加や申請側の難易度列削除は反映されない。データを保持する場合は、DBのSQLエディターで次を一度実行してから `npx prisma generate` を実行する。
+旧版の同名マイグレーションを適用済みの開発用DBには、`migrate deploy`を再実行しても補足情報・申請の難易度列や登録情報の列変更は反映されない。データを保持する場合は、DBのSQLエディターで次を一度実行してから `npx prisma generate` を実行する。
 
 ```sql
 ALTER TABLE "chart_submission" ADD COLUMN IF NOT EXISTS "notes" TEXT NOT NULL DEFAULT '';
 ALTER TABLE "song" ADD COLUMN IF NOT EXISTS "notes" TEXT NOT NULL DEFAULT '';
-ALTER TABLE "chart_submission" DROP COLUMN IF EXISTS "level";
-ALTER TABLE "chart_submission" ADD COLUMN IF NOT EXISTS "registrationData" JSONB;
+ALTER TABLE "chart_submission" ADD COLUMN IF NOT EXISTS "level" TEXT;
+
+-- 旧版の管理者による変更を各列へ引き継いでからJSON列を削除する。
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = current_schema() AND table_name = 'chart_submission'
+      AND column_name = 'registrationData'
+  ) THEN
+    EXECUTE 'UPDATE chart_submission SET
+      title = "registrationData"->>''title'',
+      artist = "registrationData"->>''artist'',
+      "gameSongId" = "registrationData"->>''gameSongId'',
+      level = "registrationData"->>''level''
+      WHERE "registrationData" IS NOT NULL AND "registrationData" <> ''null''::jsonb';
+  END IF;
+END $$;
+ALTER TABLE "chart_submission" DROP COLUMN IF EXISTS "registrationData";
 DELETE FROM "submission_quota" WHERE "key" LIKE 'ip:%';
 ```
 
-このSQLは主キー変更まで適用済みの開発DB向け。旧コードで`publishing`の申請がある場合は、更新前に同じ内容で再試行を完了する。旧処理の登録内容を推測して新しいスナップショットを作らない。実行前に開発サーバーを停止し、最新版コードと一緒に適用する。適用済みファイルをまとめ直したため、今後 `prisma migrate dev` では履歴の変更を検出する場合がある。開発データを消してよい場合は `prisma migrate reset` で作り直せるが、データを保持したい場合は実行しない。
+このSQLは主キー変更まで適用済みの開発DB向け。旧コードで`publishing`の申請がある場合は、更新前に同じ内容で再試行を完了する。旧処理の登録内容を推測して補完しない。実行前に開発サーバーを停止し、最新版コードと一緒に適用する。適用済みファイルをまとめ直したため、今後 `prisma migrate dev` では履歴の変更を検出する場合がある。開発データを消してよい場合は `prisma migrate reset` で作り直せるが、データを保持したい場合は実行しない。
 
 Prisma CLIは `.env` の `DATABASE_URL` を使う。Next.js用の `.env.local` に別の接続先がある場合は同じ開発用DBを指定する。
 
 `.env.local` に以下を設定する。既に同じ変数がある場合は置き換える。公開サイトキーと秘密キーは [Cloudflare公式の成功用テストキー](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) で、Cloudflareへの登録は不要。
 
 ```dotenv
-SUBMISSIONS_ENABLED=true
 NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA
 TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 TURNSTILE_HOSTNAME=localhost

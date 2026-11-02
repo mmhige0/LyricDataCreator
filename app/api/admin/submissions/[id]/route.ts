@@ -1,4 +1,4 @@
-import { parseRegistration } from '@/lib/submissions/registration'
+import { parseRegistration, parseRegistrationDraft } from '@/lib/submissions/registration'
 import { notifySubmission } from '@/lib/submissions/discord'
 import { prisma } from '@/lib/db'
 import { approveSubmission } from '@/lib/submissions/approval'
@@ -15,8 +15,7 @@ export async function GET(request: Request, context: Context) {
     checkId(id)
     const row = await prisma.chartSubmission.findUnique({ where: { id } })
     if (!row) throw new SubmissionError(404, '投稿が見つかりません。')
-    const song = row.gameSongId ? await prisma.song.findUnique({ where: { gameSongId: row.gameSongId }, select: { level: true } }) : null
-    return json({ ...privateSubmission(row), currentLevel: song?.level ?? null })
+    return json(privateSubmission(row))
   })
 }
 export async function POST(request: Request, context: Context) {
@@ -36,21 +35,22 @@ export async function POST(request: Request, context: Context) {
       return json(await approveSubmission(id, expected, registration?.gameSongId ?? String(body.gameSongId ?? ''), registration, body.allowOverwrite === true))
     }
     if (body.action === 'save') {
-      const registrationData = parseRegistration(body.registration)
+      const registration = parseRegistrationDraft(body.registration)
       const row = await prisma.$transaction(async tx => {
         await lockSubmission(tx, id)
         const current = await tx.chartSubmission.findUnique({ where: { id } })
         if (!current || current.revision !== expected || current.status === 'publishing') throw new SubmissionError(409, '申請が更新されたか、承認処理中です。')
-        return tx.chartSubmission.update({ where: { id }, data: { registrationData, revision: { increment: 1 } } })
+        return tx.chartSubmission.update({ where: { id }, data: { ...registration, revision: { increment: 1 } } })
       })
       return json(privateSubmission(row))
     }
-    if (body.action !== 'reject') throw new SubmissionError(400, '操作が不正です。')
+    if (body.action !== 'reject' && body.action !== 'restore') throw new SubmissionError(400, '操作が不正です。')
     const row = await prisma.$transaction(async tx => {
       await lockSubmission(tx, id)
       const current = await tx.chartSubmission.findUnique({ where: { id } })
-      if (!current || current.revision !== expected || current.status !== 'pending') throw new SubmissionError(409, '申請が更新されたか、承認処理中です。')
-      return tx.chartSubmission.update({ where: { id }, data: { status: 'rejected' } })
+      const from = body.action === 'restore' ? 'rejected' : 'pending'
+      if (!current || current.revision !== expected || current.status !== from) throw new SubmissionError(409, '申請が更新されたか、状態が変わっています。')
+      return tx.chartSubmission.update({ where: { id }, data: { status: body.action === 'restore' ? 'pending' : 'rejected', revision: { increment: 1 } } })
     })
     return json(privateSubmission(row))
   })

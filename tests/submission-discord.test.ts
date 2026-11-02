@@ -3,7 +3,7 @@ import type { ChartSubmission } from '@prisma/client'
 import { notifySubmission } from '@/lib/submissions/discord'
 
 const row: ChartSubmission = {
-  registrationData: null, id: 'a1b7a034-5a5b-413b-b8b7-56d9d881c911', editTokenHash: 'never-send-this',
+  level: null, id: 'a1b7a034-5a5b-413b-b8b7-56d9d881c911', editTokenHash: 'never-send-this',
   title: '曲 @everyone', creatorName: '作者', artist: 'Artist', notes: '補足情報\n<@12345>',
   youtubeUrl: 'https://youtu.be/abcdefghijk', txtContent: '10\nあ/い/う/え/1\n',
   status: 'pending', revision: 2, gameSongId: '001', createdAt: new Date(), updatedAt: new Date(),

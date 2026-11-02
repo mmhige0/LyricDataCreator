@@ -10,7 +10,7 @@ export async function approveSubmission(id: string, expected: number, gameSongId
   if (!GAME_SONG_ID.test(gameSongId)) throw new SubmissionError(400, '曲番号は000以外の3〜8桁の数字にしてください。')
   const key = process.env.RANKING_ADMIN_API_KEY
   if (!key) throw new SubmissionError(503, 'ランキング連携が未設定です。')
-  // Freeze all registration fields before any external write; retries use this snapshot.
+  // Save the registration fields before any external write; publishing rows cannot be edited.
   await prisma.$transaction(async tx => {
     await lockApprovalSong(tx, gameSongId)
     await lockSubmission(tx, id)
@@ -19,8 +19,7 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     if (current.revision !== expected) throw new SubmissionError(409, '申請が更新されました。内容を確認し直してください。')
     if (current.status === 'publishing') {
       if (current.gameSongId !== gameSongId) throw new SubmissionError(409, '承認処理中の曲番号は変更できません。')
-      if (!current.registrationData) throw new SubmissionError(409, '旧版の承認処理中データです。登録内容の確認が必要です。')
-      const reserved = parseRegistration(current.registrationData)
+      const reserved = parseRegistration(current)
       if (requested && !sameRegistration(reserved, requested)) throw new SubmissionError(409, '承認処理中の登録内容は変更できません。同じ内容で再試行してください。')
       return
     }
@@ -30,19 +29,16 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     const publicSong = await tx.song.findUnique({ where: { gameSongId } })
     const rankingSong = await findRankingSong(gameSongId)
     if ((rankingSong || publicSong) && !allowOverwrite) throw new SubmissionError(409, 'この曲番号は登録済みです。既存曲を更新することを確認してください。')
-    const registration = requested ?? (current.registrationData ? parseRegistration(current.registrationData) : {
-      gameSongId, title: current.title, artist: current.artist, level: rankingSong?.level ?? publicSong?.level ?? null,
-    })
-    if (registration.gameSongId !== gameSongId) throw new SubmissionError(409, '保存した登録情報と曲番号が異なります。登録情報を確認してください。')
-    await tx.chartSubmission.update({ where: { id }, data: { status: 'publishing', gameSongId, registrationData: registration } })
+    const registration = requested ?? parseRegistration({ ...current, gameSongId })
+    await tx.chartSubmission.update({ where: { id }, data: { ...registration, status: 'publishing' } })
   }, { maxWait: 20000, timeout: 20000 })
   const saved = await prisma.$transaction(async tx => {
     await lockApprovalSong(tx, gameSongId)
     await lockSubmission(tx, id)
     const row = await tx.chartSubmission.findUnique({ where: { id } })
     if (!row) throw new SubmissionError(404, '申請は承認済み、または削除されています。')
-    if (row.status !== 'publishing' || row.revision !== expected || row.gameSongId !== gameSongId || !row.registrationData) throw new SubmissionError(409, '承認状態が変わりました。')
-    const registration = parseRegistration(row.registrationData)
+    if (row.status !== 'publishing' || row.revision !== expected || row.gameSongId !== gameSongId) throw new SubmissionError(409, '承認状態が変わりました。')
+    const registration = parseRegistration(row)
     if (requested && !sameRegistration(registration, requested)) throw new SubmissionError(409, '承認処理中の登録内容は変更できません。')
     const { title, artist, level } = registration
     let response: Response

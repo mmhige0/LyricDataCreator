@@ -19,9 +19,6 @@ export function requireAdmin(request: Request) {
   const token = request.headers.get('authorization')?.match(/^Bearer (\S+)$/)?.[1]
   if (!secret || secret.length < 32 || !token || !secureEqual(token, secret)) throw new SubmissionError(401, '管理者認証が必要です。')
 }
-export function requirePosting() {
-  if (process.env.SUBMISSIONS_ENABLED !== 'true') throw new SubmissionError(503, '現在、投稿の受付を停止しています。')
-}
 export async function readJson(request: Request): Promise<unknown> {
   if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json') throw new SubmissionError(415, 'JSON形式で送信してください。')
   if (!request.body) throw new SubmissionError(400, '本文がありません。')

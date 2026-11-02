@@ -1,6 +1,6 @@
 import { notifySubmission } from '@/lib/submissions/discord'
 import { prisma } from '@/lib/db'
-import { checkId, editToken, endpoint, hashToken, json, readJson, requirePosting } from '@/lib/submissions/http'
+import { checkId, editToken, endpoint, hashToken, json, readJson } from '@/lib/submissions/http'
 import { GAME_SONG_ID, object, parseSubmission, SubmissionError } from '@/lib/submissions/validation'
 import { consumeQuota, lockSubmission, owned, privateSubmission } from '@/lib/submissions/service'
 import { verifyTurnstile } from '@/lib/submissions/turnstile'
@@ -8,7 +8,6 @@ import { verifyTurnstile } from '@/lib/submissions/turnstile'
 export const runtime = 'nodejs'
 export async function POST(request: Request) {
   return endpoint(async () => {
-    requirePosting()
     const token = editToken(request)
     const body = object(await readJson(request))
     const id = String(body.id ?? '')
@@ -30,11 +29,10 @@ export async function POST(request: Request) {
         }
         return { row: current, changed: false }
       }
-      if (gameSongId !== null && !await tx.song.findUnique({ where: { gameSongId } })) {
-        throw new SubmissionError(404, '修正対象の公開曲が見つかりません。')
-      }
+      const source = gameSongId !== null ? await tx.song.findUnique({ where: { gameSongId } }) : null
+      if (gameSongId !== null && !source) throw new SubmissionError(404, '修正対象の公開曲が見つかりません。')
       await consumeQuota(tx, true)
-      const row = await tx.chartSubmission.create({ data: { id, editTokenHash: hashToken(token), gameSongId, ...input } })
+      const row = await tx.chartSubmission.create({ data: { id, editTokenHash: hashToken(token), gameSongId, level: source?.level ?? null, ...input } })
       return { row, changed: true }
     })
     const discordNotification = changed ? await notifySubmission(row, 'new') : 'unchanged'

@@ -26,10 +26,9 @@ export async function GET(request: Request) {
     const rows = await prisma.chartSubmission.findMany({
       where: { ...(status ? { status } : {}), ...(search ? { OR: [
         { title: { contains: search, mode: 'insensitive' } }, { artist: { contains: search, mode: 'insensitive' } }, { gameSongId: { contains: search } },
-        ...['title', 'artist', 'gameSongId'].map(field => ({ registrationData: { path: [field], string_contains: search } })),
       ] } : {}) },
       orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }], skip: (page - 1) * 20, take: 21,
-      select: { id: true, title: true, artist: true, creatorName: true, status: true, revision: true, updatedAt: true, gameSongId: true, registrationData: true },
+      select: { id: true, title: true, artist: true, creatorName: true, status: true, revision: true, updatedAt: true, gameSongId: true, level: true },
     })
     return json({ submissions: rows.slice(0, 20), page, hasNext: rows.length > 20 })
   })
