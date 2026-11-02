@@ -17,7 +17,7 @@ vi.mock('@/components/SubmissionTurnstile', () => ({ SubmissionTurnstile: ({ onT
 vi.mock('@/components/AppHeader', () => ({ AppHeader: ({ actions }: { actions: React.ReactNode }) => <header>{actions}</header> }))
 vi.mock('@/components/TypingGameContent', () => ({ TypingGameContent: () => <div>プレイ中</div> }))
 vi.mock('@/components/YouTubeVideoSection', () => ({ YouTubeVideoSection: () => null }))
-vi.mock('@/components/ScoreManagementSection', () => ({ ScoreManagementSection: () => null }))
+vi.mock('@/components/ScoreManagementSection', () => ({ ScoreManagementSection: ({ submissionAction }: { submissionAction: React.ReactNode }) => <div>{submissionAction}</div> }))
 vi.mock('@/components/CentralPopEditor', () => ({ CentralPopEditor: () => null }))
 vi.mock('@/components/TimestampOffsetControl', () => ({ TimestampOffsetControl: () => null }))
 vi.mock('@/components/EditorShortcuts', () => ({ EditorShortcuts: () => null }))

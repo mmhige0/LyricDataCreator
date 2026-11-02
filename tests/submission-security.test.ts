@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { canonicalYouTubeUrl, MAX_BODY_BYTES, parseSubmission } from '@/lib/submissions/validation'
-import { clientIp, editToken, readJson, requireAdmin } from '@/lib/submissions/http'
+import { editToken, readJson, requireAdmin } from '@/lib/submissions/http'
 import { verifyTurnstile } from '@/lib/submissions/turnstile'
 
 const input = { creatorName: '架空の制作者', title: "架空の曲名 '; DROP TABLE song; --", artist: '<script>alert(1)</script>', level: '5+', youtubeUrl: 'https://youtu.be/abcdefghijk', txtContent: '10\nあ/い/う/え/1\n!/!/!/!/999.9\n' }
@@ -27,31 +27,23 @@ describe('anonymous submission boundary', () => {
     vi.stubEnv('SUBMISSION_ADMIN_KEY', '')
     expect(() => requireAdmin(request(''))).toThrow()
   })
-  it('only trusts Vercel-sanitized IP headers on Vercel', () => {
-    vi.stubEnv('VERCEL', '1')
-    expect(clientIp(new Request('https://example.test', { headers: { 'x-forwarded-for': '192.0.2.1' } }))).toBe('192.0.2.1')
-    expect(() => clientIp(new Request('https://example.test', { headers: { 'x-forwarded-for': '192.0.2.1, 192.0.2.2' } }))).toThrow()
-    vi.stubEnv('VERCEL', '')
-    vi.stubEnv('NODE_ENV', 'production')
-    expect(() => clientIp(new Request('https://example.test'))).toThrow()
-  })
   it('limits streamed body size without trusting Content-Length', async () => {
     const request = new Request('https://example.test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: 'a'.repeat(MAX_BODY_BYTES) }) })
     await expect(readJson(request)).rejects.toMatchObject({ status: 413 })
   })
   it('fails closed when Turnstile is missing, unreachable or validates the wrong site/action', async () => {
     vi.stubEnv('TURNSTILE_SECRET_KEY', '')
-    await expect(verifyTurnstile('token', '192.0.2.1')).rejects.toMatchObject({ status: 503 })
+    await expect(verifyTurnstile('token')).rejects.toMatchObject({ status: 503 })
     vi.stubEnv('TURNSTILE_SECRET_KEY', 'test-secret')
     vi.stubEnv('TURNSTILE_HOSTNAME', 'example.test')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ success: true, hostname: 'evil.test', action: 'chart-submit' })))
-    await expect(verifyTurnstile('token', '192.0.2.1')).rejects.toMatchObject({ status: 400 })
+    await expect(verifyTurnstile('token')).rejects.toMatchObject({ status: 400 })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ success: true, hostname: 'example.test', action: 'wrong' })))
-    await expect(verifyTurnstile('token', '192.0.2.1')).rejects.toMatchObject({ status: 400 })
+    await expect(verifyTurnstile('token')).rejects.toMatchObject({ status: 400 })
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
-    await expect(verifyTurnstile('token', '192.0.2.1')).rejects.toMatchObject({ status: 503 })
+    await expect(verifyTurnstile('token')).rejects.toMatchObject({ status: 503 })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ success: true, hostname: 'example.test', action: 'chart-submit' })))
-    await expect(verifyTurnstile('token', '192.0.2.1')).resolves.toBeUndefined()
+    await expect(verifyTurnstile('token')).resolves.toBeUndefined()
   })
 })
 
@@ -68,11 +60,11 @@ it('only accepts official dummy verification metadata in development', async () 
   vi.stubEnv('NODE_ENV', 'development')
   const reply = (success: boolean) => vi.stubGlobal('fetch', vi.fn(async () => Response.json({ success, hostname: 'localhost', action: 'test' })))
   reply(true)
-  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX', '127.0.0.1')).resolves.toBeUndefined()
-  await expect(verifyTurnstile('other-token', '127.0.0.1')).rejects.toMatchObject({ status: 400 })
+  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX')).resolves.toBeUndefined()
+  await expect(verifyTurnstile('other-token')).rejects.toMatchObject({ status: 400 })
   reply(false)
-  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX', '127.0.0.1')).rejects.toMatchObject({ status: 400 })
+  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX')).rejects.toMatchObject({ status: 400 })
   reply(true)
   vi.stubEnv('NODE_ENV', 'production')
-  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX', '127.0.0.1')).rejects.toMatchObject({ status: 400 })
+  await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX')).rejects.toMatchObject({ status: 400 })
 })

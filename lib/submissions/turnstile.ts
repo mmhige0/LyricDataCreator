@@ -1,6 +1,6 @@
 import { SubmissionError } from './validation'
 
-export async function verifyTurnstile(token: unknown, ip: string) {
+export async function verifyTurnstile(token: unknown) {
   const secret = process.env.TURNSTILE_SECRET_KEY
   const hostname = process.env.TURNSTILE_HOSTNAME
   if (!secret || !hostname) throw new SubmissionError(503, '投稿受付のBot対策が未設定です。')
@@ -9,7 +9,7 @@ export async function verifyTurnstile(token: unknown, ip: string) {
   try {
     const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
-      body: new URLSearchParams({ secret, response: token, remoteip: ip }),
+      body: new URLSearchParams({ secret, response: token }),
       signal: AbortSignal.timeout(5000),
     })
     if (!response.ok) throw new Error('Unavailable')

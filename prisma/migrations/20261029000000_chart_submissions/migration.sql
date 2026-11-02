@@ -15,6 +15,7 @@ ALTER TABLE "song" ADD COLUMN "creatorName" TEXT, ADD COLUMN "scoreTxt" TEXT, AD
 CREATE TABLE "chart_submission" (
     "id" UUID NOT NULL,
     "editTokenHash" TEXT NOT NULL,
+    "registrationData" JSONB,
     "creatorName" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "artist" TEXT,

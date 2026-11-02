@@ -20,18 +20,18 @@ const request = (body?: unknown, secret = token, method = 'POST') => new Request
   ...(method === 'GET' ? {} : { body: JSON.stringify(body) }),
 })
 const context = (value = id) => ({ params: Promise.resolve({ id: value }) })
-const approve = (revision = 1, gameSongId = '001') => decide(request({ action: 'approve', revision, gameSongId }, admin), context())
+const approve = (revision = 1, gameSongId = '001') => decide(request({ action: 'approve', revision, gameSongId, allowOverwrite: true }, admin), context())
 let rankingFails = false
 let rankingCalls = 0
 let discordCalls = 0
 let discordFails = false
+let rankingExisting: { gameSongId: string; title: string; artist: string | null; level: string | null } | null = null
 
 describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   beforeAll(async () => {
     if (!database || !new URL(database).pathname.endsWith('_test')) throw new Error('Use a disposable *_test database')
     vi.stubEnv('DATABASE_URL', database)
     vi.stubEnv('SUBMISSIONS_ENABLED', 'true')
-    vi.stubEnv('SUBMISSION_RATE_SECRET', 'c'.repeat(43))
     vi.stubEnv('SUBMISSION_ADMIN_KEY', admin)
     vi.stubEnv('RANKING_ADMIN_API_KEY', 'test-ranking-key')
     vi.stubEnv('TURNSTILE_SECRET_KEY', 'test-secret')
@@ -44,12 +44,16 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     decide = (await import('@/app/api/admin/submissions/[id]/route')).POST
   })
   beforeEach(async () => {
-    rankingFails = false; rankingCalls = 0; discordCalls = 0; discordFails = false
+    rankingFails = false; rankingCalls = 0; discordCalls = 0; discordFails = false; rankingExisting = null
     vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', '')
-    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '50'); vi.stubEnv('SUBMISSION_IP_DAILY_LIMIT', '5'); vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '2000')
+    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '50'); vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '2000')
     await db.chartSubmission.deleteMany(); await db.submissionQuota.deleteMany(); await db.song.deleteMany()
     vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
-      if (String(url).includes('siteverify')) return Response.json({ success: true, hostname: 'example.test', action: 'chart-submit' })
+      if (String(url).includes('siteverify')) {
+        expect((init?.body as URLSearchParams).has('remoteip')).toBe(false)
+        return Response.json({ success: true, hostname: 'example.test', action: 'chart-submit' })
+      }
+      if (String(url).includes('/rankings?')) return rankingExisting ? Response.json({ song: rankingExisting }) : new Response('', { status: 404 })
       if (String(url).startsWith('https://discord.com/')) {
         discordCalls++
         expect(await db.chartSubmission.count()).toBe(1)
@@ -81,7 +85,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(await db.song.count()).toBe(0)
     expect((await create(request(input))).status).toBe(201)
     expect(await db.chartSubmission.count()).toBe(1)
-    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1, 1])
+    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1])
     expect(rankingCalls).toBe(0)
   })
   it('retains the exact published song number for revision proposals and rejects missing targets', async () => {
@@ -116,6 +120,41 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(discordCalls).toBe(3)
     expect((await decide(request({ action: 'notify', revision: 1 }, admin), context())).status).toBe(409)
     expect((await decide(request({ action: 'notify', revision: 2 }, token), context())).status).toBe(401)
+  })
+  it('checks collisions and freezes edited registration fields for retries', async () => {
+    await create(request(input))
+    rankingExisting = { gameSongId: '007', title: '既存曲', artist: '既存作者', level: '6' }
+    const registration = { gameSongId: '007', title: '登録用の曲名', artist: '登録用アーティスト', level: '8+' }
+    const attempt = (allowOverwrite: boolean, data = registration) => decide(request({ action: 'approve', revision: 1, registration: data, allowOverwrite }, admin), context())
+    expect((await attempt(false)).status).toBe(409)
+    expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).status).toBe('pending')
+    expect(rankingCalls).toBe(0)
+    rankingFails = true
+    expect((await attempt(true)).status).toBe(502)
+    expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).registrationData).toEqual(registration)
+    expect((await attempt(true, { ...registration, title: '変更できない' })).status).toBe(409)
+    rankingFails = false
+    expect((await attempt(true)).status).toBe(200)
+    expect(await db.song.findUniqueOrThrow({ where: { gameSongId: '007' } })).toMatchObject({ ...registration, notes: input.notes, levelValue: 25 })
+  })
+  it('saves administrator registration drafts, includes rejected and published rows, and invalidates drafts on resubmission', async () => {
+    await create(request(input))
+    const registration = { gameSongId: '003', title: '管理者の曲名', artist: null, level: '5-' }
+    const saved = await decide(request({ action: 'save', revision: 1, registration }, admin), context())
+    expect(saved.status).toBe(200)
+    expect(await saved.json()).toMatchObject({ revision: 2, registrationData: registration })
+    expect(rankingCalls).toBe(0)
+    expect((await decide(request({ action: 'approve', revision: 1, registration }, admin), context())).status).toBe(409)
+    await update(request({ ...input, revision: 2 }, token, 'PUT'), context())
+    expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).registrationData).toBeNull()
+    await decide(request({ action: 'reject', revision: 3 }, admin), context())
+    const { GET: list } = await import('@/app/api/admin/submissions/route')
+    const listed = await list(new Request('https://example.test/api/admin/submissions?status=rejected', { headers: { Authorization: `Bearer ${admin}` } }))
+    expect((await listed.json()).submissions[0]).toMatchObject({ id, status: 'rejected' })
+    await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]', level: '5+' } })
+    const published = await list(new Request('https://example.test/api/admin/submissions?view=published', { headers: { Authorization: `Bearer ${admin}` } }))
+    expect((await published.json()).songs[0]).toMatchObject({ gameSongId: '001', title: '公開曲', level: '5+' })
+    expect((await db.submissionQuota.findMany()).every(row => row.key.startsWith('day:'))).toBe(true)
   })
   it('rejects access and updates using somebody else’s key', async () => {
     await create(request(input))
@@ -214,7 +253,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   it('keeps the reserved song number when the existing ranking API rejects the request', async () => {
     await create(request(input))
     const successfulFetch = globalThis.fetch
-    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => String(url).includes('siteverify') ? successfulFetch(url, init) : Response.json({ error: 'conflict' }, { status: 409 })))
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => init?.method !== 'PUT' ? successfulFetch(url, init) : Response.json({ error: 'conflict' }, { status: 409 })))
     expect((await approve()).status).toBe(502)
     expect(await db.chartSubmission.findUniqueOrThrow({ where: { id } })).toMatchObject({ status: 'publishing', gameSongId: '001' })
     vi.stubGlobal('fetch', successfulFetch)
@@ -225,7 +264,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const responses = await Promise.all([create(request(input)), create(request(input))])
     expect(responses.map(row => row.status)).toEqual([201, 201])
     expect(await db.chartSubmission.count()).toBe(1)
-    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1, 1])
+    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1])
   })
   it('updates an imported public song by its game number without an internal ID link', async () => {
     await db.song.create({ data: { gameSongId: '001', title: '架空の既存曲', youtubeUrl: input.youtubeUrl, scoreEntries: '[]' } })
@@ -250,7 +289,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const blocked = new Promise<void>(resolve => { release = resolve })
     vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
       const response = await originalFetch(url, init)
-      if (!String(url).includes('siteverify')) { entered(); await blocked }
+      if (init?.method === 'PUT') { entered(); await blocked }
       return response
     }))
     const first = approve()
@@ -265,7 +304,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(responses.map(row => row.status).sort()).toEqual([200, 404])
     expect(rankingCalls).toBe(1)
     expect(await db.chartSubmission.count()).toBe(1)
-    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(200)
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001', allowOverwrite: true }, admin), context(other))).status).toBe(200)
     expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).title).toBe('別の修正案')
     expect((await approve()).status).toBe(404)
     expect(rankingCalls).toBe(2)
@@ -277,10 +316,10 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     rankingFails = true
     expect((await approve()).status).toBe(502)
     rankingFails = false
-    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(409)
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001', allowOverwrite: true }, admin), context(other))).status).toBe(409)
     expect(rankingCalls).toBe(1)
     expect((await approve()).status).toBe(200)
-    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }, admin), context(other))).status).toBe(200)
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001', allowOverwrite: true }, admin), context(other))).status).toBe(200)
   })
   it('lists public song numbers in numeric order across pages and searches the displayed numbers', async () => {
     const { getSongsPage, getRandomSongs } = await vi.importActual<typeof import('@/lib/songQueries')>('@/lib/songQueries')
@@ -335,14 +374,14 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const responses = await Promise.all([create(request(input)), create(request({ ...input, id: other }))])
     expect(responses.map(row => row.status).sort()).toEqual([201, 429])
     expect(await db.chartSubmission.count()).toBe(1)
-    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1, 1])
+    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1])
   })
-  it('counts edits toward the IP limit and bounds total submissions', async () => {
-    vi.stubEnv('SUBMISSION_IP_DAILY_LIMIT', '1')
+  it('counts edits toward the site-wide limit and bounds total submissions', async () => {
+    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '1')
     await create(request(input))
     expect((await update(request({ ...input, revision: 1 }, token, 'PUT'), context())).status).toBe(429)
     expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).revision).toBe(1)
-    vi.stubEnv('SUBMISSION_IP_DAILY_LIMIT', '5'); vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '1')
+    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '5'); vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '1')
     expect((await create(request({ ...input, id: other }))).status).toBe(429)
     expect(await db.chartSubmission.count()).toBe(1)
   })

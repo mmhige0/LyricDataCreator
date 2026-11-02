@@ -3,7 +3,7 @@ import type { ChartSubmission } from '@prisma/client'
 import { notifySubmission } from '@/lib/submissions/discord'
 
 const row: ChartSubmission = {
-  id: 'a1b7a034-5a5b-413b-b8b7-56d9d881c911', editTokenHash: 'never-send-this',
+  registrationData: null, id: 'a1b7a034-5a5b-413b-b8b7-56d9d881c911', editTokenHash: 'never-send-this',
   title: '曲 @everyone', creatorName: '作者', artist: 'Artist', notes: '補足情報\n<@12345>',
   youtubeUrl: 'https://youtu.be/abcdefghijk', txtContent: '10\nあ/い/う/え/1\n',
   status: 'pending', revision: 2, gameSongId: '001', createdAt: new Date(), updatedAt: new Date(),
@@ -20,12 +20,15 @@ it('sends metadata, public notes and a TXT attachment without edit credentials o
   const body = init?.body as FormData
   const payload = JSON.parse(String(body.get('payload_json')))
   expect(payload.allowed_mentions).toEqual({ parse: [] })
-  expect(payload.embeds[0]).toMatchObject({ title: '譜面の再申請', description: row.notes })
-  expect(payload.embeds[0].url).toBe(`https://ldc.kayomodoki.com/admin/submissions/?submission=${row.id}`)
+  expect(payload.embeds[0]).toMatchObject({ title: '譜面が更新されました' })
+  expect(payload.embeds[0]).not.toHaveProperty('url')
+  expect(payload.embeds[0].fields.map((field: { name: string }) => field.name)).toEqual(['曲名', 'アーティスト', 'YouTube URL', '制作者'])
+  expect(payload.embeds[1].description).toBe(row.notes)
+  expect(JSON.stringify(payload.embeds)).not.toContain(row.id)
   expect(JSON.stringify(payload)).not.toContain(row.editTokenHash)
   expect(payload).not.toHaveProperty('level')
   const file = body.get('files[0]') as File
-  expect(file.name).toBe(`chart-${row.id}-v2.txt`)
+  expect(file.name).toBe('chart.txt')
   expect(await file.text()).toBe(row.txtContent)
 })
 it('skips when unconfigured and refuses unexpected destinations without making a request', async () => {

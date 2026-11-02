@@ -1,6 +1,6 @@
 import { notifySubmission } from '@/lib/submissions/discord'
 import { prisma } from '@/lib/db'
-import { checkId, clientIp, editToken, endpoint, hashToken, json, readJson, requirePosting } from '@/lib/submissions/http'
+import { checkId, editToken, endpoint, hashToken, json, readJson, requirePosting } from '@/lib/submissions/http'
 import { GAME_SONG_ID, object, parseSubmission, SubmissionError } from '@/lib/submissions/validation'
 import { consumeQuota, lockSubmission, owned, privateSubmission } from '@/lib/submissions/service'
 import { verifyTurnstile } from '@/lib/submissions/turnstile'
@@ -18,8 +18,7 @@ export async function POST(request: Request) {
     if (gameSongId !== null && (typeof gameSongId !== 'string' || !GAME_SONG_ID.test(gameSongId))) {
       throw new SubmissionError(400, '曲番号が不正です。')
     }
-    const ip = clientIp(request)
-    await verifyTurnstile(body.turnstileToken, ip)
+    await verifyTurnstile(body.turnstileToken)
     const { row, changed } = await prisma.$transaction(async tx => {
       await lockSubmission(tx, id)
       const existing = await tx.chartSubmission.findUnique({ where: { id } })
@@ -34,7 +33,7 @@ export async function POST(request: Request) {
       if (gameSongId !== null && !await tx.song.findUnique({ where: { gameSongId } })) {
         throw new SubmissionError(404, '修正対象の公開曲が見つかりません。')
       }
-      await consumeQuota(tx, ip, true)
+      await consumeQuota(tx, true)
       const row = await tx.chartSubmission.create({ data: { id, editTokenHash: hashToken(token), gameSongId, ...input } })
       return { row, changed: true }
     })

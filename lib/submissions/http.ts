@@ -1,5 +1,4 @@
 import { createHash, timingSafeEqual } from 'node:crypto'
-import { isIP } from 'node:net'
 import { NextResponse } from 'next/server'
 import { EDIT_TOKEN, MAX_BODY_BYTES, SubmissionError, UUID } from './validation'
 
@@ -22,16 +21,6 @@ export function requireAdmin(request: Request) {
 }
 export function requirePosting() {
   if (process.env.SUBMISSIONS_ENABLED !== 'true') throw new SubmissionError(503, '現在、投稿の受付を停止しています。')
-}
-export function clientIp(request: Request): string {
-  // This header is overwritten by Vercel. Do not trust arbitrary proxy headers elsewhere.
-  if (process.env.VERCEL === '1') {
-    const ip = request.headers.get('x-forwarded-for')?.trim()
-    if (ip && isIP(ip)) return ip
-    throw new SubmissionError(503, '接続元を確認できません。')
-  }
-  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') return '127.0.0.1'
-  throw new SubmissionError(503, '投稿受付の接続元制限が未設定です。')
 }
 export async function readJson(request: Request): Promise<unknown> {
   if (request.headers.get('content-type')?.split(';')[0].trim() !== 'application/json') throw new SubmissionError(415, 'JSON形式で送信してください。')

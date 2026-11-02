@@ -15,7 +15,7 @@ export function object(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-function text(value: unknown, max: number, required = true, multiline = false): string {
+export function text(value: unknown, max: number, required = true, multiline = false): string {
   if (typeof value !== 'string') throw new SubmissionError(400, '文字列を入力してください。')
   const result = value.trim()
   if ((required && !result) || [...result].length > max || (multiline ? /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\uD800-\uDFFF]/u : /[\u0000-\u001f\u007f-\u009f\uD800-\uDFFF]/u).test(result)) {

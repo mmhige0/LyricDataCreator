@@ -33,6 +33,7 @@ model Song {
 // Public Song contains the approved version. Submissions are deleted atomically on publication.
 model ChartSubmission {
   id              String   @id @db.Uuid
+  registrationData Json?
   editTokenHash   String
   creatorName     String
   title           String

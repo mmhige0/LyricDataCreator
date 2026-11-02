@@ -397,15 +397,6 @@ export default function LyricsTypingApp() {
         songTitle={songTitle || undefined}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <SubmissionPanel title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
-              onLoad={data => {
-                saveCurrentState()
-                setSongTitle(data.title); setYoutubeUrl(data.youtubeUrl); setDuration(data.duration)
-                setScoreEntries(data.scoreEntries); setCentralPops(data.centralPops)
-                hasRestoredDraftRef.current = true
-                setIsRestoreDialogOpen(false)
-                loadYouTubeVideo(data.youtubeUrl)
-              }} />
           <div
             className="inline-flex items-center gap-1 rounded-full bg-muted p-1 text-sm shadow-inner"
             role="tablist"
@@ -514,6 +505,15 @@ export default function LyricsTypingApp() {
                 </div>
                 <div id="pages-list-panel" aria-label="ページ一覧" hidden={listView !== 'pages'} className="min-h-0 flex-1">
                 <ScoreManagementSection
+                  submissionAction={<SubmissionPanel title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
+              onLoad={data => {
+                saveCurrentState()
+                setSongTitle(data.title); setYoutubeUrl(data.youtubeUrl); setDuration(data.duration)
+                setScoreEntries(data.scoreEntries); setCentralPops(data.centralPops)
+                hasRestoredDraftRef.current = true
+                setIsRestoreDialogOpen(false)
+                loadYouTubeVideo(data.youtubeUrl)
+              }} />}
                   titleAction={<Button variant="ghost" size="sm" className="h-7 gap-1 px-1 text-xs font-normal" title="ポップ一覧に切り替え" onClick={() => setListView('pops')} aria-label="ポップ一覧に切り替え"><ArrowLeftRight className="h-4 w-4" aria-hidden="true" /><span>ポップ一覧</span></Button>}
                   addEmptyScoreEntry={addEmptyScoreEntry}
                   selectedLyrics={selectedLyrics}

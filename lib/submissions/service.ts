@@ -1,4 +1,3 @@
-import { createHmac } from 'node:crypto'
 import { Prisma, type ChartSubmission } from '@prisma/client'
 import { hashToken, secureEqual } from './http'
 import { SubmissionError } from './validation'
@@ -22,19 +21,15 @@ function limit(name: string, fallback: number) {
   if (!Number.isSafeInteger(value) || value < 1) throw new SubmissionError(503, '投稿制限の設定が不正です。')
   return value
 }
-export async function consumeQuota(tx: Prisma.TransactionClient, ip: string, isNew: boolean) {
-  const secret = process.env.SUBMISSION_RATE_SECRET
-  if (!secret || secret.length < 32) throw new SubmissionError(503, '投稿制限が未設定です。')
-  // One lock across instances makes the site-wide and per-IP limits atomic.
+export async function consumeQuota(tx: Prisma.TransactionClient, isNew: boolean) {
+  // A shared lock makes the site-wide limit atomic.
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(164329, 1)`
   const now = new Date()
   const day = new Date(now.getTime() + 9 * 3600000).toISOString().slice(0, 10)
   const expiresAt = new Date(`${day}T00:00:00+09:00`)
   expiresAt.setUTCDate(expiresAt.getUTCDate() + 1)
-  const ipHash = createHmac('sha256', secret).update(ip).digest('hex')
   const counters = [
     { key: `day:${day}`, max: limit('SUBMISSION_DAILY_LIMIT', 50) },
-    { key: `ip:${day}:${ipHash}`, max: limit('SUBMISSION_IP_DAILY_LIMIT', 5) },
   ]
   for (const { key, max } of counters) {
     const counter = await tx.submissionQuota.findUnique({ where: { key } })
@@ -42,5 +37,5 @@ export async function consumeQuota(tx: Prisma.TransactionClient, ip: string, isN
   }
   if (isNew && await tx.chartSubmission.count() >= limit('SUBMISSION_TOTAL_LIMIT', 500)) throw new SubmissionError(429, '投稿の受付上限に達しています。')
   for (const { key } of counters) await tx.submissionQuota.upsert({ where: { key }, create: { key, count: 1, expiresAt }, update: { count: { increment: 1 } } })
-  await tx.submissionQuota.deleteMany({ where: { expiresAt: { lte: now } } })
+  await tx.submissionQuota.deleteMany({ where: { OR: [{ expiresAt: { lte: now } }, { key: { startsWith: 'ip:' } }] } })
 }
