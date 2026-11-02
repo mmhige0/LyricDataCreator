@@ -88,23 +88,11 @@ CREATE TABLE "chart_submission" (
     CONSTRAINT "chart_submission_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "submission_quota" (
-    "key" TEXT NOT NULL,
-    "count" INTEGER NOT NULL,
-    "expiresAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "submission_quota_pkey" PRIMARY KEY ("key")
-);
-
 -- CreateIndex
 CREATE INDEX "chart_submission_gameSongId_idx" ON "chart_submission"("gameSongId");
 
 -- CreateIndex
 CREATE INDEX "chart_submission_status_updatedAt_idx" ON "chart_submission"("status", "updatedAt");
-
--- CreateIndex
-CREATE INDEX "submission_quota_expiresAt_idx" ON "submission_quota"("expiresAt");
 
 ALTER TABLE "chart_submission" ADD CONSTRAINT "chart_submission_status_check"
   CHECK ("status" IN ('pending', 'publishing', 'approved', 'rejected'));

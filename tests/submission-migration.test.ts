@@ -43,6 +43,8 @@ describe.skipIf(!database)('game song primary key migration', () => {
         const rows = await inSchema(tx => tx.$queryRaw`SELECT "gameSongId", title, "scoreTxt" FROM song`)
         expect(rows).toEqual([{ gameSongId: '001', title: '保存する譜面', scoreTxt: expectedTxt }])
         const columns = await db.$queryRaw<Array<{ column_name: string }>>`SELECT column_name FROM information_schema.columns WHERE table_schema = ${schema} AND table_name = 'song'`
+        const quotaTables = await db.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = ${schema} AND table_name = 'submission_quota'`
+        expect(quotaTables).toEqual([])
         expect(columns.map(row => row.column_name)).not.toContain('id')
         expect(columns.map(row => row.column_name)).not.toContain('scoreEntries')
         expect(parseScoreTxt(expectedTxt).scoreEntries.map(page => page.timestamp)).toEqual([0, 2.25])

@@ -1,5 +1,6 @@
 // Runs only against a disposable database; CI provisions PostgreSQL and applies migrations.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { randomUUID } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 
 vi.mock('next/cache', () => ({ unstable_cache: (fn: () => unknown) => fn, revalidateTag: vi.fn() }))
@@ -45,8 +46,8 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   beforeEach(async () => {
     rankingFails = false; rankingCalls = 0; discordCalls = 0; discordFails = false; rankingExisting = null
     vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', '')
-    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '50'); vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '2000')
-    await db.chartSubmission.deleteMany(); await db.submissionQuota.deleteMany(); await db.song.deleteMany()
+    vi.stubEnv('SUBMISSION_TOTAL_LIMIT', undefined)
+    await db.chartSubmission.deleteMany(); await db.song.deleteMany()
     vi.stubGlobal('fetch', vi.fn(async (url: string | URL, init?: RequestInit) => {
       if (String(url).includes('siteverify')) {
         expect((init?.body as URLSearchParams).has('remoteip')).toBe(false)
@@ -73,7 +74,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     }))
   })
   afterAll(async () => {
-    if (db) { await db.chartSubmission.deleteMany(); await db.submissionQuota.deleteMany(); await db.song.deleteMany(); await db.$disconnect() }
+    if (db) { await db.chartSubmission.deleteMany(); await db.song.deleteMany(); await db.$disconnect() }
     vi.unstubAllGlobals(); vi.unstubAllEnvs()
   })
   it('stores an anonymous pending submission, literal symbols and only the token hash; retry does not duplicate', async () => {
@@ -84,7 +85,6 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(await db.song.count()).toBe(0)
     expect((await create(request(input))).status).toBe(201)
     expect(await db.chartSubmission.count()).toBe(1)
-    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1])
     expect(rankingCalls).toBe(0)
   })
   it('retains the exact published song number for revision proposals and rejects missing targets', async () => {
@@ -155,7 +155,6 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent, level: '5+' } })
     const published = await list(new Request('https://example.test/api/admin/submissions?view=published', { headers: { Authorization: `Bearer ${admin}` } }))
     expect((await published.json()).songs[0]).toMatchObject({ gameSongId: '001', title: '公開曲', level: '5+' })
-    expect((await db.submissionQuota.findMany()).every(row => row.key.startsWith('day:'))).toBe(true)
   })
   it('saves before assigning a number and restores rejected submissions without changing registration fields', async () => {
     await create(request(input))
@@ -282,7 +281,6 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const responses = await Promise.all([create(request(input)), create(request(input))])
     expect(responses.map(row => row.status)).toEqual([201, 201])
     expect(await db.chartSubmission.count()).toBe(1)
-    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1])
   })
   it('updates an imported public song by its game number without an internal ID link', async () => {
     await db.song.create({ data: { gameSongId: '001', title: '架空の既存曲', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent } })
@@ -394,20 +392,32 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }), context())).status).toBe(401)
     expect(rankingCalls).toBe(0)
   })
-  it('enforces daily limits under concurrent requests without retaining rejected rows', async () => {
-    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '1')
+  const seedRows = async (count: number) => db.chartSubmission.createMany({ data: Array.from({ length: count }, () => ({
+    id: randomUUID(), editTokenHash: 'unused', creatorName: input.creatorName, title: input.title,
+    artist: input.artist, youtubeUrl: input.youtubeUrl, txtContent: input.txtContent, status: 'rejected',
+  })) })
+  it('enforces the default limit of 50 stored rows under concurrent new submissions', async () => {
+    await seedRows(49)
     const responses = await Promise.all([create(request(input)), create(request({ ...input, id: other }))])
     expect(responses.map(row => row.status).sort()).toEqual([201, 429])
-    expect(await db.chartSubmission.count()).toBe(1)
-    expect((await db.submissionQuota.findMany()).map(row => row.count)).toEqual([1])
+    expect(await db.chartSubmission.count()).toBe(50)
   })
-  it('counts edits toward the site-wide limit and bounds total submissions', async () => {
-    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '1')
+  it('allows edits at capacity and accepts a new submission when publication frees a slot', async () => {
     await create(request(input))
-    expect((await update(request({ ...input, revision: 1 }, token, 'PUT'), context())).status).toBe(429)
-    expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).revision).toBe(1)
-    vi.stubEnv('SUBMISSION_DAILY_LIMIT', '5'); vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '1')
+    await seedRows(49)
     expect((await create(request({ ...input, id: other }))).status).toBe(429)
-    expect(await db.chartSubmission.count()).toBe(1)
+    expect((await create(request(input))).status).toBe(201)
+    for (let revision = 1; revision <= 3; revision++) {
+      expect((await update(request({ ...input, title: `編集${revision}`, revision }, token, 'PUT'), context())).status).toBe(200)
+    }
+    expect(await db.chartSubmission.count()).toBe(50)
+    expect((await approve(4)).status).toBe(200)
+    expect((await create(request({ ...input, id: other }))).status).toBe(201)
+    expect(await db.chartSubmission.count()).toBe(50)
+  })
+  it('respects a configured capacity override', async () => {
+    vi.stubEnv('SUBMISSION_TOTAL_LIMIT', '1')
+    await create(request(input))
+    expect((await create(request({ ...input, id: other }))).status).toBe(429)
   })
 })

@@ -50,12 +50,3 @@ model ChartSubmission {
   @@index([status, updatedAt])
   @@map("chart_submission")
 }
-
-model SubmissionQuota {
-  key       String   @id
-  count     Int
-  expiresAt DateTime
-
-  @@index([expiresAt])
-  @@map("submission_quota")
-}

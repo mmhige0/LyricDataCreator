@@ -42,10 +42,9 @@ PostgreSQLのトランザクションとadvisory lockを使って、複数のサ
 
 | 設定 | 初期値 | 対象 |
 |---|---|---|
-| `SUBMISSION_DAILY_LIMIT` | 50 | サイト全体の新規投稿・変更の合計／日本時間の1日 |
-| `SUBMISSION_TOTAL_LIMIT` | 500 | 保存する申請の総件数。新規投稿だけを停止する |
+| `SUBMISSION_TOTAL_LIMIT` | 50 | 保存する申請の総件数。承認待ち・登録処理中・却下済みを含み、新規投稿だけを停止する |
 
-申請が残っている間は、同じ成功結果の再送は件数を増やさない。承認後に同じ申請への閲覧・変更・承認を再送すると404になる。承認応答を受け取れなかった場合は、管理者が公開曲と申請一覧を確認する。アプリではIPアドレスを取得・保存・ハッシュ化せず、Turnstileにも転送しない。期限切れカウンターと旧IP別カウンターは次の成功投稿時に削除する。
+申請が残っている間は、同じ成功結果の再送は件数を増やさない。承認後に同じ申請への閲覧・変更・承認を再送すると404になる。承認応答を受け取れなかった場合は、管理者が公開曲と申請一覧を確認する。アプリではIPアドレスを取得・保存・ハッシュ化せず、Turnstileにも転送しない。日次の投稿・変更回数は制限せず、回数集計用テーブルは設けない。保存上限に達していても既存申請の編集・登録は可能。
 
 上限はDB保存の増加を抑えるためのもので、HTTPリクエスト自体やTurnstile検証・関数実行を完全に止めるものではない。大量の不正アクセスへの対策はホスティング側のFirewall／Rate Limitingも併用する。承認済み申請は自動削除する。未承認・却下済み投稿の整理や容量確認は運用で行い、全体上限に達したら整理後に再開する。
 
@@ -163,12 +162,14 @@ BEGIN
   END IF;
 END $$;
 ALTER TABLE "chart_submission" DROP COLUMN IF EXISTS "registrationData";
-DELETE FROM "submission_quota" WHERE "key" LIKE 'ip:%';
+DROP TABLE IF EXISTS "submission_quota";
 ```
 
 このSQLは主キー変更まで適用済みの開発DB向け。旧コードで`publishing`の申請がある場合は、更新前に同じ内容で再試行を完了する。旧処理の登録内容を推測して補完しない。実行前に開発サーバーを停止し、最新版コードと一緒に適用する。適用済みファイルをまとめ直したため、今後 `prisma migrate dev` では履歴の変更を検出する場合がある。開発データを消してよい場合は `prisma migrate reset` で作り直せるが、データを保持したい場合は実行しない。
 
 Prisma CLIは `.env` の `DATABASE_URL` を使う。Next.js用の `.env.local` に別の接続先がある場合は同じ開発用DBを指定する。
+
+旧 `SUBMISSION_DAILY_LIMIT` は削除する。`SUBMISSION_TOTAL_LIMIT` を以前設定していた場合は `50` に変更する。
 
 `.env.local` に以下を設定する。既に同じ変数がある場合は置き換える。公開サイトキーと秘密キーは [Cloudflare公式の成功用テストキー](https://developers.cloudflare.com/turnstile/troubleshooting/testing/) で、Cloudflareへの登録は不要。
 
@@ -178,7 +179,7 @@ TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 TURNSTILE_HOSTNAME=localhost
 SUBMISSION_ADMIN_KEY=ここを32文字以上のランダム文字列に置き換える
 RANKING_ADMIN_API_KEY=
-SUBMISSION_DAILY_LIMIT=500
+SUBMISSION_TOTAL_LIMIT=50
 ```
 
 秘密情報は次のコマンドで生成できる。
