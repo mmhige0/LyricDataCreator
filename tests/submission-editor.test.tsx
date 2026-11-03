@@ -102,7 +102,7 @@ it('loads a public song with its exact number and opens submission only when req
       notes.dispatchEvent(new Event('input', { bubbles: true }))
     })
     expect(host.querySelector('dialog')?.textContent).toContain('修正対象：曲番 001')
-    const creator = [...host.querySelectorAll('label')].find(row => row.textContent?.startsWith('制作者名'))!.querySelector('input')!
+    const creator = [...host.querySelectorAll('label')].find(row => row.textContent?.startsWith('投稿者名'))!.querySelector('input')!
     expect(creator.value).toBe('')
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(creator, '修正者')

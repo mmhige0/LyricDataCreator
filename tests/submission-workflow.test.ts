@@ -11,6 +11,7 @@ let create: typeof import('@/app/api/submissions/route').POST
 let update: typeof import('@/app/api/submissions/[id]/route').PUT
 let get: typeof import('@/app/api/submissions/[id]/route').GET
 let decide: typeof import('@/app/api/admin/submissions/[id]/route').POST
+let remove: typeof import('@/app/api/admin/submissions/[id]/route').DELETE
 const id = 'a1b7a034-5a5b-413b-b8b7-56d9d881c911'
 const other = 'a1b7a034-5a5b-413b-b8b7-56d9d881c912'
 const token = 'a'.repeat(43)
@@ -41,7 +42,8 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     create = (await import('@/app/api/submissions/route')).POST
     const owned = await import('@/app/api/submissions/[id]/route')
     update = owned.PUT; get = owned.GET
-    decide = (await import('@/app/api/admin/submissions/[id]/route')).POST
+    const adminRoute = await import('@/app/api/admin/submissions/[id]/route')
+    decide = adminRoute.POST; remove = adminRoute.DELETE
   })
   beforeEach(async () => {
     rankingFails = false; rankingCalls = 0; discordCalls = 0; discordFails = false; rankingExisting = null
@@ -80,7 +82,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
   it('stores an anonymous pending submission, literal symbols and only the token hash; retry does not duplicate', async () => {
     expect((await create(request(input))).status).toBe(201)
     const row = await db.chartSubmission.findUniqueOrThrow({ where: { id } })
-    expect(row).toMatchObject({ title: input.title, artist: input.artist, status: 'pending', revision: 1, notes: input.notes })
+    expect(row).toMatchObject({ title: input.title, artist: input.artist, status: 'pending', revision: 1, notes: input.notes, level: '-' })
     expect(row.editTokenHash).not.toBe(token)
     expect(await db.song.count()).toBe(0)
     expect((await create(request(input))).status).toBe(201)
@@ -98,7 +100,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).gameSongId).toBe('001')
     expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).title).toBe('公開曲')
   })
-  it('notifies Discord once per saved revision, survives failure, and lets an admin resend', async () => {
+  it('notifies Discord once per saved revision and survives notification failures', async () => {
     vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', 'https://discord.com/api/webhooks/123/test-token')
     discordFails = true
     const created = await create(request(input))
@@ -109,16 +111,11 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     await create(request(input))
     expect(discordCalls).toBe(1)
     discordFails = false
-    const retry = await decide(request({ action: 'notify', revision: 1 }, admin), context())
-    expect(await retry.json()).toEqual({ discordNotification: 'sent' })
-    expect(discordCalls).toBe(2)
     const changed = { ...input, revision: 1, notes: '更新したメモ' }
     expect(await (await update(request(changed, token, 'PUT'), context())).json()).toMatchObject({ discordNotification: 'sent' })
-    expect(discordCalls).toBe(3)
+    expect(discordCalls).toBe(2)
     await update(request(changed, token, 'PUT'), context())
-    expect(discordCalls).toBe(3)
-    expect((await decide(request({ action: 'notify', revision: 1 }, admin), context())).status).toBe(409)
-    expect((await decide(request({ action: 'notify', revision: 2 }, token), context())).status).toBe(401)
+    expect(discordCalls).toBe(2)
   })
   it('checks collisions and freezes edited registration fields for retries', async () => {
     await create(request(input))
@@ -136,7 +133,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await attempt(true)).status).toBe(200)
     expect(await db.song.findUniqueOrThrow({ where: { gameSongId: '007' } })).toMatchObject({ ...registration, notes: input.notes, levelValue: 25 })
   })
-  it('saves edits in submission columns and exposes them to the submitter, search and published list', async () => {
+  it('saves edits in submission columns and exposes them to the submitter and search', async () => {
     await create(request(input))
     const registration = { gameSongId: '003', title: '管理者の曲名', artist: null, level: '5-' }
     const saved = await decide(request({ action: 'save', revision: 1, registration }, admin), context())
@@ -153,8 +150,6 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const listed = await list(new Request('https://example.test/api/admin/submissions?status=rejected', { headers: { Authorization: `Bearer ${admin}` } }))
     expect((await listed.json()).submissions[0]).toMatchObject({ id, status: 'rejected' })
     await db.song.create({ data: { gameSongId: '001', title: '公開曲', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent, level: '5+' } })
-    const published = await list(new Request('https://example.test/api/admin/submissions?view=published', { headers: { Authorization: `Bearer ${admin}` } }))
-    expect((await published.json()).songs[0]).toMatchObject({ gameSongId: '001', title: '公開曲', level: '5+' })
   })
   it('saves before assigning a number and restores rejected submissions without changing registration fields', async () => {
     await create(request(input))
@@ -173,6 +168,30 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect(rankingCalls).toBe(0)
     expect((await decide(request({ action: 'approve', revision: 4, registration: { ...registration, gameSongId: '009' } }, admin), context())).status).toBe(200)
     expect(await db.song.findUniqueOrThrow({ where: { gameSongId: '009' } })).toMatchObject({ title: registration.title, level: '6+' })
+  })
+  it('warns about matching submission numbers across filters and deletes with revision and state checks', async () => {
+    await create(request(input)); await create(request({ ...input, id: other }))
+    await db.chartSubmission.updateMany({ data: { gameSongId: '007' } })
+    await decide(request({ action: 'reject', revision: 1 }, admin), context(other))
+    const { GET: list } = await import('@/app/api/admin/submissions/route')
+    const listed = await list(new Request('https://example.test/api/admin/submissions?status=pending', { headers: { Authorization: `Bearer ${admin}` } }))
+    expect((await listed.json()).submissions).toEqual([expect.objectContaining({ id, duplicateCount: 1 })])
+    const { GET: lookup } = await import('@/app/api/admin/ranking-song/route')
+    const collisions = await lookup(new Request(`https://example.test/api/admin/ranking-song?gameSongId=007&submissionId=${id}`, { headers: { Authorization: `Bearer ${admin}` } }))
+    expect((await collisions.json()).otherSubmissions).toEqual([{ id: other, title: input.title, status: 'rejected' }])
+    expect((await remove(request({ revision: 2 }, token, 'DELETE'), context(other))).status).toBe(401)
+    expect((await remove(request({ revision: 1 }, admin, 'DELETE'), context(other))).status).toBe(409)
+    await db.chartSubmission.update({ where: { id: other }, data: { status: 'publishing' } })
+    expect((await remove(request({ revision: 2 }, admin, 'DELETE'), context(other))).status).toBe(409)
+    await db.chartSubmission.update({ where: { id: other }, data: { status: 'rejected' } })
+    expect((await remove(request({ revision: 2 }, admin, 'DELETE'), context(other))).status).toBe(200)
+    expect((await get(request(undefined, token, 'GET'), context(other))).status).toBe(404)
+    expect(await db.chartSubmission.count()).toBe(1)
+    expect(rankingCalls).toBe(0)
+  })
+  it('initializes revision proposals with difficulty dash even when the public song has a level', async () => {
+    await db.song.create({ data: { gameSongId: '001', title: '公開曲', level: '8+', youtubeUrl: input.youtubeUrl, scoreTxt: input.txtContent } })
+    expect(await (await create(request({ ...input, gameSongId: '001' }))).json()).toMatchObject({ level: '-', gameSongId: '001' })
   })
   it('rejects access and updates using somebody else’s key', async () => {
     await create(request(input))
@@ -198,7 +217,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const response = await approve()
     expect(response.status).toBe(200)
     const publicSong = await db.song.findFirstOrThrow()
-    expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: null, notes: input.notes, youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
+    expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: '-', notes: input.notes, youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
     expect(publicSong).not.toHaveProperty('scoreEntries')
     expect(await response.json()).toEqual({ status: 'approved', gameSongId: '001' })
     expect(await db.chartSubmission.count()).toBe(0)
@@ -232,7 +251,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await update(request({ ...input, revision: 2, title: '再修正版' }, token, 'PUT'), context())).status).toBe(200)
     expect((await db.song.findFirstOrThrow()).title).toBe('公開中')
     expect((await approve(3)).status).toBe(200)
-    expect(await db.song.findFirstOrThrow()).toMatchObject({ title: '再修正版', level: '7+', levelValue: 22, notes: input.notes })
+    expect(await db.song.findFirstOrThrow()).toMatchObject({ title: '再修正版', level: '-', levelValue: null, notes: input.notes })
     expect(await db.chartSubmission.count()).toBe(0)
   })
   it('recovers when ranking succeeds but the local public-song write fails', async () => {

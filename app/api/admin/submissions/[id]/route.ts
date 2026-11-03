@@ -1,5 +1,4 @@
 import { parseRegistration, parseRegistrationDraft } from '@/lib/submissions/registration'
-import { notifySubmission } from '@/lib/submissions/discord'
 import { prisma } from '@/lib/db'
 import { approveSubmission } from '@/lib/submissions/approval'
 import { checkId, endpoint, json, readJson, requireAdmin } from '@/lib/submissions/http'
@@ -25,11 +24,6 @@ export async function POST(request: Request, context: Context) {
     checkId(id)
     const body = object(await readJson(request))
     const expected = revision(body.revision)
-    if (body.action === 'notify') {
-      const row = await prisma.chartSubmission.findUnique({ where: { id } })
-      if (!row || row.revision !== expected) throw new SubmissionError(409, '申請が更新されました。内容を確認し直してください。')
-      return json({ discordNotification: await notifySubmission(row, 'resend') })
-    }
     if (body.action === 'approve') {
       const registration = body.registration === undefined ? undefined : parseRegistration(body.registration)
       return json(await approveSubmission(id, expected, registration?.gameSongId ?? String(body.gameSongId ?? ''), registration, body.allowOverwrite === true))
@@ -53,5 +47,22 @@ export async function POST(request: Request, context: Context) {
       return tx.chartSubmission.update({ where: { id }, data: { status: body.action === 'restore' ? 'pending' : 'rejected', revision: { increment: 1 } } })
     })
     return json(privateSubmission(row))
+  })
+}
+
+export async function DELETE(request: Request, context: Context) {
+  return endpoint(async () => {
+    requireAdmin(request)
+    const { id } = await context.params
+    checkId(id)
+    const expected = revision(object(await readJson(request)).revision)
+    await prisma.$transaction(async tx => {
+      await lockSubmission(tx, id)
+      const current = await tx.chartSubmission.findUnique({ where: { id } })
+      if (!current) throw new SubmissionError(404, '申請が見つかりません。')
+      if (current.revision !== expected || current.status === 'publishing') throw new SubmissionError(409, '申請が更新されたか、登録処理中のため削除できません。')
+      await tx.chartSubmission.delete({ where: { id } })
+    })
+    return json({ deleted: true })
   })
 }

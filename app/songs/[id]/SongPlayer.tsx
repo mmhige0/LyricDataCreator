@@ -18,7 +18,6 @@ interface SongPlayerProps {
     level: string | null
     duration: number
     scoreEntries: ScoreEntry[]
-    notes: string
   }
 }
 
@@ -27,14 +26,8 @@ export function SongPlayer({ song }: SongPlayerProps) {
 
   return (
     <div className="min-h-screen page-shell">
-      <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref={PORTAL_ORIGIN} actions={<Button asChild variant="outline" size="sm"><Link href={`/editor?song=${encodeURIComponent(song.gameSongId)}`}>編集する</Link></Button>} />
+      <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref={PORTAL_ORIGIN} actions={<Button asChild variant="outline" size="sm"><Link href={`/editor?song=${encodeURIComponent(song.gameSongId)}`}>修正申請する</Link></Button>} />
 
-      {song.notes && <section aria-label="補足情報" className="mx-auto my-4 max-w-5xl px-4">
-        <details className="rounded-lg border bg-card p-4 text-card-foreground">
-          <summary className="cursor-pointer text-sm font-medium">補足情報</summary>
-          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted-foreground">{song.notes}</p>
-        </details>
-      </section>}
       <div className={cn("pb-10")}>
         <TypingGameContent
           onClose={() => router.push("/songs")}

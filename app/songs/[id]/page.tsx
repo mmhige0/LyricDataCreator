@@ -54,7 +54,6 @@ export default async function SongPage({ params }: SongPageProps) {
         level: song.level,
         scoreEntries,
         duration,
-        notes: song.notes,
       }}
     />
   )

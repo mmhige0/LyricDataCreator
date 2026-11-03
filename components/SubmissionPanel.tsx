@@ -45,7 +45,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
     if (!id) return
     setOpen(true); setNeedsLoad(true)
     if (fragment) {
-      saveSubmissionKey({ id, token: fragment, title: '投稿した譜面' })
+      saveSubmissionKey({ id, token: fragment, title: '投稿した歌詞データ' })
       history.replaceState(null, '', location.pathname + location.search)
     }
     const key = getSubmissionKeys().find(row => row.id === id)
@@ -109,12 +109,12 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
       className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border bg-card p-0 text-card-foreground shadow-xl backdrop:bg-black/50">
       <div className="space-y-5 p-5 sm:p-6">
         <div className="flex items-center justify-between gap-3">
-          <h2 id="submission-heading" className="text-lg font-semibold">{success ? '申請を受け付けました' : credentials ? '申請内容の確認' : gameSongId ? '公開曲の修正を申請' : '譜面を投稿'}</h2>
+          <h2 id="submission-heading" className="text-lg font-semibold">{success ? '申請を受け付けました' : credentials ? '申請内容の確認' : gameSongId ? '公開曲の修正を申請' : '歌詞データを投稿'}</h2>
           <Button type="button" variant="ghost" size="sm" onClick={close}>閉じる</Button>
         </div>
-        <p id="submission-description" className="text-sm text-muted-foreground">投稿した曲情報・補足情報・譜面は、Discordでゲーム参加者全員に共有されます。ゲームへの反映は承認後に行います。</p>
+        <p id="submission-description" className="text-sm text-muted-foreground">投稿した曲情報・補足情報・歌詞データは、Discordでゲーム参加者全員に共有されます。ゲームへの反映は承認後に行います。</p>
         {needsLoad ? <div className="space-y-3">
-          <p className="text-sm">{sourceSong ? `曲番 ${sourceSong} の譜面を読み込んで編集します。` : '申請中の譜面を読み込んで編集します。'}現在のエディターの内容は置き換わります。</p>
+          <p className="text-sm">{sourceSong ? `曲番 ${sourceSong} の歌詞データを読み込んで編集します。` : '申請中の歌詞データを読み込んで編集します。'}現在のエディターの内容は置き換わります。</p>
           <Button type="button" disabled={busy} onClick={() => void load()}>{busy ? '読み込み中…' : '編集を始める'}</Button>
         </div> : success ? <p className="text-sm">承認前の確認・修正には、下の編集用リンクを使ってください。</p> : <form onSubmit={submit} className="space-y-4">
           {gameSongId && <p className="rounded-md bg-muted p-3 text-sm">修正対象：曲番 {gameSongId}</p>}
@@ -123,13 +123,12 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
             <label className="block text-sm">曲名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={200} value={submittedTitle ?? title} onChange={event => setSubmittedTitle(event.target.value)} /></label>
             <label className="block text-sm">アーティスト <span className="ml-1 text-xs text-muted-foreground">任意</span><Input maxLength={200} value={artist} onChange={event => setArtist(event.target.value)} /></label>
             <label className="block text-sm">YouTube URL <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required type="url" maxLength={500} value={submittedYoutubeUrl ?? youtubeUrl} onChange={event => setSubmittedYoutubeUrl(event.target.value)} /></label>
-            <label className="block text-sm">制作者名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={40} value={creatorName} onChange={event => setCreatorName(event.target.value)} /></label>
+            <label className="block text-sm">投稿者名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={40} value={creatorName} onChange={event => setCreatorName(event.target.value)} /></label>
             <label className="block text-sm">補足情報 <span className="ml-1 text-xs text-muted-foreground">任意</span>
               <textarea maxLength={2000} rows={4} value={notes} onChange={event => setNotes(event.target.value)}
-                placeholder="譜面の特徴や遊ぶときのポイント、変更した内容など"
+                placeholder="想定難易度や特徴、変更した内容など"
                 className="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" />
             </label>
-            <p className="text-xs text-muted-foreground">補足情報は譜面と一緒に公開されます。</p>
           </fieldset>
           {open && status !== 'publishing' && <SubmissionTurnstile key={challenge} onToken={setToken} />}
           <div className="flex justify-end gap-2">

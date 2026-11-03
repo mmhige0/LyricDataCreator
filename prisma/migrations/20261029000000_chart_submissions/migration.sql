@@ -72,7 +72,7 @@ ALTER TABLE song DROP COLUMN "scoreEntries";
 CREATE TABLE "chart_submission" (
     "id" UUID NOT NULL,
     "editTokenHash" TEXT NOT NULL,
-    "level" TEXT,
+    "level" TEXT DEFAULT '-',
     "creatorName" TEXT NOT NULL,
     "title" TEXT NOT NULL,
     "artist" TEXT,

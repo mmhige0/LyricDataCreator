@@ -20,10 +20,10 @@ it('sends metadata, public notes and a TXT attachment without edit credentials o
   const body = init?.body as FormData
   const payload = JSON.parse(String(body.get('payload_json')))
   expect(payload.allowed_mentions).toEqual({ parse: [] })
-  expect(payload.embeds[0]).toMatchObject({ title: '譜面が更新されました' })
+  expect(payload.embeds[0]).toMatchObject({ title: '歌詞データが更新されました' })
   expect(payload.embeds[0]).not.toHaveProperty('url')
-  expect(payload.embeds[0].fields.map((field: { name: string }) => field.name)).toEqual(['曲名', 'アーティスト', 'YouTube URL', '制作者'])
-  expect(payload.embeds[1].description).toBe(row.notes)
+  expect(payload.embeds[0].fields.map((field: { name: string }) => field.name)).toEqual(['曲名', 'アーティスト', 'YouTube URL', '補足情報', '投稿者名'])
+  expect(payload.embeds[0].fields[3].value).toBe(row.notes)
   expect(JSON.stringify(payload.embeds)).not.toContain(row.id)
   expect(JSON.stringify(payload)).not.toContain(row.editTokenHash)
   expect(payload).not.toHaveProperty('level')
@@ -48,5 +48,22 @@ it('handles rate limits, malformed success and network failures without losing s
   vi.stubGlobal('fetch', vi.fn(async () => Response.json({})))
   expect(await notifySubmission(row, 'new')).toBe('failed')
   vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network') }))
-  expect(await notifySubmission(row, 'resend')).toBe('failed')
+  expect(await notifySubmission(row, 'updated')).toBe('failed')
+})
+
+it('keeps long notes between the video and submitter within Discord field limits', async () => {
+  vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', 'https://discord.com/api/webhooks/123/test-token')
+  let fields: { name: string; value: string }[] = []
+  vi.stubGlobal('fetch', vi.fn(async (_url: URL, init?: RequestInit) => {
+    fields = JSON.parse(String((init?.body as FormData).get('payload_json'))).embeds[0].fields
+    return Response.json({ id: '123' })
+  }))
+  const notes = '😀'.repeat(2000)
+  expect(await notifySubmission({ ...row, notes }, 'new')).toBe('sent')
+  expect(fields.slice(3, -1).map(field => field.value).join('')).toBe(notes)
+  expect(fields.every(field => field.value.length <= 1024)).toBe(true)
+  expect(fields.at(-1)?.name).toBe('投稿者名')
+  await notifySubmission({ ...row, notes: '', artist: null }, 'new')
+  expect(fields.map(field => field.name)).toEqual(['曲名', 'アーティスト', 'YouTube URL', '投稿者名'])
+  expect(fields[1].value).toBe('未入力')
 })

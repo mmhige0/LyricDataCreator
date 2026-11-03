@@ -42,7 +42,7 @@ model ChartSubmission {
   status          String   @default("pending")
   revision        Int      @default(1)
   gameSongId      String?
-  level           String?
+  level           String?  @default("-")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

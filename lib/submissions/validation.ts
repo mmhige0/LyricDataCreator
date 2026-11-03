@@ -47,15 +47,15 @@ export function parseSubmission(value: unknown) {
   const notes = text(input.notes ?? '', 2000, false, true)
   const youtubeUrl = canonicalYouTubeUrl(input.youtubeUrl)
   if (typeof input.txtContent !== 'string' || new TextEncoder().encode(input.txtContent).length > MAX_TXT_BYTES) {
-    throw new SubmissionError(413, '譜面は128KiB以内にしてください。')
+    throw new SubmissionError(413, '歌詞データは128KiB以内にしてください。')
   }
   // Bound lines before parsing, including empty rows and pop rows.
-  if (input.txtContent.split(/\r\n|\n|\r/).length > 2200) throw new SubmissionError(400, '譜面の行数が多すぎます。')
+  if (input.txtContent.split(/\r\n|\n|\r/).length > 2200) throw new SubmissionError(400, '歌詞データの行数が多すぎます。')
   let parsed: ReturnType<typeof parseScoreTxt>
   try { parsed = parseScoreTxt(input.txtContent) }
-  catch (error) { throw new SubmissionError(400, error instanceof Error ? error.message : '譜面が不正です。') }
+  catch (error) { throw new SubmissionError(400, error instanceof Error ? error.message : '歌詞データが不正です。') }
   if (!parsed.scoreEntries.length || parsed.scoreEntries.length > 1000 || parsed.centralPops.length > 1000 || parsed.duration > 3600) {
-    throw new SubmissionError(400, '譜面は1〜1000ページ、ポップ1000件以下、総時間3600秒以下にしてください。')
+    throw new SubmissionError(400, '歌詞データは1〜1000ページ、ポップ1000件以下、総時間3600秒以下にしてください。')
   }
   if ([...parsed.scoreEntries, ...parsed.centralPops].some(row => row.timestamp > parsed.duration)) {
     throw new SubmissionError(400, '総時間を超える表示時刻があります。')

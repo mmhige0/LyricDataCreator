@@ -2,8 +2,18 @@ import type { ChartSubmission } from '@prisma/client'
 
 export type DiscordNotification = 'sent' | 'skipped' | 'failed' | 'unchanged'
 
+// Discord limits each field value to 1024 UTF-16 units. Keep long notes in order.
+function noteFields(notes: string) {
+  const parts: string[] = []
+  for (const char of notes) {
+    if (!parts.length || parts[parts.length - 1].length + char.length > 1024) parts.push('')
+    parts[parts.length - 1] += char
+  }
+  return parts.map((value, i) => ({ name: i ? '補足情報 続き' : '補足情報', value }))
+}
+
 // Notification failure must never roll back an accepted submission.
-export async function notifySubmission(row: ChartSubmission, event: 'new' | 'updated' | 'resend'): Promise<DiscordNotification> {
+export async function notifySubmission(row: ChartSubmission, event: 'new' | 'updated'): Promise<DiscordNotification> {
   const configured = process.env.DISCORD_SUBMISSION_WEBHOOK_URL
   if (!configured) return 'skipped'
   try {
@@ -16,14 +26,15 @@ export async function notifySubmission(row: ChartSubmission, event: 'new' | 'upd
     form.set('payload_json', JSON.stringify({
       allowed_mentions: { parse: [] },
       embeds: [{
-        title: event === 'new' ? '譜面が投稿されました' : event === 'updated' ? '譜面が更新されました' : '譜面の共有',
+        title: event === 'new' ? '歌詞データが投稿されました' : '歌詞データが更新されました',
         fields: [
           { name: '曲名', value: row.title },
-          { name: 'アーティスト', value: row.artist || '未指定' },
+          { name: 'アーティスト', value: row.artist || '未入力' },
           { name: 'YouTube URL', value: row.youtubeUrl },
-          { name: '制作者', value: row.creatorName },
+          ...noteFields(row.notes),
+          { name: '投稿者名', value: row.creatorName },
         ],
-      }, ...(row.notes ? [{ title: '補足情報', description: row.notes }] : [])],
+      }],
       attachments: [{ id: 0, filename }],
     }))
     form.set('files[0]', new Blob([row.txtContent], { type: 'text/plain;charset=utf-8' }), filename)

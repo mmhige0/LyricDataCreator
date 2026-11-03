@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       const source = gameSongId !== null ? await tx.song.findUnique({ where: { gameSongId } }) : null
       if (gameSongId !== null && !source) throw new SubmissionError(404, '修正対象の公開曲が見つかりません。')
       await ensureSubmissionCapacity(tx)
-      const row = await tx.chartSubmission.create({ data: { id, editTokenHash: hashToken(token), gameSongId, level: source?.level ?? null, ...input } })
+      const row = await tx.chartSubmission.create({ data: { id, editTokenHash: hashToken(token), gameSongId, level: '-', ...input } })
       return { row, changed: true }
     })
     const discordNotification = changed ? await notifySubmission(row, 'new') : 'unchanged'
