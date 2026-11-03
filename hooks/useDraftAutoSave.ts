@@ -4,6 +4,8 @@ import { saveDraft } from '@/lib/draftStorage'
 import { getSessionId } from '@/lib/sessionStorage'
 
 interface UseDraftAutoSaveProps {
+  sessionId?: string | null
+  duration?: number
   youtubeUrl: string
   scoreEntries: ScoreEntry[]
   centralPops?: CentralPop[]
@@ -13,6 +15,8 @@ interface UseDraftAutoSaveProps {
 }
 
 export function useDraftAutoSave({
+  sessionId = getSessionId(),
+  duration,
   youtubeUrl,
   scoreEntries,
   centralPops = [],
@@ -20,8 +24,8 @@ export function useDraftAutoSave({
   enabled = true,
   isComposing = false,
 }: UseDraftAutoSaveProps) {
-  const serialized = JSON.stringify({ youtubeUrl, scoreEntries, centralPops, songTitle })
-  const latest = useRef({ youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized })
+  const serialized = JSON.stringify({ sessionId, duration, youtubeUrl, scoreEntries, centralPops, songTitle })
+  const latest = useRef({ sessionId, duration, youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized })
   const saved = useRef<string | null>(null)
   const [savedValue, setSavedValue] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
@@ -32,8 +36,7 @@ export function useDraftAutoSave({
     if (!snapshot.enabled || saved.current === snapshot.serialized) return
     // Preserve clearing the final page too, so an old draft cannot reappear.
     if (!snapshot.youtubeUrl && snapshot.scoreEntries.length === 0 && snapshot.centralPops.length === 0 && !hadContent.current) return
-    const sessionId = getSessionId()
-    const success = sessionId !== null && saveDraft(sessionId, snapshot.youtubeUrl, snapshot.scoreEntries, snapshot.songTitle, snapshot.centralPops)
+    const success = snapshot.sessionId !== null && saveDraft(snapshot.sessionId, snapshot.youtubeUrl, snapshot.scoreEntries, snapshot.songTitle, snapshot.centralPops, snapshot.duration)
     setFailed(!success)
     if (success) {
       saved.current = snapshot.serialized
@@ -43,12 +46,12 @@ export function useDraftAutoSave({
 
   // Browser persistence: publish the latest committed render before blur/pagehide.
   useLayoutEffect(() => {
-    latest.current = { youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized }
+    latest.current = { sessionId, duration, youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized }
     if (enabled && (youtubeUrl || scoreEntries.length > 0 || centralPops.length > 0)) hadContent.current = true
     if (!enabled || isComposing) return
     const timeout = window.setTimeout(flush, 1000)
     return () => window.clearTimeout(timeout)
-  }, [youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized, isComposing, flush])
+  }, [sessionId, duration, youtubeUrl, scoreEntries, centralPops, songTitle, enabled, serialized, isComposing, flush])
 
   useLayoutEffect(() => {
     let blurTimeout: ReturnType<typeof setTimeout> | undefined

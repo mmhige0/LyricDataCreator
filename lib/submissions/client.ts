@@ -1,4 +1,4 @@
-export type SubmissionCredentials = { id: string; token: string; title: string }
+export type SubmissionCredentials = { id: string; token: string; title: string; draftSessionId?: string }
 const STORAGE_KEY = 'chart-submission-keys'
 export function getSubmissionKeys(): SubmissionCredentials[] {
   try {
@@ -8,8 +8,19 @@ export function getSubmissionKeys(): SubmissionCredentials[] {
   } catch { return [] }
 }
 export function saveSubmissionKey(key: SubmissionCredentials) {
-  const list = getSubmissionKeys().filter(row => row.id !== key.id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([key, ...list]))
+  const previous = getSubmissionKeys()
+  const existing = previous.find(row => row.id === key.id)
+  const list = previous.filter(row => row.id !== key.id)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([{ ...key, draftSessionId: key.draftSessionId ?? existing?.draftSessionId }, ...list]))
+}
+export function getSubmissionForDraft(sessionId: string): SubmissionCredentials | undefined {
+  return getSubmissionKeys().find(key => key.draftSessionId === sessionId)
+}
+export function removeSubmissionKey(id: string) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(getSubmissionKeys().filter(key => key.id !== id)))
+}
+export class SubmissionRequestError extends Error {
+  constructor(public status: number, message: string) { super(message) }
 }
 export function newSubmissionKey(title: string): SubmissionCredentials {
   const bytes = crypto.getRandomValues(new Uint8Array(32))
@@ -21,6 +32,6 @@ export const statusLabel: Record<string, string> = { pending: '承認待ち', pu
 export async function submissionFetch(url: string, token: string, init: RequestInit = {}) {
   const response = await fetch(url, { ...init, cache: 'no-store', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init.headers } })
   const data = await response.json()
-  if (!response.ok) throw new Error(data.error ?? '処理に失敗しました。')
+  if (!response.ok) throw new SubmissionRequestError(response.status, data.error ?? '処理に失敗しました。')
   return data
 }

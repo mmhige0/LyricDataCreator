@@ -23,10 +23,11 @@ import { AppHeader } from "@/components/AppHeader"
 import { PORTAL_ORIGIN } from "@/lib/site"
 import { TypingGameContent } from "@/components/TypingGameContent"
 import { cn } from "@/lib/utils"
-import { createNewSessionId, getOrCreateSessionId } from "@/lib/sessionStorage"
+import { createNewSessionId, getOrCreateSessionId, setSessionId } from "@/lib/sessionStorage"
 import { loadDraft, cleanupExpiredDrafts, getDraftList } from "@/lib/draftStorage"
 import { adjacentLyricsPosition, pagePlaybackTimestamp } from '@/lib/lyricsNavigation'
 import { extractVideoId } from "@/lib/youtubeUtils"
+import { getSubmissionForDraft, getSubmissionKeys } from '@/lib/submissions/client'
 import type { DraftListEntry } from "@/lib/types"
 
 export default function LyricsTypingApp() {
@@ -37,6 +38,9 @@ export default function LyricsTypingApp() {
   const [activeView, setActiveView] = useState<"editor" | "play">("editor")
   const [listView, setListView] = useState<'pages' | 'pops'>('pages')
   const [selectedPopId, setSelectedPopId] = useState<string | null>(null)
+  const [draftSessionId, setDraftSessionId] = useState<string | null>(null)
+  const [resumeDraft, setResumeDraft] = useState(false)
+  const [submissionPanelVersion, setSubmissionPanelVersion] = useState(0)
   const [drafts, setDrafts] = useState<DraftListEntry[]>([])
   const hasRestoredDraftRef = useRef(false)
   const autoTitleRef = useRef<string | null>(null)
@@ -238,8 +242,10 @@ export default function LyricsTypingApp() {
     cleanupExpiredDrafts()
 
     const openingSubmission = ['submission', 'song'].some(key => new URLSearchParams(location.search).has(key))
-    if (openingSubmission) createNewSessionId()
-    else getOrCreateSessionId()
+    const submissionId = new URLSearchParams(location.search).get('submission')
+    const linkedSession = getSubmissionKeys().find(key => key.id === submissionId)?.draftSessionId
+    const sessionId = linkedSession && loadDraft(linkedSession) ? linkedSession : openingSubmission ? createNewSessionId() : getOrCreateSessionId()
+    setSessionId(sessionId); setDraftSessionId(sessionId)
 
     const draftList = openingSubmission ? [] : getDraftList()
     if (draftList.length > 0) {
@@ -298,6 +304,11 @@ export default function LyricsTypingApp() {
       hasRestoredDraftRef.current = true
       const draft = loadDraft(sessionId)
       if (draft) {
+        setSessionId(sessionId); setDraftSessionId(sessionId)
+        const submission = getSubmissionForDraft(sessionId)
+        history.replaceState(null, '', submission ? `/editor?submission=${submission.id}` : '/editor')
+        setResumeDraft(Boolean(submission)); setSubmissionPanelVersion(value => value + 1)
+        if (draft.duration !== undefined) setDuration(draft.duration)
         setYoutubeUrl(draft.youtubeUrl)
         saveCurrentState()
         setScoreEntries(draft.scoreEntries)
@@ -312,17 +323,19 @@ export default function LyricsTypingApp() {
         }
       }
     },
-    [setYoutubeUrl, setScoreEntries, setCentralPops, saveCurrentState, setSongTitle, loadYouTubeVideo],
+    [setYoutubeUrl, setDuration, setScoreEntries, setCentralPops, saveCurrentState, setSongTitle, loadYouTubeVideo],
   )
 
   const handleCloseRestoreDialog = useCallback(() => {
     setIsRestoreDialogOpen(false)
     if (!hasRestoredDraftRef.current) {
-      createNewSessionId()
+      setDraftSessionId(createNewSessionId())
     }
   }, [])
 
   useDraftAutoSave({
+    sessionId: draftSessionId,
+    duration,
     youtubeUrl,
     scoreEntries,
     centralPops,
@@ -505,7 +518,7 @@ export default function LyricsTypingApp() {
                 </div>
                 <div id="pages-list-panel" aria-label="ページ一覧" hidden={listView !== 'pages'} className="min-h-0 flex-1">
                 <ScoreManagementSection
-                  submissionAction={<SubmissionPanel title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
+                  submissionAction={<SubmissionPanel key={`${draftSessionId}:${submissionPanelVersion}`} resumeDraft={resumeDraft} onSubmitted={(title, url) => { setSongTitle(title); setYoutubeUrl(url) }} title={songTitle} youtubeUrl={youtubeUrl} duration={duration} scoreEntries={scoreEntries} centralPops={centralPops}
               onLoad={data => {
                 saveCurrentState()
                 setSongTitle(data.title); setYoutubeUrl(data.youtubeUrl); setDuration(data.duration)

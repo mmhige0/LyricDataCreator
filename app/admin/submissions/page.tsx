@@ -32,7 +32,6 @@ export default function AdminSubmissionsPage() {
   const [selected, setSelected] = useState<Submission | null>(null)
   const [registration, setRegistration] = useState<Registration>(empty)
   const [lookupNumber, setLookupNumber] = useState('')
-  const [allowOverwrite, setAllowOverwrite] = useState(false)
   const [preview, setPreview] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -50,7 +49,6 @@ export default function AdminSubmissionsPage() {
   const checked = !checkError && !checking && collision?.gameSongId === registration.gameSongId
   const existing = checked ? collision?.rankingSong ?? collision?.publicSong : null
   const publishing = selected?.status === 'publishing'
-  const canApprove = selected?.status === 'pending' && registration.title.trim() && checked && (!existing || allowOverwrite)
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setMessage('')
     try { await action() }
@@ -64,7 +62,7 @@ export default function AdminSubmissionsPage() {
     setRows(result.submissions ?? []); setPage(nextPage); setHasNext(result.hasNext); setLoaded(true)
   }
   const adopt = (row: Submission) => {
-    setSelected(row); setAllowOverwrite(false); setPreview(false)
+    setSelected(row); setPreview(false)
     setRegistration({ gameSongId: row.gameSongId ?? '', title: row.title, artist: row.artist ?? '', level: row.level ?? '' })
   }
   const open = async (id: string) => adopt(await submissionFetch(`/api/admin/submissions/${id}`, key))
@@ -75,16 +73,15 @@ export default function AdminSubmissionsPage() {
     })
     adopt(row); await list(page); setMessage('LDCの申請に変更を保存しました。ランキングにはまだ登録していません。')
   }
-  const decide = async (action: 'approve' | 'reject' | 'restore') => {
+  const decide = async (action: 'reject' | 'restore') => {
     if (!selected) return
     try {
       const result = await submissionFetch(`/api/admin/submissions/${selected.id}`, key, {
-        method: 'POST', body: JSON.stringify({ action, revision: selected.revision, registration, allowOverwrite }),
+        method: 'POST', body: JSON.stringify({ action, revision: selected.revision, registration }),
       })
-      if (action === 'approve') setSelected(null)
-      else adopt(result)
+      adopt(result)
       await list(page)
-      setMessage(action === 'approve' ? 'ランキングへの登録とLDCへの公開が完了しました。ゲームへの反映は別途行ってください。' : action === 'restore' ? '承認待ちに戻しました。' : '申請を却下しました。')
+      setMessage(action === 'restore' ? '承認待ちに戻しました。' : '申請を却下しました。')
     } catch (error) {
       // A committed reservation survives a failed ranking call. Display its immutable fields.
       try {
@@ -94,10 +91,10 @@ export default function AdminSubmissionsPage() {
       throw error
     }
   }
-  const download = () => {
-    if (!selected) return
-    const url = URL.createObjectURL(new Blob([selected.txtContent], { type: 'text/plain;charset=utf-8' }))
-    const link = document.createElement('a'); link.href = url; link.download = 'chart.txt'; link.click()
+  const download = async (row: Summary) => {
+    const current: Submission = await submissionFetch(`/api/admin/submissions/${row.id}`, key)
+    const url = URL.createObjectURL(new Blob([current.txtContent], { type: 'text/plain;charset=utf-8' }))
+    const link = document.createElement('a'); link.href = url; link.download = `${current.gameSongId || 'chart'}.txt`; link.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   const parsed = selected ? parseScoreTxt(selected.txtContent) : null
@@ -127,6 +124,7 @@ export default function AdminSubmissionsPage() {
               <td className={cell}>{row.level || '—'}</td><td className={cell}>{row.creatorName}</td><td className={`${cell} whitespace-nowrap`}>{states[row.status]}</td>
               <td className={cell}><div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" disabled={busy} onClick={() => void run(() => open(row.id))}>確認・編集</Button>
+                <Button size="sm" variant="outline" disabled={busy} onClick={() => void run(() => download(row))}>ダウンロード</Button>
                 <Button size="sm" disabled={busy || !row.gameSongId || !['pending', 'publishing'].includes(row.status)} onClick={() => setTableAction({ kind: 'register', row })}>{row.status === 'publishing' ? '登録を再試行' : 'ランキングに登録'}</Button>
                 <Button size="sm" variant="outline" disabled={busy || row.status === 'publishing'} onClick={() => setTableAction({ kind: 'delete', row })}>削除</Button>
               </div></td>
@@ -140,13 +138,13 @@ export default function AdminSubmissionsPage() {
         <div className="flex items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">{selected.title}</h2><p className="text-sm text-muted-foreground">{selected.creatorName} · {states[selected.status]}</p></div><Button variant="ghost" disabled={busy} onClick={() => setSelected(null)}>閉じる</Button></div>
         <p className="whitespace-pre-wrap break-words text-sm">{selected.notes || '補足情報はありません。'}</p>
         <p className="break-all text-sm">{selected.youtubeUrl}</p>
-        <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={download}>TXTをダウンロード</Button><Button variant="outline" onClick={() => setPreview(!preview)}>プレビュー{preview ? 'を閉じる' : 'を開く'}</Button></div>
+        <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setPreview(!preview)}>プレビュー{preview ? 'を閉じる' : 'を開く'}</Button></div>
         {preview && parsed && <TypingGameContent onClose={() => setPreview(false)} showHeader={false} scoreEntries={parsed.scoreEntries} songTitle={selected.title} youtubeUrl={selected.youtubeUrl} totalDuration={parsed.duration} />}
         <details><summary>歌詞データの全文</summary><pre className="max-h-96 overflow-auto whitespace-pre-wrap text-sm">{selected.txtContent}</pre></details>
         <form className="space-y-4 border-t pt-5" onSubmit={event => { event.preventDefault(); void run(save) }}>
-          <h3 className="font-semibold">曲情報を編集してランキングに登録</h3>
+          <h3 className="font-semibold">申請内容を編集</h3>
           <fieldset disabled={busy || publishing} className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">曲番号<Input inputMode="numeric" maxLength={8} value={registration.gameSongId} onChange={event => { setAllowOverwrite(false); setRegistration({ ...registration, gameSongId: event.target.value }) }} /></label>
+            <label className="block text-sm">曲番号<Input inputMode="numeric" maxLength={8} value={registration.gameSongId} onChange={event => { setRegistration({ ...registration, gameSongId: event.target.value }) }} /></label>
             <label className="block text-sm">難易度<Input maxLength={4} placeholder="5+ / - / ?" value={registration.level ?? ''} onChange={event => setRegistration({ ...registration, level: event.target.value })} /></label>
             <label className="block text-sm">曲名<Input required maxLength={SONG_INPUT_LIMITS.title} value={registration.title} onChange={event => setRegistration({ ...registration, title: event.target.value })} /></label>
             <label className="block text-sm">アーティスト<Input maxLength={SONG_INPUT_LIMITS.artist} value={registration.artist ?? ''} onChange={event => setRegistration({ ...registration, artist: event.target.value })} /></label>
@@ -157,17 +155,15 @@ export default function AdminSubmissionsPage() {
               <p className="font-medium">この曲番号は登録済みです。</p>
               <p>{existing.gameSongId} · {existing.title} · {existing.artist || 'アーティスト未設定'} · 難易度 {existing.level || '未設定'}</p>
               <Button type="button" size="sm" variant="outline" onClick={() => setRegistration(existing)}>既存曲の情報を入力</Button>
-              <label className="flex items-center gap-2"><input type="checkbox" checked={allowOverwrite} onChange={event => setAllowOverwrite(event.target.checked)} />この既存曲を更新する</label>
             </> : <p>ランキング・LDCとも、この曲番号は未登録です。</p>}
           </div>}
           <div className="space-y-1 text-sm text-muted-foreground">
             <p>曲情報と曲番号はどちらからでも設定できます。曲番号が未定でも変更を保存できます。</p>
             <p>変更を保存：LDCの申請内容を更新します。</p>
-            <p>ランキングに登録：ランキング登録後、LDCの公開曲を追加・更新し、申請を削除します。ゲームへの反映は別途必要です。</p>
+            <p>変更を保存した後、表の「ランキングに登録」からランキング登録・LDC公開曲の追加または更新・申請削除を行います。ゲームへの反映は別途必要です。</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="outline" disabled={busy || publishing || (!validNumber && registration.gameSongId !== '')}>変更を保存</Button>
-            <Button type="button" disabled={busy || !(publishing || canApprove)} onClick={() => void run(() => decide('approve'))}>{publishing ? '同じ内容で登録を再試行' : 'ランキングに登録'}</Button>
             {selected.status === 'rejected'
               ? <Button type="button" variant="outline" disabled={busy} onClick={() => void run(() => decide('restore'))}>承認待ちに戻す</Button>
               : <Button type="button" variant="outline" disabled={busy || selected.status !== 'pending'} onClick={() => void run(() => decide('reject'))}>却下する</Button>}

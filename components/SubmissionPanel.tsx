@@ -6,13 +6,15 @@ import { Input } from '@/components/ui/input'
 import { SubmissionTurnstile } from './SubmissionTurnstile'
 import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
 import { createScoreTxt, parseScoreTxt } from '@/lib/scoreFormat'
-import { getSubmissionKeys, newSubmissionKey, saveSubmissionKey, statusLabel, submissionFetch, type SubmissionCredentials } from '@/lib/submissions/client'
+import { getSubmissionKeys, newSubmissionKey, removeSubmissionKey, saveSubmissionKey, statusLabel, SubmissionRequestError, submissionFetch, type SubmissionCredentials } from '@/lib/submissions/client'
+import { saveDraft } from '@/lib/draftStorage'
+import { getSessionId } from '@/lib/sessionStorage'
 import type { CentralPop, ScoreEntry } from '@/lib/types'
 
 type LoadedSubmission = { title: string; youtubeUrl: string; duration: number; scoreEntries: ScoreEntry[]; centralPops: CentralPop[] }
-type Props = LoadedSubmission & { onLoad: (data: LoadedSubmission) => void }
+type Props = LoadedSubmission & { onLoad: (data: LoadedSubmission) => void; resumeDraft?: boolean; onSubmitted?: (title: string, youtubeUrl: string) => void }
 
-export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, centralPops, onLoad }: Props) {
+export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, centralPops, onLoad, resumeDraft = false, onSubmitted }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [open, setOpen] = useState(false)
   const [reloadOffered, setReloadOffered] = useState(false)
@@ -63,13 +65,20 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
       const row = credentials
         ? await submissionFetch(`/api/submissions/${credentials.id}`, credentials.token)
         : await submissionFetch(`/api/songs/${encodeURIComponent(sourceSong!)}/edit`, '')
-      const parsed = parseScoreTxt(row.txtContent)
-      onLoad({ title: row.title, youtubeUrl: row.youtubeUrl, ...parsed })
-      setSubmittedTitle(row.title); setCreatorName(row.creatorName); setArtist(row.artist ?? ''); setNotes(row.notes ?? '')
-      setSubmittedYoutubeUrl(row.youtubeUrl); setGameSongId(row.gameSongId ?? null)
+      if (!resumeDraft) onLoad({ title: row.title, youtubeUrl: row.youtubeUrl, ...parseScoreTxt(row.txtContent) })
+      setSubmittedTitle(resumeDraft ? null : row.title); setCreatorName(row.creatorName); setArtist(row.artist ?? ''); setNotes(row.notes ?? '')
+      setSubmittedYoutubeUrl(resumeDraft ? null : row.youtubeUrl); setGameSongId(row.gameSongId ?? null)
       setVersion(row.revision ?? null); setStatus(row.status ?? ''); setNeedsLoad(false)
+      if (credentials) saveSubmissionKey({ ...credentials, draftSessionId: getSessionId() ?? undefined })
       setMessage(''); setReloadOffered(false); setOpen(false)
-    } catch (error) { setMessage(error instanceof Error ? error.message : '読み込めませんでした。') }
+    } catch (error) {
+      if (credentials && error instanceof SubmissionRequestError && error.status === 404) {
+        removeSubmissionKey(credentials.id)
+        history.replaceState(null, '', '/editor')
+        setCredentials(null); setVersion(null); setStatus(''); setGameSongId(null); setNeedsLoad(false)
+        setMessage('申請は登録・削除済み、または編集用キーが無効です。下書きは残しているので、引き続き編集できます。')
+      } else setMessage(error instanceof Error ? error.message : '読み込めませんでした。')
+    }
     finally { setBusy(false) }
   }
   const submit = async (event: React.FormEvent) => {
@@ -79,7 +88,9 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
     try {
       const txtContent = createScoreTxt(duration, scoreEntries, centralPops)
       const name = (submittedTitle ?? title).trim()
-      const key = credentials ?? newSubmissionKey(name)
+      const draftSessionId = getSessionId()
+      const key = { ...(credentials ?? newSubmissionKey(name)), draftSessionId: draftSessionId ?? undefined }
+      if (draftSessionId) saveDraft(draftSessionId, submittedYoutubeUrl ?? youtubeUrl, scoreEntries, name, centralPops, duration)
       // Persist before sending, so a lost response never loses edit access.
       saveSubmissionKey({ ...key, title: name })
       setCredentials(key)
@@ -87,6 +98,7 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
         method: version === null ? 'POST' : 'PUT',
         body: JSON.stringify({ id: key.id, revision: version, title: name, creatorName, artist, notes, youtubeUrl: submittedYoutubeUrl ?? youtubeUrl, gameSongId, txtContent, turnstileToken: token }),
       })
+      onSubmitted?.(name, submittedYoutubeUrl ?? youtubeUrl)
       setVersion(row.revision); setStatus(row.status); setNeedsLoad(false)
       history.replaceState(null, '', `/editor?submission=${key.id}`)
       setSuccess(true)
@@ -115,8 +127,8 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
         </div>
         <p id="submission-description" className="text-sm text-muted-foreground">投稿した曲情報・補足情報・歌詞データは、Discordでゲーム参加者全員に共有されます。ゲームへの反映は承認後に行います。</p>
         {needsLoad ? <div className="space-y-3">
-          <p className="text-sm">{sourceSong ? `曲番 ${sourceSong} の歌詞データを読み込んで編集します。` : '申請中の歌詞データを読み込んで編集します。'}現在のエディターの内容は置き換わります。</p>
-          <Button type="button" disabled={busy} onClick={() => void load()}>{busy ? '読み込み中…' : '編集を始める'}</Button>
+          <p className="text-sm">{resumeDraft ? '下書きの編集内容を保持して、申請情報を確認します。' : <>{sourceSong ? `曲番 ${sourceSong} の歌詞データを読み込んで編集します。` : '申請中の歌詞データを読み込んで編集します。'}現在のエディターの内容は置き換わります。</>}</p>
+          <Button type="button" disabled={busy} onClick={() => void load()}>{busy ? '読み込み中…' : resumeDraft ? '申請を確認して編集' : '編集を始める'}</Button>
         </div> : success ? <p className="text-sm">承認前の確認・修正には、下の編集用リンクを使ってください。</p> : <form onSubmit={submit} className="space-y-4">
           {gameSongId && <p className="rounded-md bg-muted p-3 text-sm">修正対象：曲番 {gameSongId}</p>}
           {status && <p className="text-sm">{statusLabel[status]}</p>}

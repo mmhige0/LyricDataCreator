@@ -43,8 +43,7 @@ it('saves without a number, checks assigned numbers and registers unsaved change
     expect(host.querySelector('table')!.textContent).toContain('承認待ち')
     await act(async () => button('確認・編集').click())
     expect(host.textContent).toContain('変更を保存：LDCの申請内容を更新します。')
-    expect(host.textContent).toContain('LDCの公開曲を追加・更新し、申請を削除します。')
-    expect(button('ランキングに登録').disabled).toBe(true)
+    expect(host.textContent).toContain('表の「ランキングに登録」')
     expect(button('変更を保存').disabled).toBe(false)
     await change(input('曲名'), '保存した曲名')
     await act(async () => button('変更を保存').click())
@@ -52,14 +51,14 @@ it('saves without a number, checks assigned numbers and registers unsaved change
     await change(input('曲番号'), '007')
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 450)) })
     expect(host.textContent).toContain('この曲番号は登録済みです。')
-    expect(button('ランキングに登録').disabled).toBe(true)
     await change(input('曲名'), '登録用曲名')
     await change(input('難易度'), '8+')
-    await act(async () => host.querySelector<HTMLInputElement>('input[type=checkbox]')!.click())
-    expect(button('ランキングに登録').disabled).toBe(false)
-    await act(async () => button('ランキングに登録').click())
-    const sent = JSON.parse(fetch.mock.calls.find(([, init]) => init?.method === 'POST' && JSON.parse(init.body as string).action === 'approve')![1]!.body as string)
-    expect(sent).toMatchObject({ action: 'approve', revision: 2, allowOverwrite: true, registration: { gameSongId: '007', title: '登録用曲名', level: '8+' } })
+    await act(async () => button('変更を保存').click())
+    const requests = fetch.mock.calls.filter(([, init]) => init?.method === 'POST')
+    const sent = JSON.parse(requests.at(-1)![1]!.body as string)
+    expect(sent).toMatchObject({ action: 'save', revision: 2, registration: { gameSongId: '007', title: '登録用曲名', level: '8+' } })
+    expect([...host.querySelector('section')!.querySelectorAll('button')].map(button => button.textContent)).not.toContain('ランキングに登録')
+    expect(host.querySelector('section')!.textContent).not.toContain('TXTをダウンロード')
   } finally { await act(async () => root.unmount()); host.remove() }
 })
 
@@ -70,6 +69,7 @@ async function mountTable() {
   const fetch = vi.fn(async (url: string, init?: RequestInit) => {
     if (init?.method === 'POST' || init?.method === 'DELETE') { rows = []; return Response.json({ deleted: true }) }
     if (url.includes('ranking-song')) return Response.json({ gameSongId: '007', rankingSong: { gameSongId: '007', title: '既存曲', artist: null, level: '5' }, publicSong: null, otherSubmissions: [{ id: 'other', title: '別の申請', status: 'rejected' }] })
+    if (url.includes(`/submissions/${tableRow.id}`)) return Response.json({ ...tableRow, txtContent: '10\nあ/い/う/え/1\n' })
     return Response.json({ submissions: rows, page: 1, hasNext: false })
   })
   vi.stubGlobal('fetch', fetch)
@@ -118,4 +118,18 @@ it('deletes from the table only after confirmation, and cancellation leaves the 
     expect(JSON.parse(init.body as string)).toEqual({ revision: 3 })
     expect(host.querySelector('table')!.textContent).not.toContain('表の曲')
   } finally { await cleanup() }
+})
+
+it('downloads from the table using the exact zero-padded song number as filename', async () => {
+  const { host, fetch, click, cleanup } = await mountTable()
+  const create = URL.createObjectURL; const revoke = URL.revokeObjectURL
+  URL.createObjectURL = vi.fn(() => 'blob:test'); URL.revokeObjectURL = vi.fn()
+  vi.useFakeTimers()
+  const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { expect(this.download).toBe('007.txt') })
+  try {
+    await click('ダウンロード', host.querySelector('table')!)
+    expect(fetch.mock.calls.some(([url]) => url.includes(`/submissions/${tableRow.id}`))).toBe(true)
+    expect(anchorClick).toHaveBeenCalledOnce()
+    expect(host.querySelector('section')).toBeNull()
+  } finally { vi.advanceTimersByTime(1000); vi.useRealTimers(); await cleanup(); anchorClick.mockRestore(); URL.createObjectURL = create; URL.revokeObjectURL = revoke }
 })
