@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { parseScoreTxt } from '@/lib/scoreFormat'
+import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
+import { GAME_SONG_ID, text } from "@/lib/submissions/validation"
 import { parseLevelValue } from '@/lib/levels'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 
 type ImportSongInput = {
+  gameSongId: string
   title: string
   youtubeUrl: string
   artist?: string
@@ -12,30 +16,6 @@ type ImportSongInput = {
 }
 
 const IMPORT_SECRET_HEADER = 'x-import-secret'
-
-const parseCsvTimestampLine = (line: string, index: number) => {
-  const parts = line.split('/')
-  if (parts.length !== 5) throw new Error(`${index + 1}行目: フォーマットが正しくありません`)
-  const ts = Number.parseFloat(parts[4])
-  if (Number.isNaN(ts)) throw new Error(`${index + 1}行目: タイムスタンプが正しくありません`)
-  if (ts === 999.9) return null
-  const lyrics = parts.slice(0, 4).map((p) => (p === '!' ? '' : p))
-  return { id: `api_${index}_${Date.now()}`, timestamp: ts, lyrics }
-}
-
-const parseTxtToScoreEntries = (content: string) => {
-  const lines = content.trim().split(/\r?\n/)
-  if (lines.length < 2) throw new Error('行数が不足しています')
-  const entries = []
-  for (let i = 1; i < lines.length; i += 1) {
-    const line = lines[i].trim()
-    if (!line) continue
-    const parsed = parseCsvTimestampLine(line, i)
-    if (!parsed) continue
-    entries.push(parsed)
-  }
-  return entries.sort((a, b) => a.timestamp - b.timestamp)
-}
 
 const unauthorized = (message: string) => NextResponse.json({ error: message }, { status: 401 })
 
@@ -65,21 +45,31 @@ export async function POST(request: Request) {
   const results: Array<Record<string, unknown>> = []
   try {
     if (body.truncate) {
-      await prisma.$executeRawUnsafe('TRUNCATE TABLE "song" RESTART IDENTITY CASCADE;')
+      await prisma.$executeRawUnsafe('TRUNCATE TABLE "song";')
       results.push({ status: 'truncated' })
     }
 
     for (const song of songs) {
-      const title = song.title?.trim()
-      const youtubeUrl = song.youtubeUrl?.trim()
-      if (!title || !youtubeUrl) {
-        results.push({ title: title || '(missing)', status: 'error', message: 'title and youtubeUrl are required' })
+      const gameSongId = song.gameSongId
+      if (typeof gameSongId !== "string" || !GAME_SONG_ID.test(gameSongId)) {
+        results.push({ status: "error", message: "gameSongId must be a 3–8 digit string other than 000" })
+        continue
+      }
+      let title: string
+      let artist: string | null
+      let youtubeUrl: string
+      try {
+        title = text(song.title, SONG_INPUT_LIMITS.title)
+        artist = text(song.artist ?? '', SONG_INPUT_LIMITS.artist, false) || null
+        youtubeUrl = text(song.youtubeUrl, SONG_INPUT_LIMITS.youtubeUrl)
+      } catch (error) {
+        results.push({ status: 'error', gameSongId, message: error instanceof Error ? error.message : 'invalid song metadata' })
         continue
       }
 
       let scoreEntries
       try {
-        scoreEntries = parseTxtToScoreEntries(song.txtContent ?? '')
+        scoreEntries = parseScoreTxt(song.txtContent ?? '').scoreEntries
       } catch (error) {
         results.push({ title, status: 'error', message: error instanceof Error ? error.message : 'parse error' })
         continue
@@ -90,29 +80,30 @@ export async function POST(request: Request) {
       }
 
       const levelValue = parseLevelValue(song.level)
-      const existing = await prisma.song.findFirst({ where: { title } })
+      const existing = await prisma.song.findUnique({ where: { gameSongId } })
 
       if (existing && body.noUpdate) {
-        results.push({ title, status: 'skipped', id: existing.id })
+        results.push({ title, status: 'skipped', gameSongId: existing.gameSongId })
         continue
       }
 
       const data = {
+        gameSongId,
         title,
-        artist: song.artist ?? null,
+        artist,
         youtubeUrl,
         level: song.level ?? null,
         levelValue,
-        scoreEntries: JSON.stringify(scoreEntries),
+        scoreTxt: song.txtContent,
       }
 
       const saved = existing
-        ? await prisma.song.update({ where: { id: existing.id }, data })
+        ? await prisma.song.update({ where: { gameSongId }, data })
         : await prisma.song.create({ data })
 
       // 個別ページのキャッシュを即時無効化
-      revalidateSongCache(saved.id)
-      results.push({ title, status: existing ? 'updated' : 'created', id: saved.id })
+      revalidateSongCache(saved.gameSongId)
+      results.push({ title, status: existing ? 'updated' : 'created', gameSongId: saved.gameSongId })
     }
 
     // 一覧と件数キャッシュをまとめて無効化

@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import type { ScoreEntry } from "@/lib/types"
 import { AppHeader } from "@/components/AppHeader"
@@ -9,11 +11,12 @@ import { cn } from "@/lib/utils"
 
 interface SongPlayerProps {
   song: {
-    id: number
+    gameSongId: string
     title: string
     artist: string | null
     youtubeUrl: string
     level: string | null
+    duration: number
     scoreEntries: ScoreEntry[]
   }
 }
@@ -23,13 +26,14 @@ export function SongPlayer({ song }: SongPlayerProps) {
 
   return (
     <div className="min-h-screen page-shell">
-      <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref={PORTAL_ORIGIN} />
+      <AppHeader title="Song Typing Theater" songTitle={song.title} titleHref={PORTAL_ORIGIN} actions={<Button asChild variant="outline" size="sm"><Link href={`/editor?song=${encodeURIComponent(song.gameSongId)}`}>修正申請する</Link></Button>} />
 
       <div className={cn("pb-10")}>
         <TypingGameContent
           onClose={() => router.push("/songs")}
           showHeader={false}
           scoreEntries={song.scoreEntries}
+          totalDuration={song.duration}
           songTitle={song.title}
           youtubeUrl={song.youtubeUrl}
         />

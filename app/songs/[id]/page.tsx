@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 import dynamic from "next/dynamic"
 import { notFound } from "next/navigation"
-import { getSongById } from "@/lib/songQueries"
-import { parseScoreEntries } from "@/lib/scoreSerialization"
+import { getSongByGameSongId } from "@/lib/songQueries"
+import { GAME_SONG_ID } from "@/lib/submissions/validation"
+import { parseScoreTxt } from "@/lib/scoreFormat"
 
 const SongPlayer = dynamic(() => import("./SongPlayer").then((mod) => mod.SongPlayer), {
   loading: () => (
@@ -30,28 +31,29 @@ export async function generateMetadata({ params }: SongPageProps): Promise<Metad
 
 export default async function SongPage({ params }: SongPageProps) {
   const resolvedParams = await params
-  const songId = Number(resolvedParams.id)
-  if (!Number.isFinite(songId)) {
+  const gameSongId = resolvedParams.id
+  if (!GAME_SONG_ID.test(gameSongId)) {
     notFound()
   }
 
-  const song = await getSongById(songId)
+  const song = await getSongByGameSongId(gameSongId)
 
   if (!song) {
     notFound()
   }
 
-  const scoreEntries = parseScoreEntries(song.scoreEntries)
+  const { scoreEntries, duration } = parseScoreTxt(song.scoreTxt)
 
   return (
     <SongPlayer
       song={{
-        id: songId,
+        gameSongId,
         title: song.title,
         artist: song.artist,
         youtubeUrl: song.youtubeUrl,
         level: song.level,
         scoreEntries,
+        duration,
       }}
     />
   )

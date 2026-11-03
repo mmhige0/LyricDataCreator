@@ -64,6 +64,7 @@ const EntryDisplay: FC<EntryDisplayProps> = memo(({ entry, kpmData, kpmMode, inl
 EntryDisplay.displayName = 'EntryDisplay'
 
 interface ScoreManagementSectionProps {
+  submissionAction?: ReactNode
   titleAction?: ReactNode
   addEmptyScoreEntry?: () => void
   selectedLyrics?: LyricsPosition | null
@@ -101,6 +102,7 @@ interface ScoreManagementSectionProps {
 
 export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
   titleAction,
+  submissionAction,
   addEmptyScoreEntry,
   selectedLyrics,
   inlineActions,
@@ -174,7 +176,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
             {titleAction}
           </CardTitle>
           {!readOnly && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={importScoreData}>
                 <Upload className="h-4 w-4 mr-2" />
                 インポート
@@ -183,6 +185,7 @@ export const ScoreManagementSection: FC<ScoreManagementSectionProps> = ({
                 <Download className="h-4 w-4 mr-2" />
                 エクスポート
               </Button>
+              {submissionAction}
             </div>
           )}
         </div>

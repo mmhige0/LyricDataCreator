@@ -54,6 +54,7 @@ export interface SessionInfo {
 }
 
 export interface LyricDraft {
+  duration?: number
   sessionId: string
   youtubeUrl: string
   scoreEntries: ScoreEntry[]

@@ -1,0 +1,69 @@
+import { afterEach, expect, it, vi } from 'vitest'
+import type { ChartSubmission } from '@prisma/client'
+import { notifySubmission } from '@/lib/submissions/discord'
+
+const row: ChartSubmission = {
+  level: null, id: 'a1b7a034-5a5b-413b-b8b7-56d9d881c911', editTokenHash: 'never-send-this',
+  title: '曲 @everyone', creatorName: '作者', artist: 'Artist', notes: '補足情報\n<@12345>',
+  youtubeUrl: 'https://youtu.be/abcdefghijk', txtContent: '10\nあ/い/う/え/1\n',
+  status: 'pending', revision: 2, gameSongId: '001', createdAt: new Date(), updatedAt: new Date(),
+}
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals() })
+it('sends metadata, public notes and a TXT attachment without edit credentials or mentions', async () => {
+  vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', 'https://discord.com/api/webhooks/123/test-token')
+  const fetch = vi.fn(async (_url: URL, _init?: RequestInit) => Response.json({ id: '12345' }))
+  vi.stubGlobal('fetch', fetch)
+  expect(await notifySubmission(row, 'updated')).toBe('sent')
+  const [url, init] = fetch.mock.calls[0]
+  expect(url.searchParams.get('wait')).toBe('true')
+  expect(init?.redirect).toBe('error')
+  const body = init?.body as FormData
+  const payload = JSON.parse(String(body.get('payload_json')))
+  expect(payload.allowed_mentions).toEqual({ parse: [] })
+  expect(payload.embeds[0]).toMatchObject({ title: '歌詞データが更新されました' })
+  expect(payload.embeds[0]).not.toHaveProperty('url')
+  expect(payload.embeds[0].fields.map((field: { name: string }) => field.name)).toEqual(['曲名', 'アーティスト', 'YouTube URL', '補足情報', '投稿者名'])
+  expect(payload.embeds[0].fields[3].value).toBe(row.notes)
+  expect(JSON.stringify(payload.embeds)).not.toContain(row.id)
+  expect(JSON.stringify(payload)).not.toContain(row.editTokenHash)
+  expect(payload).not.toHaveProperty('level')
+  const file = body.get('files[0]') as File
+  expect(file.name).toBe('chart.txt')
+  expect(await file.text()).toBe(row.txtContent)
+})
+it('skips when unconfigured and refuses unexpected destinations without making a request', async () => {
+  const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+  vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', '')
+  expect(await notifySubmission(row, 'new')).toBe('skipped')
+  for (const url of ['http://discord.com/api/webhooks/123/key', 'https://evil.test/api/webhooks/123/key', 'https://discord.com@evil.test/api/webhooks/123/key']) {
+    vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', url)
+    expect(await notifySubmission(row, 'new')).toBe('failed')
+  }
+  expect(fetch).not.toHaveBeenCalled()
+})
+it('handles rate limits, malformed success and network failures without losing submissions', async () => {
+  vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', 'https://discord.com/api/webhooks/123/test-token')
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 429 })))
+  expect(await notifySubmission(row, 'new')).toBe('failed')
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({})))
+  expect(await notifySubmission(row, 'new')).toBe('failed')
+  vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network') }))
+  expect(await notifySubmission(row, 'updated')).toBe('failed')
+})
+
+it('sends maximum-length notes as a single field between the video and submitter', async () => {
+  vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', 'https://discord.com/api/webhooks/123/test-token')
+  let fields: { name: string; value: string }[] = []
+  vi.stubGlobal('fetch', vi.fn(async (_url: URL, init?: RequestInit) => {
+    fields = JSON.parse(String((init?.body as FormData).get('payload_json'))).embeds[0].fields
+    return Response.json({ id: '123' })
+  }))
+  const notes = '😀'.repeat(200)
+  expect(await notifySubmission({ ...row, notes }, 'new')).toBe('sent')
+  expect(fields.filter(field => field.name.startsWith('補足情報'))).toEqual([{ name: '補足情報', value: notes }])
+  expect(fields.every(field => field.value.length <= 1024)).toBe(true)
+  expect(fields.at(-1)?.name).toBe('投稿者名')
+  await notifySubmission({ ...row, notes: '', artist: null }, 'new')
+  expect(fields.map(field => field.name)).toEqual(['曲名', 'アーティスト', 'YouTube URL', '投稿者名'])
+  expect(fields[1].value).toBe('未入力')
+})

@@ -4,17 +4,17 @@
  *
  * Usage examples:
  *   node scripts/import-songs.js --dir ./lyric-data/lyric-file --csv ./lyric-data/data.csv
- *   node scripts/import-songs.js --file ./lyric-data/lyric-file/song.txt --youtube https://youtu.be/... --title "My Song"
+ *   node scripts/import-songs.js --file ./lyric-data/lyric-file/song.txt --game-song-id 001 --youtube https://youtu.be/... --title "My Song"
  *   node scripts/import-songs.js --dir ./lyric-data/lyric-file --endpoint http://localhost:3000/api/import-songs
  *
  * CSV format:
- * file,youtube,title,artist,level
- * sample.txt,https://youtu.be/abc,"Title","Artist","Hard"
+ * file,gameSongId,youtube,title,artist,level
+ * sample.txt,001,https://youtu.be/abc,"Title","Artist","Hard"
  *
  * Notes:
  * - Requires IMPORT_SECRET (env or --secret) that matches the API route config.
  * - Endpoint defaults to http://localhost:3000/api/import-songs (override with env IMPORT_SONGS_ENDPOINT or --endpoint)。
- * - Upserts by title (exact match) on the API side. Use --no-update to skip existing titles.
+ * - Upserts by gameSongId (exact string match) on the API side. Use --no-update to skip existing game numbers.
  */
 
 const fs = require("fs")
@@ -39,6 +39,7 @@ const defaultYoutube = getArg("--youtube")
 const defaultArtist = getArg("--artist")
 const defaultLevel = getArg("--level")
 const singleTitle = getArg("--title")
+const singleGameSongId = getArg("--game-song-id")
 const allowUpdate = !hasFlag("--no-update")
 const truncateAll = hasFlag("--truncate")
 const endpoint =
@@ -134,6 +135,7 @@ const resolveMetadata = (filePath, csvMap) => {
   const base = ensureTxtExtension(path.basename(filePath))
   const meta = csvMap[base] || {}
   return {
+    gameSongId: meta.gameSongId || singleGameSongId || (/^(?!000$)[0-9]{3,8}$/.test(path.basename(base, ".txt")) ? path.basename(base, ".txt") : ""),
     title: meta.title || singleTitle || titleFromFilename(filePath),
     youtubeUrl: meta.youtube || defaultYoutube || "",
     artist: meta.artist || defaultArtist || undefined,
@@ -148,6 +150,10 @@ const buildSongPayload = (filePath, csvMap) => {
   }
 
   const meta = resolveMetadata(filePath, csvMap)
+  if (!/^(?!000$)[0-9]{3,8}$/.test(meta.gameSongId)) {
+    console.warn(`Skip (no valid gameSongId): ${filePath}`)
+    return null
+  }
   if (!meta.youtubeUrl) {
     console.warn(`Skip (no youtubeUrl): ${filePath}`)
     return null
@@ -162,6 +168,7 @@ const buildSongPayload = (filePath, csvMap) => {
   return {
     filePath,
     payload: {
+      gameSongId: meta.gameSongId,
       title: meta.title,
       youtubeUrl: meta.youtubeUrl,
       artist: meta.artist,
@@ -247,7 +254,7 @@ const main = async () => {
       const filePath = source.filePath || "(unknown file)"
       const status = res.status || "unknown"
       const message = res.message ? ` (${res.message})` : ""
-      const id = res.id ? ` id=${res.id}` : ""
+      const id = res.gameSongId ? ` gameSongId=${res.gameSongId}` : ""
       console.log(`${status}: ${filePath} -> ${title}${id}${message}`)
     })
   } catch (error) {

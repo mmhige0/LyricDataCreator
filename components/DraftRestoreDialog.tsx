@@ -3,6 +3,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { X, Trash2, FileText } from 'lucide-react'
 import { deleteDraft } from '@/lib/draftStorage'
+import { getSubmissionForDraft } from '@/lib/submissions/client'
 import { setSessionId } from '@/lib/sessionStorage'
 import type { DraftListEntry } from '@/lib/types'
 
@@ -80,7 +81,7 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
                   tabIndex={0}
                   onClick={() => handleRestore(draft.sessionId)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
+                    if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
                       event.preventDefault()
                       handleRestore(draft.sessionId)
                     }
@@ -96,13 +97,14 @@ export function DraftRestoreDialog({ isOpen, drafts, setDrafts, onClose, onResto
                     </p>
                   </div>
                   <div className="flex items-center gap-2 ml-4">
+                    {getSubmissionForDraft(draft.sessionId) && <button className="rounded-md border px-3 py-2 text-sm hover:bg-muted" onClick={event => { event.stopPropagation(); handleRestore(draft.sessionId) }}>申請を編集</button>}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDelete(draft.sessionId)
                       }}
                       className="p-3 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                      title="削除"
+                      title="下書きを削除"
                     >
                       <Trash2 className="w-6 h-6" />
                     </button>

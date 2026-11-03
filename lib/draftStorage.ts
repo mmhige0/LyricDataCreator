@@ -61,10 +61,12 @@ export function saveDraft(
   scoreEntries: ScoreEntry[],
   songTitle: string,
   centralPops: CentralPop[] = [],
+  duration?: number,
 ): boolean {
   if (typeof window === 'undefined') return false
 
   const draft: LyricDraft = {
+    duration: duration ?? loadDraft(sessionId)?.duration,
     sessionId,
     youtubeUrl,
     scoreEntries,

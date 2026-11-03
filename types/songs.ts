@@ -1,5 +1,5 @@
 export type SongSummary = {
-  id: number
+  gameSongId: string
   title: string
   artist: string | null
   youtubeUrl: string
@@ -13,7 +13,7 @@ export type SongsResponse = {
   hasNext: boolean
 }
 
-export const SONG_SORT_KEYS = ["id", "title", "artist", "level"] as const
+export const SONG_SORT_KEYS = ["gameSongId", "id", "title", "artist", "level"] as const
 export type SongSortKey = (typeof SONG_SORT_KEYS)[number]
 export type SongSortDirection = "asc" | "desc"
 
