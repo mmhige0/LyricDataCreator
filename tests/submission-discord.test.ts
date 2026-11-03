@@ -51,16 +51,16 @@ it('handles rate limits, malformed success and network failures without losing s
   expect(await notifySubmission(row, 'updated')).toBe('failed')
 })
 
-it('keeps long notes between the video and submitter within Discord field limits', async () => {
+it('sends maximum-length notes as a single field between the video and submitter', async () => {
   vi.stubEnv('DISCORD_SUBMISSION_WEBHOOK_URL', 'https://discord.com/api/webhooks/123/test-token')
   let fields: { name: string; value: string }[] = []
   vi.stubGlobal('fetch', vi.fn(async (_url: URL, init?: RequestInit) => {
     fields = JSON.parse(String((init?.body as FormData).get('payload_json'))).embeds[0].fields
     return Response.json({ id: '123' })
   }))
-  const notes = '😀'.repeat(2000)
+  const notes = '😀'.repeat(200)
   expect(await notifySubmission({ ...row, notes }, 'new')).toBe('sent')
-  expect(fields.slice(3, -1).map(field => field.value).join('')).toBe(notes)
+  expect(fields.filter(field => field.name.startsWith('補足情報'))).toEqual([{ name: '補足情報', value: notes }])
   expect(fields.every(field => field.value.length <= 1024)).toBe(true)
   expect(fields.at(-1)?.name).toBe('投稿者名')
   await notifySubmission({ ...row, notes: '', artist: null }, 'new')

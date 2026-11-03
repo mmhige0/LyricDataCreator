@@ -2,16 +2,6 @@ import type { ChartSubmission } from '@prisma/client'
 
 export type DiscordNotification = 'sent' | 'skipped' | 'failed' | 'unchanged'
 
-// Discord limits each field value to 1024 UTF-16 units. Keep long notes in order.
-function noteFields(notes: string) {
-  const parts: string[] = []
-  for (const char of notes) {
-    if (!parts.length || parts[parts.length - 1].length + char.length > 1024) parts.push('')
-    parts[parts.length - 1] += char
-  }
-  return parts.map((value, i) => ({ name: i ? '補足情報 続き' : '補足情報', value }))
-}
-
 // Notification failure must never roll back an accepted submission.
 export async function notifySubmission(row: ChartSubmission, event: 'new' | 'updated'): Promise<DiscordNotification> {
   const configured = process.env.DISCORD_SUBMISSION_WEBHOOK_URL
@@ -31,7 +21,7 @@ export async function notifySubmission(row: ChartSubmission, event: 'new' | 'upd
           { name: '曲名', value: row.title },
           { name: 'アーティスト', value: row.artist || '未入力' },
           { name: 'YouTube URL', value: row.youtubeUrl },
-          ...noteFields(row.notes),
+          ...(row.notes ? [{ name: '補足情報', value: row.notes }] : []),
           { name: '投稿者名', value: row.creatorName },
         ],
       }],
