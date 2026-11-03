@@ -420,6 +420,30 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await getSongByGameSongId('0001'))?.level).toBe(input.level)
     expect((await getSongByGameSongId('001'))).not.toHaveProperty('id')
   })
+  it('applies metadata length limits to the import route as well as submissions', async () => {
+    vi.stubEnv('IMPORT_SECRET', 'test-import-key')
+    const { POST: importSongs } = await import('@/app/api/import-songs/route')
+    const base = { ...input, gameSongId: '001', title: '曲'.repeat(100), artist: '歌'.repeat(100) }
+    const send = (song: typeof base) => importSongs(new Request('https://example.test/api/import-songs', {
+      method: 'POST', headers: { 'x-import-secret': 'test-import-key', 'Content-Type': 'application/json' }, body: JSON.stringify({ songs: [song] }),
+    }))
+    expect((await (await send(base)).json()).results[0].status).toBe('created')
+    for (const song of [
+      { ...base, title: '曲'.repeat(101) }, { ...base, artist: '歌'.repeat(101) },
+      { ...base, youtubeUrl: 'x'.repeat(101) },
+    ]) expect((await (await send(song)).json()).results[0].status).toBe('error')
+    expect(await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).toMatchObject({ title: base.title, artist: base.artist, youtubeUrl: base.youtubeUrl })
+  })
+  it('does not publish oversized metadata from an older stored submission', async () => {
+    await create(request(input))
+    for (const data of [{ creatorName: 'あ'.repeat(21) }, { creatorName: input.creatorName, youtubeUrl: 'x'.repeat(101) }]) {
+      await db.chartSubmission.update({ where: { id }, data })
+      expect((await approve()).status).toBe(400)
+      expect((await db.chartSubmission.findUniqueOrThrow({ where: { id } })).status).toBe('pending')
+      expect(rankingCalls).toBe(0)
+    }
+    expect(await db.song.count()).toBe(0)
+  })
   it('requires administrator authorization before reading the body', async () => {
     expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001' }), context())).status).toBe(401)
     expect(rankingCalls).toBe(0)

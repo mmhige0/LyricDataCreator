@@ -1,3 +1,4 @@
+import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
 import { GAME_SONG_ID, object, SubmissionError, text } from './validation'
 
 export type Registration = { gameSongId: string; title: string; artist: string | null; level: string | null }
@@ -6,8 +7,8 @@ export function parseRegistrationDraft(value: unknown) {
   const input = object(value)
   const gameSongId = input.gameSongId === '' || input.gameSongId == null ? null : input.gameSongId
   if (gameSongId !== null && (typeof gameSongId !== 'string' || !GAME_SONG_ID.test(gameSongId))) throw new SubmissionError(400, '曲番号は000以外の3〜8桁の数字にしてください。')
-  const title = text(input.title, 200)
-  const artist = input.artist == null ? null : text(input.artist, 200, false) || null
+  const title = text(input.title, SONG_INPUT_LIMITS.title)
+  const artist = input.artist == null ? null : text(input.artist, SONG_INPUT_LIMITS.artist, false) || null
   const level = input.level == null ? null : text(input.level, 4, false) || null
   if (level && !/^(?:[1-9][0-9]?[+-]?|[-?])$/.test(level)) throw new SubmissionError(400, '難易度が不正です。')
   return { gameSongId, title, artist, level }

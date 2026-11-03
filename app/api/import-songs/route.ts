@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { parseScoreTxt } from '@/lib/scoreFormat'
-import { GAME_SONG_ID } from "@/lib/submissions/validation"
+import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
+import { GAME_SONG_ID, text } from "@/lib/submissions/validation"
 import { parseLevelValue } from '@/lib/levels'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
 
@@ -54,10 +55,15 @@ export async function POST(request: Request) {
         results.push({ status: "error", message: "gameSongId must be a 3–8 digit string other than 000" })
         continue
       }
-      const title = song.title?.trim()
-      const youtubeUrl = song.youtubeUrl?.trim()
-      if (!title || !youtubeUrl) {
-        results.push({ title: title || '(missing)', status: 'error', message: 'title and youtubeUrl are required' })
+      let title: string
+      let artist: string | null
+      let youtubeUrl: string
+      try {
+        title = text(song.title, SONG_INPUT_LIMITS.title)
+        artist = text(song.artist ?? '', SONG_INPUT_LIMITS.artist, false) || null
+        youtubeUrl = text(song.youtubeUrl, SONG_INPUT_LIMITS.youtubeUrl)
+      } catch (error) {
+        results.push({ status: 'error', gameSongId, message: error instanceof Error ? error.message : 'invalid song metadata' })
         continue
       }
 
@@ -84,7 +90,7 @@ export async function POST(request: Request) {
       const data = {
         gameSongId,
         title,
-        artist: song.artist ?? null,
+        artist,
         youtubeUrl,
         level: song.level ?? null,
         levelValue,

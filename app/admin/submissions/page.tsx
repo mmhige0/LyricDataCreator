@@ -7,6 +7,7 @@ import { AppHeader } from '@/components/AppHeader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { TypingGameContent } from '@/components/TypingGameContent'
+import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
 import { parseScoreTxt } from '@/lib/scoreFormat'
 import { submissionFetch } from '@/lib/submissions/client'
 import type { Registration } from '@/lib/submissions/registration'
@@ -147,8 +148,8 @@ export default function AdminSubmissionsPage() {
           <fieldset disabled={busy || publishing} className="grid gap-4 sm:grid-cols-2">
             <label className="block text-sm">曲番号<Input inputMode="numeric" maxLength={8} value={registration.gameSongId} onChange={event => { setAllowOverwrite(false); setRegistration({ ...registration, gameSongId: event.target.value }) }} /></label>
             <label className="block text-sm">難易度<Input maxLength={4} placeholder="5+ / - / ?" value={registration.level ?? ''} onChange={event => setRegistration({ ...registration, level: event.target.value })} /></label>
-            <label className="block text-sm">曲名<Input required maxLength={200} value={registration.title} onChange={event => setRegistration({ ...registration, title: event.target.value })} /></label>
-            <label className="block text-sm">アーティスト<Input maxLength={200} value={registration.artist ?? ''} onChange={event => setRegistration({ ...registration, artist: event.target.value })} /></label>
+            <label className="block text-sm">曲名<Input required maxLength={SONG_INPUT_LIMITS.title} value={registration.title} onChange={event => setRegistration({ ...registration, title: event.target.value })} /></label>
+            <label className="block text-sm">アーティスト<Input maxLength={SONG_INPUT_LIMITS.artist} value={registration.artist ?? ''} onChange={event => setRegistration({ ...registration, artist: event.target.value })} /></label>
           </fieldset>
           {checked && collision?.otherSubmissions?.length ? <p role="alert" className="text-sm text-destructive">同じ曲番号の申請が他に{collision.otherSubmissions.length}件あります。登録する申請を確認してください。</p> : null}
           {publishing ? <p className="text-sm">登録結果の確認・再試行中は登録情報を変更できません。</p> : <div className="space-y-2 rounded-md bg-muted p-3 text-sm" aria-live="polite">

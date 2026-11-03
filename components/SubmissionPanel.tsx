@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SubmissionTurnstile } from './SubmissionTurnstile'
+import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
 import { createScoreTxt, parseScoreTxt } from '@/lib/scoreFormat'
 import { getSubmissionKeys, newSubmissionKey, saveSubmissionKey, statusLabel, submissionFetch, type SubmissionCredentials } from '@/lib/submissions/client'
 import type { CentralPop, ScoreEntry } from '@/lib/types'
@@ -120,12 +121,12 @@ export function SubmissionPanel({ title, youtubeUrl, duration, scoreEntries, cen
           {gameSongId && <p className="rounded-md bg-muted p-3 text-sm">修正対象：曲番 {gameSongId}</p>}
           {status && <p className="text-sm">{statusLabel[status]}</p>}
           <fieldset disabled={busy || status === 'publishing'} className="space-y-4">
-            <label className="block text-sm">曲名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={200} value={submittedTitle ?? title} onChange={event => setSubmittedTitle(event.target.value)} /></label>
-            <label className="block text-sm">アーティスト <span className="ml-1 text-xs text-muted-foreground">任意</span><Input maxLength={200} value={artist} onChange={event => setArtist(event.target.value)} /></label>
-            <label className="block text-sm">YouTube URL <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required type="url" maxLength={500} value={submittedYoutubeUrl ?? youtubeUrl} onChange={event => setSubmittedYoutubeUrl(event.target.value)} /></label>
-            <label className="block text-sm">投稿者名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={40} value={creatorName} onChange={event => setCreatorName(event.target.value)} /></label>
+            <label className="block text-sm">曲名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={SONG_INPUT_LIMITS.title} value={submittedTitle ?? title} onChange={event => setSubmittedTitle(event.target.value)} /></label>
+            <label className="block text-sm">アーティスト <span className="ml-1 text-xs text-muted-foreground">任意</span><Input maxLength={SONG_INPUT_LIMITS.artist} value={artist} onChange={event => setArtist(event.target.value)} /></label>
+            <label className="block text-sm">YouTube URL <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required type="url" maxLength={SONG_INPUT_LIMITS.youtubeUrl} value={submittedYoutubeUrl ?? youtubeUrl} onChange={event => setSubmittedYoutubeUrl(event.target.value)} /></label>
+            <label className="block text-sm">投稿者名 <span className="ml-1 text-xs font-medium text-destructive">必須</span><Input required maxLength={SONG_INPUT_LIMITS.creatorName} value={creatorName} onChange={event => setCreatorName(event.target.value)} /></label>
             <label className="block text-sm">補足情報 <span className="ml-1 text-xs text-muted-foreground">任意</span>
-              <textarea maxLength={2000} rows={4} value={notes} onChange={event => setNotes(event.target.value)}
+              <textarea maxLength={SONG_INPUT_LIMITS.notes} rows={4} value={notes} onChange={event => setNotes(event.target.value)}
                 placeholder="想定難易度や特徴、変更した内容など"
                 className="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50" />
             </label>

@@ -1,3 +1,4 @@
+import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
 import { parseScoreTxt } from '@/lib/scoreFormat'
 
 export const MAX_BODY_BYTES = 160 * 1024
@@ -25,7 +26,7 @@ export function text(value: unknown, max: number, required = true, multiline = f
 }
 
 export function canonicalYouTubeUrl(value: unknown): string {
-  const input = text(value, 500)
+  const input = text(value, SONG_INPUT_LIMITS.youtubeUrl)
   let url: URL
   try { url = new URL(input) } catch { throw new SubmissionError(400, 'YouTube URLが不正です。') }
   const host = url.hostname.toLowerCase()
@@ -41,10 +42,10 @@ export function canonicalYouTubeUrl(value: unknown): string {
 
 export function parseSubmission(value: unknown) {
   const input = object(value)
-  const creatorName = text(input.creatorName, 40)
-  const title = text(input.title, 200)
-  const artist = text(input.artist ?? '', 200, false) || null
-  const notes = text(input.notes ?? '', 2000, false, true)
+  const creatorName = text(input.creatorName, SONG_INPUT_LIMITS.creatorName)
+  const title = text(input.title, SONG_INPUT_LIMITS.title)
+  const artist = text(input.artist ?? '', SONG_INPUT_LIMITS.artist, false) || null
+  const notes = text(input.notes ?? '', SONG_INPUT_LIMITS.notes, false, true)
   const youtubeUrl = canonicalYouTubeUrl(input.youtubeUrl)
   if (typeof input.txtContent !== 'string' || new TextEncoder().encode(input.txtContent).length > MAX_TXT_BYTES) {
     throw new SubmissionError(413, '歌詞データは128KiB以内にしてください。')

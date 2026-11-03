@@ -50,7 +50,7 @@ describe('anonymous submission boundary', () => {
 it('accepts bounded multiline notes while rejecting control characters', () => {
   expect(parseSubmission({ ...input, notes: ' 修正箇所\n2ページ目を調整\t確認お願いします ' }).notes).toBe('修正箇所\n2ページ目を調整\t確認お願いします')
   expect(parseSubmission(input).notes).toBe('')
-  expect(() => parseSubmission({ ...input, notes: 'a'.repeat(2001) })).toThrow()
+  expect(() => parseSubmission({ ...input, notes: 'a'.repeat(201) })).toThrow()
   expect(() => parseSubmission({ ...input, notes: 'a\u0000b' })).toThrow()
 })
 
@@ -67,4 +67,16 @@ it('only accepts official dummy verification metadata in development', async () 
   reply(true)
   vi.stubEnv('NODE_ENV', 'production')
   await expect(verifyTurnstile('XXXX.DUMMY.TOKEN.XXXX')).rejects.toMatchObject({ status: 400 })
+})
+
+it.each([
+  ['title', 100], ['artist', 100], ['creatorName', 20], ['notes', 200],
+] as const)('enforces the %s boundary on the server', (field, max) => {
+  expect(parseSubmission({ ...input, [field]: 'あ'.repeat(max) })[field]).toHaveLength(max)
+  expect(() => parseSubmission({ ...input, [field]: 'あ'.repeat(max + 1) })).toThrow()
+})
+it('checks URL length before canonicalizing the YouTube URL', () => {
+  const base = 'https://youtu.be/abcdefghijk?extra='
+  expect(canonicalYouTubeUrl(base + 'a'.repeat(100 - base.length))).toBe('https://www.youtube.com/watch?v=abcdefghijk')
+  expect(() => canonicalYouTubeUrl(base + 'a'.repeat(101 - base.length))).toThrow()
 })

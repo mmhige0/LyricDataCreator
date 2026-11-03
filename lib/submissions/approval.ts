@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/db'
 import { parseLevelValue } from '@/lib/levels'
 import { revalidateSongCache, revalidateSongsCache } from '@/lib/songQueries'
-import { GAME_SONG_ID, SubmissionError } from './validation'
+import { SONG_INPUT_LIMITS } from '@/lib/songInputLimits'
+import { GAME_SONG_ID, SubmissionError, text } from './validation'
 import { lockApprovalSong, lockSubmission } from './service'
 import { findRankingSong, parseRegistration, sameRegistration, type Registration } from './registration'
 
@@ -16,6 +17,8 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     const current = await tx.chartSubmission.findUnique({ where: { id } })
     if (!current) throw new SubmissionError(404, '投稿が見つかりません。')
     if (current.revision !== expected) throw new SubmissionError(409, '申請が更新されました。内容を確認し直してください。')
+    text(current.creatorName, SONG_INPUT_LIMITS.creatorName)
+    text(current.youtubeUrl, SONG_INPUT_LIMITS.youtubeUrl)
     if (current.status === 'publishing') {
       if (current.gameSongId !== gameSongId) throw new SubmissionError(409, '承認処理中の曲番号は変更できません。')
       const reserved = parseRegistration(current)
@@ -56,10 +59,10 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     if (confirmation.song?.gameSongId !== gameSongId || confirmation.song?.title !== title || confirmation.song?.artist !== artist || confirmation.song?.level !== level) throw new SubmissionError(502, 'ランキングの登録内容を確認できません。')
     const data = {
       title, artist, level, levelValue: parseLevelValue(level),
-      youtubeUrl: row.youtubeUrl, gameSongId,
+      youtubeUrl: text(row.youtubeUrl, SONG_INPUT_LIMITS.youtubeUrl), gameSongId,
       scoreTxt: row.txtContent,
     }
-    await tx.song.upsert({ where: { gameSongId }, create: { ...data, creatorName: row.creatorName }, update: data })
+    await tx.song.upsert({ where: { gameSongId }, create: { ...data, creatorName: text(row.creatorName, SONG_INPUT_LIMITS.creatorName) }, update: data })
     await tx.chartSubmission.delete({ where: { id } })
     return { status: 'approved', gameSongId }
   }, { maxWait: 20000, timeout: 20000 })

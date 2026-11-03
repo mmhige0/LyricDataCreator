@@ -29,3 +29,10 @@ it('allows saving song information before a number is assigned but requires a nu
   expect(() => parseRegistration(draft)).toThrow()
   expect(() => parseRegistrationDraft({ ...draft, gameSongId: '00' })).toThrow()
 })
+
+it('uses the same song title and artist limits for administrator edits', () => {
+  const value = { gameSongId: '007', title: '曲'.repeat(100), artist: '歌'.repeat(100), level: '-' }
+  expect(parseRegistration(value)).toEqual(value)
+  expect(() => parseRegistration({ ...value, title: '曲'.repeat(101) })).toThrow()
+  expect(() => parseRegistrationDraft({ ...value, artist: '歌'.repeat(101) })).toThrow()
+})
