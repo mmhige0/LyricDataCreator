@@ -80,7 +80,7 @@ it('loads a public song with its exact number and opens submission only when req
   history.replaceState(null, '', '/editor?song=001')
   const fetch = vi.fn(async (_url: string, init?: RequestInit) => Response.json(init?.method === 'POST'
     ? { revision: 1, status: 'pending' }
-    : { gameSongId: '001', title: '公開曲', creatorName: '', artist: 'Artist', notes: '公開された補足情報', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', txtContent: '10\nあ/い/う/え/1\n!/!/!/!/999.9\n' }))
+    : { gameSongId: '001', title: '公開曲', creatorName: '', artist: 'Artist', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', txtContent: '10\nあ/い/う/え/1\n!/!/!/!/999.9\n' }))
   vi.stubGlobal('fetch', fetch)
   const host = document.createElement('div'); document.body.append(host)
   const root = createRoot(host)
@@ -96,7 +96,7 @@ it('loads a public song with its exact number and opens submission only when req
     await click('変更を申請する')
     expect([...host.querySelectorAll('label')].some(row => row.textContent?.startsWith('難易度'))).toBe(false)
     const notes = host.querySelector('textarea')!
-    expect(notes.value).toBe('公開された補足情報')
+    expect(notes.value).toBe('')
     await act(async () => {
       Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(notes, '2ページ目を修正\nタイミング確認をお願いします')
       notes.dispatchEvent(new Event('input', { bubbles: true }))

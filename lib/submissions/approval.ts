@@ -56,10 +56,10 @@ export async function approveSubmission(id: string, expected: number, gameSongId
     if (confirmation.song?.gameSongId !== gameSongId || confirmation.song?.title !== title || confirmation.song?.artist !== artist || confirmation.song?.level !== level) throw new SubmissionError(502, 'ランキングの登録内容を確認できません。')
     const data = {
       title, artist, level, levelValue: parseLevelValue(level),
-      youtubeUrl: row.youtubeUrl, creatorName: row.creatorName, gameSongId,
-      scoreTxt: row.txtContent, notes: row.notes,
+      youtubeUrl: row.youtubeUrl, gameSongId,
+      scoreTxt: row.txtContent,
     }
-    await tx.song.upsert({ where: { gameSongId }, create: data, update: data })
+    await tx.song.upsert({ where: { gameSongId }, create: { ...data, creatorName: row.creatorName }, update: data })
     await tx.chartSubmission.delete({ where: { id } })
     return { status: 'approved', gameSongId }
   }, { maxWait: 20000, timeout: 20000 })

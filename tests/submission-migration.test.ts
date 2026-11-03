@@ -48,7 +48,7 @@ describe.skipIf(!database)('game song primary key migration', () => {
         expect(columns.map(row => row.column_name)).not.toContain('id')
         expect(columns.map(row => row.column_name)).not.toContain('scoreEntries')
         expect(parseScoreTxt(expectedTxt).scoreEntries.map(page => page.timestamp)).toEqual([0, 2.25])
-        expect(columns.map(row => row.column_name)).toContain('notes')
+        expect(columns.map(row => row.column_name)).not.toContain('notes')
         expect(columns.map(row => row.column_name)).toContain('level')
         const submissionColumns = await db.$queryRaw<Array<{ column_name: string }>>`SELECT column_name FROM information_schema.columns WHERE table_schema = ${schema} AND table_name = 'chart_submission'`
         expect(submissionColumns.map(row => row.column_name)).toContain('level')

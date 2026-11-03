@@ -42,6 +42,8 @@ it('saves without a number, checks assigned numbers and registers unsaved change
     await act(async () => button('一覧を読み込む').click())
     expect(host.querySelector('table')!.textContent).toContain('承認待ち')
     await act(async () => button('確認・編集').click())
+    expect(host.textContent).toContain('変更を保存：LDCの申請内容を更新します。')
+    expect(host.textContent).toContain('LDCの公開曲を追加・更新し、申請を削除します。')
     expect(button('ランキングに登録').disabled).toBe(true)
     expect(button('変更を保存').disabled).toBe(false)
     await change(input('曲名'), '保存した曲名')
@@ -91,6 +93,7 @@ it('registers from the table after checking duplicates and confirming an existin
     await click('ランキングに登録', host.querySelector('table')!)
     const dialog = host.querySelector('dialog')!
     expect(dialog.open).toBe(true)
+    expect(dialog.textContent).toContain('LDCの公開曲を追加・更新し、申請を削除します。')
     const confirm = [...dialog.querySelectorAll('button')].find(b => b.textContent === '登録する')!
     expect(confirm.disabled).toBe(true)
     expect(dialog.textContent).toContain('同じ曲番号の申請が他にもあります')

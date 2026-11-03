@@ -21,7 +21,6 @@ model Song {
   gameSongId   String   @id
   creatorName  String?
   scoreTxt     String
-  notes        String   @default("")
 
   @@index([title])
   @@index([artist])

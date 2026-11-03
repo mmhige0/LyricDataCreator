@@ -72,7 +72,7 @@ export default function AdminSubmissionsPage() {
     const row = await submissionFetch(`/api/admin/submissions/${selected.id}`, key, {
       method: 'POST', body: JSON.stringify({ action: 'save', revision: selected.revision, registration }),
     })
-    adopt(row); await list(page); setMessage('変更を保存しました。まだランキングには反映していません。')
+    adopt(row); await list(page); setMessage('LDCの申請に変更を保存しました。ランキングにはまだ登録していません。')
   }
   const decide = async (action: 'approve' | 'reject' | 'restore') => {
     if (!selected) return
@@ -159,7 +159,11 @@ export default function AdminSubmissionsPage() {
               <label className="flex items-center gap-2"><input type="checkbox" checked={allowOverwrite} onChange={event => setAllowOverwrite(event.target.checked)} />この既存曲を更新する</label>
             </> : <p>ランキング・LDCとも、この曲番号は未登録です。</p>}
           </div>}
-          <p className="text-sm text-muted-foreground">曲情報と曲番号はどちらからでも設定できます。曲番号が未定でも変更を保存できます。</p>
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p>曲情報と曲番号はどちらからでも設定できます。曲番号が未定でも変更を保存できます。</p>
+            <p>変更を保存：LDCの申請内容を更新します。</p>
+            <p>ランキングに登録：ランキング登録後、LDCの公開曲を追加・更新し、申請を削除します。ゲームへの反映は別途必要です。</p>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="outline" disabled={busy || publishing || (!validNumber && registration.gameSongId !== '')}>変更を保存</Button>
             <Button type="button" disabled={busy || !(publishing || canApprove)} onClick={() => void run(() => decide('approve'))}>{publishing ? '同じ内容で登録を再試行' : 'ランキングに登録'}</Button>
@@ -227,6 +231,7 @@ function TableActionDialog({ row, kind, adminKey, onClose, onDone }: {
       <h2 id="table-action-heading" className="text-lg font-semibold">{kind === 'delete' ? '申請を削除しますか？' : publishing ? '同じ内容で登録を再試行' : '保存済みの内容でランキングに登録'}</h2>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm"><dt>曲番号</dt><dd>{current.gameSongId || '未設定'}</dd><dt>曲名</dt><dd>{current.title}</dd><dt>アーティスト</dt><dd>{current.artist || '未入力'}</dd><dt>難易度</dt><dd>{current.level || '未入力'}</dd></dl>
       {kind === 'delete' ? <p className="text-sm">この申請と編集用リンクを削除します。この操作は取り消せません。</p> : <>
+        <p className="text-sm">ランキング登録後、LDCの公開曲を追加・更新し、申請を削除します。ゲームへの反映は別途必要です。</p>
         {Boolean(current.duplicateCount || data?.otherSubmissions?.length) && <p role="alert" className="text-sm text-destructive">同じ曲番号の申請が他にもあります。登録する申請を確認してください。</p>}
         {publishing ? <p className="text-sm">登録処理中に保存した内容で再試行します。</p> : error ? <><p className="text-sm">{error.message}</p><Button variant="outline" size="sm" onClick={() => void mutate()}>再確認</Button></> : !data || isLoading ? <p className="text-sm">曲番号を確認中…</p> : existing ? <div className="space-y-2 text-sm"><p>この曲番号は登録済みです：{existing.title} / {existing.artist || '未入力'} / {existing.level || '未入力'}</p><label className="flex items-center gap-2"><input type="checkbox" checked={overwrite} onChange={event => setOverwrite(event.target.checked)} />この既存曲を更新する</label></div> : <p className="text-sm">ランキング・LDCとも、この曲番号は未登録です。</p>}
       </>}

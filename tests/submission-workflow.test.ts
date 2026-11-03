@@ -131,7 +131,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await attempt(true, { ...registration, title: '変更できない' })).status).toBe(409)
     rankingFails = false
     expect((await attempt(true)).status).toBe(200)
-    expect(await db.song.findUniqueOrThrow({ where: { gameSongId: '007' } })).toMatchObject({ ...registration, notes: input.notes, levelValue: 25 })
+    expect(await db.song.findUniqueOrThrow({ where: { gameSongId: '007' } })).toMatchObject({ ...registration, levelValue: 25 })
   })
   it('saves edits in submission columns and exposes them to the submitter and search', async () => {
     await create(request(input))
@@ -217,8 +217,9 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     const response = await approve()
     expect(response.status).toBe(200)
     const publicSong = await db.song.findFirstOrThrow()
-    expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: '-', notes: input.notes, youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
+    expect(publicSong).toMatchObject({ title: input.title, artist: input.artist, level: '-', youtubeUrl: 'https://www.youtube.com/watch?v=abcdefghijk', gameSongId: '001', creatorName: input.creatorName, scoreTxt: input.txtContent })
     expect(publicSong).not.toHaveProperty('scoreEntries')
+    expect(publicSong).not.toHaveProperty('notes')
     expect(await response.json()).toEqual({ status: 'approved', gameSongId: '001' })
     expect(await db.chartSubmission.count()).toBe(0)
     expect((await get(request(undefined, token, 'GET'), context())).status).toBe(404)
@@ -226,6 +227,18 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await approve()).status).toBe(404)
     expect(await db.song.count()).toBe(1)
     expect(rankingCalls).toBe(1)
+  })
+  it('preserves the first submitter on revisions and never fills missing submitters with revision authors', async () => {
+    await create(request(input)); await approve()
+    await create(request({ ...input, id: other, gameSongId: '001', creatorName: '修正者', title: '修正後', notes: '修正申請の補足' }))
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001', allowOverwrite: true }, admin), context(other))).status).toBe(200)
+    const revised = await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })
+    expect(revised).toMatchObject({ title: '修正後', creatorName: input.creatorName })
+    expect(revised).not.toHaveProperty('notes')
+    await db.song.update({ where: { gameSongId: '001' }, data: { creatorName: null } })
+    await create(request({ ...input, id: other, gameSongId: '001', creatorName: '別の修正者' }))
+    expect((await decide(request({ action: 'approve', revision: 1, gameSongId: '001', allowOverwrite: true }, admin), context(other))).status).toBe(200)
+    expect((await db.song.findUniqueOrThrow({ where: { gameSongId: '001' } })).creatorName).toBeNull()
   })
   it('pins the version/number after an uncertain response and completes publication on retry', async () => {
     await create(request(input))
@@ -251,7 +264,7 @@ describe.skipIf(!database)('submission workflow with PostgreSQL', () => {
     expect((await update(request({ ...input, revision: 2, title: '再修正版' }, token, 'PUT'), context())).status).toBe(200)
     expect((await db.song.findFirstOrThrow()).title).toBe('公開中')
     expect((await approve(3)).status).toBe(200)
-    expect(await db.song.findFirstOrThrow()).toMatchObject({ title: '再修正版', level: '-', levelValue: null, notes: input.notes })
+    expect(await db.song.findFirstOrThrow()).toMatchObject({ title: '再修正版', level: '-', levelValue: null })
     expect(await db.chartSubmission.count()).toBe(0)
   })
   it('recovers when ranking succeeds but the local public-song write fails', async () => {
