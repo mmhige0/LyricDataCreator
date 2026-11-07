@@ -42,7 +42,7 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.3",
-    "jsdom": "^30.1.2",
+    "jsdom": "^31.0.0",
     "prisma": "^7.10.0",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "vitest": "^5.0.4"
