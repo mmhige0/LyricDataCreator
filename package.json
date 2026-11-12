@@ -49,7 +49,7 @@
   },
   "overrides": {
     "@next/eslint-plugin-next": {
-      "glob": "^14.0.5"
+      "glob": "^14.0.6"
     }
   }
 }
