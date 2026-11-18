@@ -45,7 +45,7 @@
     "jsdom": "^31.0.1",
     "prisma": "^7.10.1",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.1"
   },
   "overrides": {
     "@next/eslint-plugin-next": {
