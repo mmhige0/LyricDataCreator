@@ -35,13 +35,15 @@ export function InlineLyricsInput({ entry, line, pageNumber, actions, selected =
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = (event: KeyboardEvent<HTMLElement>, editing: boolean) => {
     const pageKey = event.key === 'PageUp' || event.key === 'PageDown'
-    if ((!pageKey && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') || event.metaKey || event.shiftKey || (event.ctrlKey && event.altKey)) return
+    const tabKey = event.key === 'Tab'
+    if (tabKey && (!editing || event.ctrlKey || event.altKey || event.metaKey)) return
+    if ((!pageKey && !tabKey && event.key !== 'ArrowUp' && event.key !== 'ArrowDown') || event.metaKey || (event.shiftKey && !tabKey) || (event.ctrlKey && event.altKey)) return
     if (pageKey && (event.ctrlKey || event.altKey)) return
     const pageNavigation = pageKey || event.altKey
     if (!actions.onNavigate) return
     event.preventDefault()
     event.stopPropagation()
-    const direction = event.key === 'ArrowUp' || event.key === 'PageUp' ? -1 : 1
+    const direction = tabKey ? (event.shiftKey ? -1 : 1) : event.key === 'ArrowUp' || event.key === 'PageUp' ? -1 : 1
     // Resolve document boundaries after blur has committed normalization and sorting.
     if (event.ctrlKey && editing) flushSync(() => inputRef.current?.blur())
     const target = latestActions.current.onNavigate?.({ id: entry.id, line }, direction, event.ctrlKey ? 'document' : pageNavigation ? 'page' : 'line')
